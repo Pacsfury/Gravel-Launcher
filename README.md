@@ -46,7 +46,7 @@ val name := value
 Create namespaces using `namespace name:` and use indentation. (separation: '.')
 
 ### If, while and for
-Use indentation, and use the following syntax: `whatever cond:`. For `for`, use: `for int i=0; i<10; i++` or as wanted.
+Use indentation, and use the following syntax: `whatever cond:`. For `for`, use: `for i in list`, but classic sintax will also  be accepted `for int i=0; i<10; i++` or as wanted.
 
 ### Functions
 Use indentation, and use the reserved word `fun`. Define return type after args (optional).
@@ -106,6 +106,6 @@ Use the following pipeline for executing a file.
 ```powershell
 gravel init #Clears old package data, just in case
 gravel prepare package.grv #Give all the path separed by spaces, so it will internally relationate path and package names
-gravel run main.grv #Give the actual path of the main project file
+gravel run main.grv #Give the actual path of the main project file. IMPORTANT: run will probably include init, prepare and end, but old ways also accepted. If for some reason you want to use old commands, use gravel set --manual, and for returning to auto, gravel set --auto
 gravel end #Clear package data and free everything
 ```
