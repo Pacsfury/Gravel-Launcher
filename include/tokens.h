@@ -17,7 +17,9 @@ typedef enum {
     TOKEN_TYPEIS_LIST,
     TOKEN_EQUAL,
     TOKEN_INDENT,
-    TOKEN_DEDENT
+    TOKEN_DEDENT,
+    TOKEN_ISEQUAL,
+    TOKEN_AMPERSAND
 } TokenType;
 
 
@@ -39,7 +41,7 @@ typedef struct ASTNode {
     struct ASTNode* right;
 } ASTNode;
 
-void tokenize(char file[]);
+void raiseError(char error[]);
 
 void skipBlank(const char** current);
 
