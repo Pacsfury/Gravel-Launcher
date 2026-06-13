@@ -15,7 +15,6 @@ int main(int argc , char *argv[]) {
     if(hasArg(&ctx, "end")) {
         _launcherFree();
     }
-    tokenize("val name = 'je'");
 
     _launcherFree();
     return 0;
