@@ -68,7 +68,7 @@ class string: -> type
         text = extl
         len = bytes(text)
 ```
-Explanation: extl and impl are from type classes, and extl is the external value (in `string name = "hi"`, extl would be "hi"), and impl means implicit: can't be changed nor accessed by other than the class itself. It also means it's calculated by the class automatically.
+Explanation: extl and impl are from type classes, and extl is the external value (in `string name = "hi"`, extl would be "hi"), and impl means implicit: can't be changed, but can be accessed by other than the class itself. It also means it's calculated by the class automatically.
 
 The \_\_USE\_\_(): function is triggered when defined a value with the class type. This is ONLY for type classes.
 
