@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "../include/launcher.h"
 #include "../include/argc.h"
+#include "../include/tokens.h"
 
 int main(int argc , char *argv[]) {
 
@@ -14,6 +15,7 @@ int main(int argc , char *argv[]) {
     if(hasArg(&ctx, "end")) {
         _launcherFree();
     }
+    tokenize("val name = 'je'");
 
     _launcherFree();
     return 0;
