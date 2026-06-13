@@ -104,8 +104,5 @@ This is the Gravel _launcher_. This launcher goal is to provide basic CLI tools 
 Use the following pipeline for executing a file.
 
 ```powershell
-gravel init #Clears old package data, just in case
-gravel prepare package.grv #Give all the path separed by spaces, so it will internally relationate path and package names
-gravel run main.grv #Give the actual path of the main project file. IMPORTANT: run will probably include init, prepare and end, but old ways also accepted. If for some reason you want to use old commands, use gravel set --manual, and for returning to auto, gravel set --auto
-gravel end #Clear package data and free everything
+gravel run main.grv dependences path space separated.
 ```
