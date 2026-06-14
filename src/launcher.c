@@ -4,7 +4,7 @@
 
 Vector packages;
 
-void launcherInit() {
+void _launcherInit() {
     vec_free(&packages);
     vec_init(&packages);
 }

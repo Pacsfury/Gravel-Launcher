@@ -2,6 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void launcherInit();
+void _launcherInit();
 
 void _launcherFree();

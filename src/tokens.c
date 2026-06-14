@@ -13,7 +13,7 @@ Token tokens[512];
 int token_count = 0;
 
 void skipBlank(const char** current) {
-    while (**current == ' ' || **current == '\t' || **current == '\n') {
+    while (**current == ' ') {
         (*current)++;
     }
 }
@@ -32,7 +32,12 @@ void tokenize(const char* file) {
                 tokens[token_count].type = TOKEN_ADD;
                 break;
             case '-':
-                tokens[token_count].type = TOKEN_SUB;
+                if (*(source+1) == '>') {
+                    tokens[token_count].type = TOKEN_ARROW;
+                    source++;
+                } else { 
+                    tokens[token_count].type = TOKEN_SUB;
+                }
                 break;
             case '*':
                 tokens[token_count].type = TOKEN_STAR;
@@ -42,10 +47,10 @@ void tokenize(const char* file) {
                 break;
             case '=':
                 if (*(source + 1) == '=') {
-                    tokens[token_count].type = TOKEN_ISEQUAL;
+                    tokens[token_count].type = TOKEN_EQUAL;
                     source++;
                 } else {
-                    tokens[token_count].type = TOKEN_EQUAL;
+                    tokens[token_count].type = TOKEN_ASSIGN;
                 }
                 break;
             case ':':
@@ -55,6 +60,40 @@ void tokenize(const char* file) {
                 } else {
                     raiseError("Unexpected token");
                 }
+                break;
+            case '\t':
+                tokens[token_count].type = TOKEN_INDENT;
+                break;
+            case '\n':
+                tokens[token_count].type = TOKEN_NEWLINE;
+                break;
+            case '(':
+                tokens[token_count].type = TOKEN_LPAREN;
+                break;
+            case ')':
+                tokens[token_count].type = TOKEN_RPAREN;
+                break;
+            case '"':
+                tokens[token_count].type = TOKEN_QUOTE;
+                source++;
+                int s_len = 0;
+                while (*source != '"' && *source != '\0') {
+                    tokens[token_count].value[s_len++] = *source;
+                    source++;
+                }
+                tokens[token_count].value[s_len] = '\0';
+                if (*source == '\0') { raiseError("Unterminated string"); }
+                break;
+            case '\'':
+                tokens[token_count].type = TOKEN_QUOTE;
+                source++;
+                int t_len = 0;
+                while (*source != '\'' && *source != '\0') {
+                    tokens[token_count].value[t_len++] = *source;
+                    source++;
+                }
+                tokens[token_count].value[t_len] = '\0';
+                if (*source == '\0') { raiseError("Unterminated string"); }
                 break;
             case '&':
                 tokens[token_count].type = TOKEN_AMPERSAND;
@@ -88,7 +127,32 @@ void tokenize(const char* file) {
                     token_count++;
                     continue;
                 } else if (isdigit(*source)) {
-                    //put later
+                    int n_len = 0;
+                    char n_buffer[64];
+                    int is_float = 0;
+
+                    while ((isdigit(*source) || *source == '.') && n_len < 63) {
+                        if (*source == '.') {
+                            is_float = 1;
+                        }
+                        n_buffer[n_len++] = *source;
+                        source++;
+                    }
+                    n_buffer[n_len] = '\0';
+
+                    if (is_float) {
+                        tokens[token_count].type = TOKEN_FLOAT;
+                    } else {
+                        tokens[token_count].type = TOKEN_INT;
+                    }
+                    strcpy(tokens[token_count].value, n_buffer);
+                    
+                    token_count++;
+                    continue;
+                } else {
+                    raiseError("Unknown character");
+                    source++;
+                    continue;
                 }
 
 

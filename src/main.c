@@ -3,13 +3,13 @@
 #include "../include/argc.h"
 #include "../include/tokens.h"
 
-int main(int argc , char *argv[]) {
+int main(int argc, char *argv[]) {
 
     ARGS_CONTEX ctx = { argc, argv };
     args_init(&ctx, argc, argv);
 
     if(hasArg(&ctx, "init")) {
-        launcherInit();
+        _launcherInit();
     }
 
     if(hasArg(&ctx, "end")) {

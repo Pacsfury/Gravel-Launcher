@@ -18,8 +18,12 @@ typedef enum {
     TOKEN_EQUAL,
     TOKEN_INDENT,
     TOKEN_DEDENT,
-    TOKEN_ISEQUAL,
-    TOKEN_AMPERSAND
+    TOKEN_AMPERSAND,
+    TOKEN_NEWLINE,
+    TOKEN_RPAREN,
+    TOKEN_LPAREN,
+    TOKEN_ARROW,
+    TOKEN_QUOTE
 } TokenType;
 
 
@@ -46,4 +50,7 @@ void raiseError(char error[]);
 void skipBlank(const char** current);
 
 void tokenize(const char* file);
+
+void showTokens();
+
 #endif
