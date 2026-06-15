@@ -92,8 +92,8 @@ Right now, this is the current development of every feature:
 | Feature | Status |
 |---------|--------|
 |Tokenizer|FINISHED (can have updates)|
-|AST      |IN PROCESS |
-|Parser | NOT STARTED |
+|AST      |FINISHED (can have updates)|
+|Parser   |IN PROCESS |
 |LLVM converter | NOT STARTED |
 |Variables, types and classes | NOT STARTED |
 |Fucntions, namespaces, if, while, etc | NOT STARTED |
