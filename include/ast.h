@@ -33,3 +33,7 @@ typedef struct ASTNode {
         } var_decl;
     } data;
 } ASTNode;
+
+ASTNode* peek(const Token* token, int curr_pos);
+
+ASTNode* parse(const Token* tokens, int count);
