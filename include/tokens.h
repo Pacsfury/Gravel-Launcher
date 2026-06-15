@@ -14,7 +14,7 @@ typedef enum {
     TOKEN_VAR_INFER,
     TOKEN_ASSIGN,
     TOKEN_NAME,
-    TOKEN_TYPEIS_LIST,
+    TOKEN_TYPEIS_LIST, //for char[][], int[], etc
     TOKEN_EQUAL,
     TOKEN_INDENT,
     TOKEN_DEDENT,
