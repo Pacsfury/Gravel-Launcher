@@ -1,5 +1,4 @@
-#ifndef TOKENS_H
-#define TOKENS_H
+#pragma once
 
 typedef enum {
     TOKEN_EOF,
@@ -52,5 +51,3 @@ void skipBlank(const char** current);
 void tokenize(const char* file);
 
 void showTokens();
-
-#endif

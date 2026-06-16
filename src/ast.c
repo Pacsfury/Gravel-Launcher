@@ -13,8 +13,28 @@ Token* advance(const Token* t, int* c) {
     return &t[(*c)-1];
 }
 
-ASTNode* parse_expression(const Token* t, int*c) {
+ASTNode* parse_primary(const Token* t, int* c) {
+    Token* current = peek(t, c);
 
+    if (current->type == TOKEN_INT || current->type == TOKEN_FLOAT || current->type == TOKEN_QUOTE) {
+        ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+        node->type = NODE_LITERAL;
+        Token* lit_token = advance(t, c);
+        strcpy(node->data.literal.value, lit_token->value);
+        return node;
+    }
+
+    if (current->type == TOKEN_NAME) {
+        ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+        node->type = NODE_VARIABLE;
+        Token* var_token = advance(t, c);
+        strcpy(node->data.literal.value, var_token->value);
+        return node;
+    }
+}
+
+ASTNode* parse_expression(const Token* t, int*c) {
+    return parse_primary(t, c);
 }
 
 ASTNode* parse_statement(const Token* t, int* c) {
@@ -42,8 +62,11 @@ ASTNode* parse_statement(const Token* t, int* c) {
 
 ASTNode* parse(const Token* tokens, int count) {
     int current_token = 0;
+    ASTNode* root = NULL;
     
     while (peek(tokens, &current_token)->type != TOKEN_EOF) {
-        parse_statement(tokens, &current_token);
+        root = parse_statement(tokens, &current_token);
     }
+    
+    return root; 
 }
