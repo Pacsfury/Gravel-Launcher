@@ -33,16 +33,8 @@ typedef struct {
 
 typedef enum {
     NODE_NUMBER,
-    NODE_BINARY_OP
+    NODE_BINARY_OP2
 } NodeType;
-
-typedef struct ASTNode {
-    NodeType type;
-    int int_value;
-    char op;
-    struct ASTNode* left;
-    struct ASTNode* right;
-} ASTNode;
 
 void raiseError(char error[]);
 

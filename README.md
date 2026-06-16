@@ -96,7 +96,7 @@ Right now, this is the current development of every feature:
 |Parser   |IN PROCESS |
 |LLVM converter | NOT STARTED |
 |Variables, types and classes | NOT STARTED |
-|Fucntions, namespaces, if, while, etc | NOT STARTED |
+|Functions, namespaces, if, while, etc | NOT STARTED |
 |Packages, pointers, import and basic packages | NOT STARTED |
 
 ## Launcher
