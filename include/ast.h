@@ -1,16 +1,18 @@
 #pragma once
-#include "tokens.h"
 #include <stdlib.h>
 #include <string.h>
+#include "tokens.h"
+
 
 typedef enum {
     NODE_LITERAL,
     NODE_BINARY_OP,
     NODE_VARIABLE,
-    NODE_DECLARATION
+    NODE_DECLARATION,
+    NODE_PROGRAM
 } ASTNodeType;
 
-typedef struct ASTNode {
+typedef struct {
     ASTNodeType type;
 
     union {
@@ -31,10 +33,19 @@ typedef struct ASTNode {
             char name[64];
             struct ASTNode* value;
         } var_decl;
+
+        //PROGRAM
+        struct {
+            struct ASTNode** statements;
+            int count;
+        } program;
+
     } data;
 } ASTNode;
 
-ASTNode* peek(const Token* token, int curr_pos);
+Token* peek(const Token* t, int* c);
+
+Token* advance(const Token* t, int* c);
 
 ASTNode* parse(const Token* tokens, int count);
 
@@ -44,3 +55,8 @@ ASTNode* parse_expression(const Token* t, int*c);
 
 ASTNode* parse_statement(const Token* t, int* c);
 
+ASTNode* parse_multiplicative(const Token* t, int* c);
+ASTNode* parse_additive(const Token* t, int* c);
+
+//For debugging! To make this less painful :::::)))))))))))))))))
+void print_ast(const ASTNode* node, int depth);
