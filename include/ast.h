@@ -37,3 +37,10 @@ typedef struct ASTNode {
 ASTNode* peek(const Token* token, int curr_pos);
 
 ASTNode* parse(const Token* tokens, int count);
+
+ASTNode* parse_primary(const Token* t, int* c);
+
+ASTNode* parse_expression(const Token* t, int*c);
+
+ASTNode* parse_statement(const Token* t, int* c);
+
