@@ -3,4 +3,3 @@
 *.ilk
 *.obj
 *.pbd
-!clang.exe
