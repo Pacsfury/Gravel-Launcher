@@ -93,8 +93,8 @@ Right now, this is the current development of every feature:
 |---------|--------|
 |Tokenizer|FINISHED (can have updates)|
 |AST      |FINISHED (can have updates)|
-|Parser   |IN PROCESS |
-|LLVM converter | NOT STARTED |
+|Parser   |FINISHED (can have updates) |
+|LLVM converter | IN PROCESS |
 |Variables, types and classes | NOT STARTED |
 |Functions, namespaces, if, while, etc | NOT STARTED |
 |Packages, pointers, import and basic packages | NOT STARTED |
