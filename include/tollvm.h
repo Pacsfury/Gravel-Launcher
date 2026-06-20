@@ -5,3 +5,5 @@
 #include "ast.h"
 
 void to_llvm_ir(Token* tokens[], int token_count);
+
+void llvm_create_var(FILE* outf, char name[], char val[], char type[]);
