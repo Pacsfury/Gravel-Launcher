@@ -43,9 +43,9 @@ typedef struct {
     } data;
 } ASTNode;
 
-Token* peek(const Token* t, int* c);
+Token* peek(Token* t, int* c);
 
-Token* advance(const Token* t, int* c);
+Token* advance(Token* t, int* c);
 
 ASTNode* parse(const Token* tokens, int count);
 
