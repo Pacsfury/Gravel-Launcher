@@ -5,11 +5,11 @@
 #include "../include/tokens.h"
 
 
-Token* peek(const Token* t, int* c) {
+Token* peek(Token* t, int* c) {
     return &t[*c];
 }
 
-Token* advance(const Token* t, int* c) {
+Token* advance(Token* t, int* c) {
     (*c)++;
     return &t[(*c)-1];
 }
