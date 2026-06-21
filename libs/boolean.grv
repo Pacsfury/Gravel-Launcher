@@ -1,0 +1,45 @@
+package: boolean
+
+lazy opt import "warnings" //lazy -> import when needed. opt -> if not found, ignore instead of crashing
+
+namespace std:
+	class boolean: -> type
+		extl int ivalue
+		impl char[] bvalue
+		
+		fun __USE__():
+			ivalue = extl
+			if ivalue == 0:
+				bvalue = "false"
+			else:
+				bvalue = "true"
+
+		fun getPair():
+			return (bvalue, ivalue)
+
+		fun toCustom(char[] trueStr, char[] falseStr):
+			if ivalue == 0:
+				return falseStr
+			return trueStr
+		fun fromCustom(char[] text, char[] trueStr, char[] falseStr):
+			if text == falseStr:
+				ivalue = 0
+				bvalue = "false"
+			else if text == trueStr:
+				ivalue = 1
+				bvalue = "true"
+			else:
+				ivalue = 0
+				bvalue = "false"
+				std.warn.logWarning("Given char[] is invalid.")
+				
+		fun toggle():
+			if ivalue:
+				ivalue = 0
+				bvalue = "false"
+			else:
+				ivalue = 1
+				bvalue = "true"
+	group bool:
+		const boolean TRUE  = 1
+		const boolean FALSE = 0
