@@ -86,6 +86,8 @@ and
 
 `std.in.ask(&ref, char[])`
 
+_For a SINGLE character output I will add scho()_
+
 ## Status
 Right now, this is the current development of every feature:
  

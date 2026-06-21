@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
         _launcherFree();
     }
     Token* token;
-    to_llvm_ir(&token, 1);
+    to_llvm_ir(token, 1);
     _launcherFree();
     return 0;
 }
