@@ -4,6 +4,8 @@
 #include "tokens.h"
 #include "ast.h"
 
-void to_llvm_ir(Token* tokens[], int token_count);
+int to_llvm_ir(const Token* tokens, int token_count);
 
-void llvm_create_var(FILE* outf, char name[], char val[], char type[]);
+void llvm_create_var(FILE* outf, const char* name[], const char* val[], const char* type[]);
+
+void llvm_init_cout(FILE* outf);

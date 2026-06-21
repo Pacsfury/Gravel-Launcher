@@ -4,15 +4,25 @@
 #include "../include/ast.h"
 #include "../include/tokens.h"
 
+Token* peek(const Token* t, const int* c);
+Token* advance(const Token* t, int* c);
+ASTNode* parse_primary(const Token* t, int* c);
+ASTNode* parse_multiplicative(const Token* t, int* c);
+ASTNode* parse_additive(const Token* t, int* c);
+ASTNode* parse_expression(const Token* t, int* c);
+ASTNode* parse_statement(const Token* t, int* c);
+void raiseError(const char* message);
 
-Token* peek(Token* t, int* c) {
-    return &t[*c];
+
+Token* peek(const Token* t, const int* c) {
+    return (Token*)&t[*c];
 }
 
-Token* advance(Token* t, int* c) {
+Token* advance(const Token* t, int* c) {
     (*c)++;
-    return &t[(*c)-1];
+    return (Token*)&t[(*c)-1];
 }
+
 
 ASTNode* parse_multiplicative(const Token* t, int* c) {
     ASTNode* left = parse_primary(t, c);
@@ -50,7 +60,6 @@ ASTNode* parse_additive(const Token* t, int* c) {
     return left;
 }
 
-
 ASTNode* parse_primary(const Token* t, int* c) {
     Token* current = peek(t, c);
 
@@ -69,9 +78,11 @@ ASTNode* parse_primary(const Token* t, int* c) {
         strcpy(node->data.literal.value, var_token->value);
         return node;
     }
+
+    return NULL; 
 }
 
-ASTNode* parse_expression(const Token* t, int*c) {
+ASTNode* parse_expression(const Token* t, int* c) {
     return parse_additive(t, c);
 }
 
@@ -120,17 +131,14 @@ ASTNode* parse(const Token* tokens, int count) {
     return program_node; 
 }
 
-
 void print_ast(const ASTNode* node, int depth) {
     if (node == NULL) return;
 
-    // Imprimir espacios de sangría según la profundidad en el árbol
     for (int i = 0; i < depth; i++) printf("  ");
 
     switch (node->type) {
         case NODE_DECLARATION:
             printf("[DECLARATION] Variable: %s\n", node->data.var_decl.name);
-            // Imprimir el valor asignado con un nivel más de profundidad
             print_ast(node->data.var_decl.value, depth + 1);
             break;
             
@@ -147,12 +155,12 @@ void print_ast(const ASTNode* node, int depth) {
             print_ast(node->data.binary_op.left, depth + 1);
             print_ast(node->data.binary_op.right, depth + 1);
             break;
+            
         case NODE_PROGRAM:
             printf("[PROGRAM] Total Lines: %d\n", node->data.program.count);
             for (int i = 0; i < node->data.program.count; i++) {
                 print_ast(node->data.program.statements[i], depth + 1);
             }
             break;
-
     }
 }
