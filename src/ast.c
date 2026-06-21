@@ -11,8 +11,14 @@ ASTNode* parse_multiplicative(const Token* t, int* c);
 ASTNode* parse_additive(const Token* t, int* c);
 ASTNode* parse_expression(const Token* t, int* c);
 ASTNode* parse_statement(const Token* t, int* c);
+ASTNode* parse(const Token* tokens, int count);
+void print_ast(const ASTNode* node, int depth);
 void raiseError(const char* message);
 
+void raiseError(const char* message) {
+    fprintf(stderr, "Parser Error: %s\n", message);
+    exit(EXIT_FAILURE); 
+}
 
 Token* peek(const Token* t, const int* c) {
     return (Token*)&t[*c];
@@ -23,7 +29,6 @@ Token* advance(const Token* t, int* c) {
     return (Token*)&t[(*c)-1];
 }
 
-
 ASTNode* parse_multiplicative(const Token* t, int* c) {
     ASTNode* left = parse_primary(t, c);
     
@@ -32,6 +37,8 @@ ASTNode* parse_multiplicative(const Token* t, int* c) {
 
         ASTNode* right = parse_primary(t, c);
         ASTNode* bin_node = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!bin_node) raiseError("Memory allocation failed");
+        
         bin_node->type = NODE_BINARY_OP;
         bin_node->data.binary_op.op = op_token->type;
         bin_node->data.binary_op.left = left;
@@ -50,6 +57,8 @@ ASTNode* parse_additive(const Token* t, int* c) {
 
         ASTNode* right = parse_multiplicative(t, c);
         ASTNode* bin_node = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!bin_node) raiseError("Memory allocation failed");
+
         bin_node->type = NODE_BINARY_OP;
         bin_node->data.binary_op.op = op_token->type;
         bin_node->data.binary_op.left = left;
@@ -65,6 +74,8 @@ ASTNode* parse_primary(const Token* t, int* c) {
 
     if (current->type == TOKEN_INT || current->type == TOKEN_FLOAT || current->type == TOKEN_QUOTE) {
         ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!node) raiseError("Memory allocation failed");
+        
         node->type = NODE_LITERAL;
         Token* lit_token = advance(t, c);
         strcpy(node->data.literal.value, lit_token->value);
@@ -73,12 +84,15 @@ ASTNode* parse_primary(const Token* t, int* c) {
 
     if (current->type == TOKEN_NAME) {
         ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!node) raiseError("Memory allocation failed");
+        
         node->type = NODE_VARIABLE;
         Token* var_token = advance(t, c);
-        strcpy(node->data.literal.value, var_token->value);
+        strcpy(node->data.literal.value, var_token->value); 
         return node;
     }
 
+    raiseError("Unexpected token: expected a variable or literal expression");
     return NULL; 
 }
 
@@ -89,19 +103,24 @@ ASTNode* parse_expression(const Token* t, int* c) {
 ASTNode* parse_statement(const Token* t, int* c) {
     if (peek(t, c)->type == TOKEN_VAR_DEF) {
         ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!result) raiseError("Memory allocation failed");
+        
         result->type = NODE_DECLARATION;
         advance(t, c);
+        
         if (peek(t, c)->type == TOKEN_NAME) {
             Token* name_token = advance(t, c);
             strcpy(result->data.var_decl.name, name_token->value);
         } else {
             raiseError("Missing variable name after 'val'");
         }
+        
         if (peek(t, c)->type == TOKEN_ASSIGN) {
             advance(t, c);
         } else {
             raiseError("Missing '=' in variable declaration");
         }
+        
         result->data.var_decl.value = parse_expression(t, c);
         return result;
     } else {
@@ -113,12 +132,19 @@ ASTNode* parse(const Token* tokens, int count) {
     int current_token = 0;
     
     ASTNode* program_node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!program_node) raiseError("Memory allocation failed");
+    
     program_node->type = NODE_PROGRAM;
     program_node->data.program.count = 0;
     
     program_node->data.program.statements = (ASTNode**)malloc(sizeof(ASTNode*) * 100);
+    if (!program_node->data.program.statements) raiseError("Memory allocation failed");
     
     while (peek(tokens, &current_token)->type != TOKEN_EOF) {
+        if (program_node->data.program.count >= 100) {
+            raiseError("Program exceeds maximum limit of 100 statements");
+        }
+
         ASTNode* stmt = parse_statement(tokens, &current_token);
         
         if (stmt != NULL) {
