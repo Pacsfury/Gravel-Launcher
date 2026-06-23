@@ -4,21 +4,21 @@
 #include "../include/ast.h"
 #include "../include/tokens.h"
 
-Token* peek(const Token* t, const int* c);
-Token* advance(const Token* t, int* c);
-ASTNode* parse_primary(const Token* t, int* c);
-ASTNode* parse_multiplicative(const Token* t, int* c);
-ASTNode* parse_additive(const Token* t, int* c);
-ASTNode* parse_expression(const Token* t, int* c);
-ASTNode* parse_statement(const Token* t, int* c);
-ASTNode* parse(const Token* tokens, int count);
-void print_ast(const ASTNode* node, int depth);
-void raiseError(const char* message);
+// Token* peek(const Token* t, const int* c);
+// Token* advance(const Token* t, int* c);
+// ASTNode* parse_primary(const Token* t, int* c);
+// ASTNode* parse_multiplicative(const Token* t, int* c);
+// ASTNode* parse_additive(const Token* t, int* c);
+// ASTNode* parse_expression(const Token* t, int* c);
+// ASTNode* parse_statement(const Token* t, int* c);
+// ASTNode* parse(const Token* tokens, int count);
+// void print_ast(const ASTNode* node, int depth);
+// void raiseError(const char* message);
 
-void raiseError(const char* message) {
-    fprintf(stderr, "Parser Error: %s\n", message);
-    exit(EXIT_FAILURE); 
-}
+// void raiseError(const char* message) {
+//     fprintf(stderr, "Parser Error: %s\n", message);
+//     exit(EXIT_FAILURE); 
+// }
 
 Token* peek(const Token* t, const int* c) {
     return (Token*)&t[*c];
