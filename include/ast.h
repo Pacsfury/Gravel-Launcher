@@ -47,6 +47,4 @@ ASTNode* parse_additive(const Token* t, int* c);
 ASTNode* parse_expression(const Token* t, int* c);
 ASTNode* parse_statement(const Token* t, int* c);
 ASTNode* parse(const Token* tokens, int count);
-void raiseError(const char* message);
-
 void print_ast(const ASTNode* node, int depth);
