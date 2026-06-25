@@ -4,13 +4,13 @@ namespace rand:
 	fun initRNG():
 		int seed     = 1
 
-fun randint(int min, int max):
-	int module = 65536
-	int mul       = 25173
-	int increm  = 13849
-	
-	seed = ((seed * mul) + increm) % module
+	fun randint(int min, int max):
+		int module = 65536
+		int mul       = 25173
+		int increm  = 13849
+		
+		seed = ((seed * mul) + increm) % module
 
-return min + (seed ( % (max-min + 1)))
+		return min + (seed ( % (max-min + 1)))
 
 
