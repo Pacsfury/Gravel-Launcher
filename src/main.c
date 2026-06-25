@@ -18,6 +18,7 @@ int main(int argc, char *argv[]) {
         _launcherFree();
     }
     Token* token;
+    token->type = TOKEN_ADD;
     to_llvm_ir(token, 1);
     _launcherFree();
     return 0;
