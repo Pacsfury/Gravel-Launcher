@@ -37,7 +37,7 @@ Explicit:
 ```
 int name = value //or any other type (builtin: int, char, float)
 ```
-Inferenced:
+Inferred:
 ```
 val name := value
 ```
@@ -66,7 +66,7 @@ class string: -> type
     impl int len
     fun __USE__():
         text = extl
-        len = bytes(text)
+        len = sizeof(text)
 ```
 Explanation: extl and impl are from type classes, and extl is the external value (in `string name = "hi"`, extl would be "hi"), and impl means implicit: can't be changed, but can be accessed by other than the class itself. It also means it's calculated by the class automatically.
 
@@ -78,15 +78,13 @@ To create a pointer it's also the C way.
 
 `int* name = &reference`
 ### Input and output
-I will make a C lib called stdio, with, at least, two functions:
+I will make a lib with at least these two functions: (_For single character output, use `scho`_)
 
 `std.out.print(char[])`
 
 and
 
 `std.in.ask(&ref, char[])`
-
-_For a SINGLE character output I will add scho()_
 
 ## Status
 Right now, this is the current development of every feature:
