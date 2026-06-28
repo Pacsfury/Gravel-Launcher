@@ -4,22 +4,6 @@
 #include "../include/ast.h"
 #include "../include/tokens.h"
 
-// Token* peek(const Token* t, const int* c);
-// Token* advance(const Token* t, int* c);
-// ASTNode* parse_primary(const Token* t, int* c);
-// ASTNode* parse_multiplicative(const Token* t, int* c);
-// ASTNode* parse_additive(const Token* t, int* c);
-// ASTNode* parse_expression(const Token* t, int* c);
-// ASTNode* parse_statement(const Token* t, int* c);
-// ASTNode* parse(const Token* tokens, int count);
-// void print_ast(const ASTNode* node, int depth);
-// void raiseError(const char* message);
-
-// void raiseError(const char* message) {
-//     fprintf(stderr, "Parser Error: %s\n", message);
-//     exit(EXIT_FAILURE); 
-// }
-
 Token* peek(const Token* t, const int* c) {
     return (Token*)&t[*c];
 }
@@ -101,7 +85,9 @@ ASTNode* parse_expression(const Token* t, int* c) {
 }
 
 ASTNode* parse_statement(const Token* t, int* c) {
-    if (peek(t, c)->type == TOKEN_VAR_DEF) {
+    Token* current = peek(t, c);
+
+    if (current->type == TOKEN_VAR_DEF) {
         ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
         if (!result) raiseError("Memory allocation failed");
         
@@ -116,18 +102,30 @@ ASTNode* parse_statement(const Token* t, int* c) {
         }
         
         if (peek(t, c)->type == TOKEN_ASSIGN) {
-            advance(t, c);
+            advance(t, c); 
         } else {
             raiseError("Missing '=' in variable declaration");
         }
         
         result->data.var_decl.value = parse_expression(t, c);
         return result;
-    } else {
+    } 
+
+    else if (current->type == TOKEN_SCHO) {
+        ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!result) raiseError("Memory allocation failed");
+        
+        result->type = NODE_SCHO;
+        advance(t, c);
+        
+        result->data.scho_stmt.value = parse_expression(t, c);
+        
+        return result;
+    } 
+    else {
         return parse_expression(t, c);
     }
 }
-
 ASTNode* parse(const Token* tokens, int count) {
     int current_token = 0;
     
