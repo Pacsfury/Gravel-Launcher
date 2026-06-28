@@ -8,7 +8,8 @@ typedef enum {
     NODE_BINARY_OP,
     NODE_VARIABLE,
     NODE_DECLARATION,
-    NODE_PROGRAM
+    NODE_PROGRAM,
+    NODE_SCHO
 } ASTNodeType;
 
 typedef struct ASTNode {
@@ -34,6 +35,10 @@ typedef struct ASTNode {
             struct ASTNode** statements;
             int count;
         } program;
+
+        struct {
+            struct ASTNode* value; 
+        } scho_stmt;
 
     } data;
 } ASTNode;
