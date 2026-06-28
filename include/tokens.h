@@ -22,7 +22,8 @@ typedef enum {
     TOKEN_RPAREN,
     TOKEN_LPAREN,
     TOKEN_ARROW,
-    TOKEN_QUOTE
+    TOKEN_QUOTE,
+    TOKEN_SCHO
 } TokenType;
 
 
