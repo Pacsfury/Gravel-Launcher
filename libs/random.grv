@@ -3,6 +3,7 @@ package: random
 namespace rand:
 	fun initRNG():
 		int seed     = 1
+	end
 
 	fun randint(int min, int max):
 		int module = 65536
@@ -12,5 +13,6 @@ namespace rand:
 		seed = ((seed * mul) + increm) % module
 
 		return min + (seed ( % (max-min + 1)))
-
+	end
+end
 
