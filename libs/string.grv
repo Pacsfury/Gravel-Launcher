@@ -8,24 +8,32 @@ namespace std:
 		fun __USE__():
 			text   = extl
 			length = sizeof(text)
+		end
 		
 		fun replace(char rsrc, char res):
 			char* ractl = &text[0]
 			while *ractl != '\0':
 				if *ractl == rsrc:
 					*ractl = res
+				end
 				ractl++
+			end
+		end
 		
 		fun contains(char src):
 			char* cactl = &text[0]
 			while *cactl != '\0':
 				if *cactl == src:
 					return 1
+				end
 				cactl++
+			end
 			return 0
+		end
 
 		fun at(int idx):
 			return text[idx]
+		end
 
 		fun where(char src):
 			char* wactl = &text[0]
@@ -33,7 +41,9 @@ namespace std:
 			while *wactl != '\0':
 				if *wactl == src:
 					return idx
+				end
 				idx++
+			end
 			return -1
-			
+		end
 				

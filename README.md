@@ -43,20 +43,20 @@ val name := value
 ```
 
 ### Namespaces
-Create namespaces using `namespace name:` and use indentation. (separation: '.')
+Create namespaces using `namespace name:` and use the `end` keyword. (separation: '.')
 
 ### If, while and for
-Use indentation, and use the following syntax: `whatever cond:`. For `for`, use: `for i in list`, but classic syntax will also  be accepted `for int i=0; i<10; i++` or as wanted.
+Use the `end` keyword, and use the following syntax: `whatever cond:`. For `for`, use: `for i in list`, but classic syntax will also  be accepted `for int i=0; i<10; i++` or as wanted.
 
 ### Functions
-Use indentation, and use the reserved word `fun`. Define return type after args (optional).
+Use the `end` keyword, and use the reserved word `fun`. Define return type after args (optional).
 
 ```
 fun Main() char:
 ```
 
 ### Classes
-As everywhere, use indents. if you put `-> type` at the end of `class name:`, you are saying that this class will act as a type, instead of being a constructor that only saves things in memory using another type.
+As everywhere, use `end` to declare when the class ends. if you put `-> type` at the end of `class name:`, you are saying that this class will act as a type, instead of being a constructor that only saves things in memory using another type.
 
 With -> type:
 
@@ -67,6 +67,8 @@ class string: -> type
     fun __USE__():
         text = extl
         len = sizeof(text)
+    end
+end
 ```
 Explanation: extl and impl are from type classes, and extl is the external value (in `string name = "hi"`, extl would be "hi"), and impl means implicit: can't be changed, but can be accessed by other than the class itself. It also means it's calculated by the class automatically.
 
