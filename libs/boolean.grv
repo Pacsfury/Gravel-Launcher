@@ -13,14 +13,19 @@ namespace std:
 				bvalue = "false"
 			else:
 				bvalue = "true"
+			end
+		end
 
 		fun getPair():
 			return (bvalue, ivalue)
+		end
 
 		fun toCustom(char[] trueStr, char[] falseStr):
 			if ivalue == 0:
 				return falseStr
+			end
 			return trueStr
+		end
 		fun fromCustom(char[] text, char[] trueStr, char[] falseStr):
 			if text == falseStr:
 				ivalue = 0
@@ -32,6 +37,8 @@ namespace std:
 				ivalue = 0
 				bvalue = "false"
 				std.warn.logWarning("Given char[] is invalid.")
+			end
+		end
 				
 		fun toggle():
 			if ivalue:
@@ -40,6 +47,10 @@ namespace std:
 			else:
 				ivalue = 1
 				bvalue = "true"
-	group bool:
+			end
+		end
+	namespace bool:
 		const boolean TRUE  = 1
 		const boolean FALSE = 0
+	end
+end
