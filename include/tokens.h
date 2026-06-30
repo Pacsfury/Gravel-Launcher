@@ -15,15 +15,16 @@ typedef enum {
     TOKEN_NAME,
     TOKEN_TYPEIS_LIST, //for char[][], int[], etc
     TOKEN_EQUAL,
-    TOKEN_INDENT,
-    TOKEN_DEDENT,
     TOKEN_AMPERSAND,
     TOKEN_NEWLINE,
     TOKEN_RPAREN,
     TOKEN_LPAREN,
     TOKEN_ARROW,
     TOKEN_QUOTE,
-    TOKEN_SCHO
+    
+    //Keywords
+    TOKEN_SCHO,
+    TOKEN_END
 } TokenType;
 
 
