@@ -118,6 +118,8 @@ void tokenize(const char* file) {
                         tokens[token_count].type = TOKEN_CHAR;
                     } else if (strcmp(buffer, "scho") == 0) {
                         tokens[token_count].type = TOKEN_SCHO;
+                    } else if (strcmp(buffer, "end") == 0) {
+                        tokens[token_count].type = TOKEN_END;
                     } else {
                         tokens[token_count].type = TOKEN_NAME;
                         strcpy(tokens[token_count].value, buffer);
