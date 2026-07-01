@@ -2,8 +2,6 @@
 
 # Gravel
 ---
-> This is temporary, as can change in any moment.
-
 ## Approach
 **Gravel** is a **IN DEVELOPMENT** programming language. It's made to have a simple and neat syntax while having all low level power.
 
