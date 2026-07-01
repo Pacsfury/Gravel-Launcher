@@ -13,7 +13,7 @@ Token tokens[512];
 int token_count = 0;
 
 void skipBlank(const char** current) {
-    while (**current == ' ' || **current = '\t') {
+    while (**current == ' ' || **current == '\t') {
         (*current)++;
     }
 }
@@ -116,9 +116,10 @@ void tokenize(const char* file) {
                         tokens[token_count].type = TOKEN_FLOAT;
                     } else if (strcmp(buffer, "char") == 0) {
                         tokens[token_count].type = TOKEN_CHAR;
+                    } else if (strcmp(buffer, "scho") == 0) {
+                        tokens[token_count].type = TOKEN_SCHO;
                     } else if (strcmp(buffer, "end") == 0) {
                         tokens[token_count].type = TOKEN_END;
-
                     } else {
                         tokens[token_count].type = TOKEN_NAME;
                         strcpy(tokens[token_count].value, buffer);
@@ -161,5 +162,6 @@ void tokenize(const char* file) {
     }
     tokens[token_count].type = TOKEN_EOF;
 
+    to_llvm_ir(tokens, token_count);
     //Finish with tokenizer
 }

@@ -25,9 +25,15 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
     if (!node) return NULL;
 
     switch (node->type) {
-        case NODE_LITERAL:
-            return safe_strdup(node->data.literal.value);
-
+        case NODE_LITERAL: {
+            const char* v = node->data.literal.value;
+            if (strlen(v) == 1 && !isdigit(v[0])) {
+                char buf[8];
+                snprintf(buf, sizeof(buf), "%d", (int)v[0]);
+                return safe_strdup(buf);
+            }
+            return safe_strdup(v);
+        }
         case NODE_VARIABLE: {
             int reg = (*register_count)++;
             fprintf(outf, "    %%%d = load i32, ptr @%s, align 4\n", reg, node->data.literal.value);

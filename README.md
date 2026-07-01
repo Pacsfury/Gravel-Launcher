@@ -2,8 +2,6 @@
 
 # Gravel
 ---
-> This is temporary, as can change in any moment.
-
 ## Approach
 **Gravel** is a **IN DEVELOPMENT** programming language. It's made to have a simple and neat syntax while having all low level power.
 
@@ -109,3 +107,4 @@ Use the following pipeline for executing a file.
 ```powershell
 gravel run main.grv dependencies path space separated.
 ```
+(Maybe we will add a file for tracking dependencies, like Cargo.toml but for Gravel)
