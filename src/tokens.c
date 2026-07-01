@@ -13,7 +13,7 @@ Token tokens[512];
 int token_count = 0;
 
 void skipBlank(const char** current) {
-    while (**current == ' ') {
+    while (**current == ' ' || **current == '\t') {
         (*current)++;
     }
 }
@@ -60,9 +60,6 @@ void tokenize(const char* file) {
                 } else {
                     raiseError("Unexpected token");
                 }
-                break;
-            case '\t':
-                tokens[token_count].type = TOKEN_INDENT;
                 break;
             case '\n':
                 tokens[token_count].type = TOKEN_NEWLINE;
@@ -119,7 +116,8 @@ void tokenize(const char* file) {
                         tokens[token_count].type = TOKEN_FLOAT;
                     } else if (strcmp(buffer, "char") == 0) {
                         tokens[token_count].type = TOKEN_CHAR;
-
+                    } else if (strcmp(buffer, "scho") == 0) {
+                        tokens[token_count].type = TOKEN_SCHO;
                     } else {
                         tokens[token_count].type = TOKEN_NAME;
                         strcpy(tokens[token_count].value, buffer);
@@ -162,5 +160,6 @@ void tokenize(const char* file) {
     }
     tokens[token_count].type = TOKEN_EOF;
 
+    to_llvm_ir(tokens, token_count);
     //Finish with tokenizer
 }
