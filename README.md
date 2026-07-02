@@ -108,3 +108,10 @@ Use the following pipeline for executing a file.
 gravel run main.grv dependencies path space separated.
 ```
 (Maybe we will add a file for tracking dependencies, like Cargo.toml but for Gravel)
+
+## Update
+In 2026-07-02, first successfull compile was achieved. Next day, I started working on compilationg files.
+
+Expect this update coming soon, but not too soon, I ahve seen really strange things.
+
+I will publish the branch to Github once everything al least works.
