@@ -1,11 +1,11 @@
 scho('H')
-scho('e')
+val a=65
 scho('l')
 scho('l')
 scho('o')
 scho(',')
 scho(' ')
-scho('W')
+scho(a)
 scho('o')
 scho('r')
 scho('l')
