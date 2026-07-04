@@ -142,5 +142,6 @@ int to_llvm_ir(const Token* tokens, int token_count) {
 
     fclose(outf);
     printf("Compiled Succesfully");
+    exit(0);
     return 0;
 }
