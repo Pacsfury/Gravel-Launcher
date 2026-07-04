@@ -116,13 +116,27 @@ ASTNode* parse_statement(const Token* t, int* c) {
         if (!result) raiseError("Memory allocation failed");
         
         result->type = NODE_SCHO;
-        advance(t, c);
-        
+        advance(t, c); // consume 'scho'
+
+        if (peek(t, c)->type == TOKEN_LPAREN) {
+            advance(t, c); // consume '('
+        } else {
+            raiseError("Missing '(' after 'scho' function");
+        }
+
         result->data.scho_stmt.value = parse_expression(t, c);
+
+        if (peek(t, c)->type == TOKEN_RPAREN) {
+            advance(t, c); // consume ')'
+        } else {
+            raiseError("Missing ')' after function expression");
+        }
         
         return result;
-    } 
-    else {
+    } else if (current->type == TOKEN_NEWLINE) {
+        advance(t, c); // Consumir el salt de línia i avançar al següent token
+        return NULL;   // Retornar NULL és correcte aquí perquè 'parse' sap ignorar-lo
+    } else {
         return parse_expression(t, c);
     }
 }
