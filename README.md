@@ -115,3 +115,9 @@ In 2026-07-02, first successfull compile was achieved. Next day, I started worki
 Expect this update coming soon, but not too soon, I ahve seen really strange things.
 
 I will publish the branch to Github once everything al least works.
+
+---
+
+In 2026-07-04, first compiled program: "Hello, World!".
+
+There is a bug with variables, expect this being fixed soon.
