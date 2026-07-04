@@ -71,6 +71,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             char* val = compile_node(outf, node->data.var_decl.value, register_count);
             fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.var_decl.name);
             free(val);
+
             return NULL; 
         }
 
@@ -140,5 +141,6 @@ int to_llvm_ir(const Token* tokens, int token_count) {
     fprintf(outf, "}\n");
 
     fclose(outf);
+    printf("Compiled Succesfully");
     return 0;
 }

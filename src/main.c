@@ -15,14 +15,14 @@ int main(int argc, char *argv[]) {
         _launcherInit();
     }
 
-    tokenize("scho 'a'");
+    if(hasArg(&ctx, "run")) {
+        tokenizeFile(getArg(&ctx, "run"));
+    }
     
-    printf("Done");
 
     if(hasArg(&ctx, "end")) {
         _launcherFree();
     } else {
-
         _launcherFree();
     }
     

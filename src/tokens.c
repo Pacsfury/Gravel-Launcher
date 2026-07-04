@@ -1,6 +1,9 @@
 #include "../include/tokens.h"
+#include "../include/vector.h"
 #include <string.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 //TOKENIZER
 
@@ -15,6 +18,13 @@ int token_count = 0;
 void skipBlank(const char** current) {
     while (**current == ' ' || **current == '\t') {
         (*current)++;
+    }
+}
+
+void showTokens() {
+    int i = 0;
+    while(tokens[i].type != TOKEN_EOF) {
+        printf(tokens[i].value);
     }
 }
 
@@ -63,6 +73,7 @@ void tokenize(const char* file) {
                 break;
             case '\n':
                 tokens[token_count].type = TOKEN_NEWLINE;
+                tokens[token_count].value[0] = '\0';
                 break;
             case '(':
                 tokens[token_count].type = TOKEN_LPAREN;
@@ -164,4 +175,33 @@ void tokenize(const char* file) {
 
     to_llvm_ir(tokens, token_count);
     //Finish with tokenizer
+}
+
+void tokenizeFile(char* file) {
+    FILE* input = fopen(file, "r");
+    char line[256];
+    char *buffer = malloc(2048);
+    size_t buffer_len = 0;
+
+    if (!input || !buffer) {
+        if (input) fclose(input);
+        free(buffer);
+        return;
+    }
+
+    buffer[0] = '\0';
+
+    while (fgets(line, sizeof(line), input) != NULL) {
+        size_t line_len = strlen(line);
+        if (buffer_len + line_len >= 2048) {
+            break;
+        }
+        memcpy(buffer + buffer_len, line, line_len + 1);
+        buffer_len += line_len;
+    }
+
+    tokenize(buffer);
+
+    fclose(input);
+    free(buffer);
 }
