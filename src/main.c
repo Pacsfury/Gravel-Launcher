@@ -17,6 +17,7 @@ int main(int argc, char *argv[]) {
 
     if(hasArg(&ctx, "run")) {
         tokenizeFile(getArg(&ctx, "run"));
+        
     }
     
 
