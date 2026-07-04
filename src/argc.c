@@ -1,6 +1,7 @@
 #include "../include/argc.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 bool args_init(ARGS_CONTEX *ctx, int argc, char* argv[]) {
     if (ctx == NULL || argv == NULL || argc < 0)

@@ -45,3 +45,5 @@ void skipBlank(const char** current);
 void tokenize(const char* file);
 
 void showTokens();
+
+void tokenizeFile(char* file);
