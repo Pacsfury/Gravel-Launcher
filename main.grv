@@ -1,13 +1,5 @@
-val charo = 111
 scho('H')
-scho('e')
+scho('o')
 scho('l')
-scho('l')
-scho(charo)
-scho(' ')
-scho('W')
-scho(charo)
-scho('r')
-scho('l')
-scho('d')
-scho('!')
+val charactera = 65
+scho(charactera)
