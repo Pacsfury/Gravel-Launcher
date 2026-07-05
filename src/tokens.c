@@ -8,8 +8,10 @@
 //TOKENIZER
 
 void raiseError(char error[]) {
-    //Complete later
     //Make errors more helping and explaining
+    printf("--- ERROR! ---\n");
+    printf("%s\n", error);
+    exit(1);
 } 
 
 Token tokens[512];
@@ -25,6 +27,7 @@ void showTokens() {
     int i = 0;
     while(tokens[i].type != TOKEN_EOF) {
         printf(tokens[i].value);
+        i++;
     }
 }
 

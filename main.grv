@@ -1,5 +1,0 @@
-scho('H')
-scho('o')
-scho('l')
-val charactera = 65
-scho(charactera)
