@@ -101,10 +101,10 @@ ASTNode* parse_statement(const Token* t, int* c) {
             raiseError("Missing variable name after 'val'");
         }
         
-        if (peek(t, c)->type == TOKEN_ASSIGN) {
+        if (peek(t, c)->type == TOKEN_VAR_INFER) {
             advance(t, c); 
         } else {
-            raiseError("Missing '=' in variable declaration");
+            raiseError("Missing '=' (or :=) in variable declaration");
         }
         
         result->data.var_decl.value = parse_expression(t, c);
