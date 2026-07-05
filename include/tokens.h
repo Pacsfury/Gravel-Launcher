@@ -9,9 +9,9 @@ typedef enum {
     TOKEN_SUB,
     TOKEN_STAR, //Can be either pointer dereference or multiplication
     TOKEN_DIV,
-    TOKEN_VAR_DEF,
-    TOKEN_VAR_INFER,
-    TOKEN_ASSIGN,
+    TOKEN_VAR_DEF, // val
+    TOKEN_VAR_INFER, // :=
+    TOKEN_ASSIGN, // =
     TOKEN_NAME,
     TOKEN_TYPEIS_LIST, //for char[][], int[], etc
     TOKEN_EQUAL,
