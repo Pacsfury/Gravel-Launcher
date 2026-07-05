@@ -1,12 +1,12 @@
+val charo = 111
 scho('H')
-val a=65
+scho('e')
 scho('l')
 scho('l')
-scho('o')
-scho(',')
+scho(charo)
 scho(' ')
-scho(a)
-scho('o')
+scho('W')
+scho(charo)
 scho('r')
 scho('l')
 scho('d')
