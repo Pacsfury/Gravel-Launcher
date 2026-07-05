@@ -134,8 +134,8 @@ ASTNode* parse_statement(const Token* t, int* c) {
         
         return result;
     } else if (current->type == TOKEN_NEWLINE) {
-        advance(t, c); // Consumir el salt de línia i avançar al següent token
-        return NULL;   // Retornar NULL és correcte aquí perquè 'parse' sap ignorar-lo
+        advance(t, c);
+        return NULL;
     } else {
         return parse_expression(t, c);
     }
