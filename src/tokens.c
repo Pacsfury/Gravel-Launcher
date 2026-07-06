@@ -7,10 +7,11 @@
 
 //TOKENIZER
 
-void raiseError(char error[]) {
+void raiseError(char error[], char id[]) {
     //Make errors more helping and explaining
     printf("--- ERROR! ---\n");
     printf("%s\n", error);
+    printf("Run `gravel explain %s` to get more details (COMING SOON)", id);
     exit(1);
 } 
 
@@ -71,7 +72,7 @@ void tokenize(const char* file) {
                     tokens[token_count].type = TOKEN_VAR_INFER;
                     source++;
                 } else {
-                    raiseError("Unexpected token");
+                    raiseError("Unexpected token", "E0001");
                 }
                 break;
             case '\n':
@@ -93,7 +94,7 @@ void tokenize(const char* file) {
                     source++;
                 }
                 tokens[token_count].value[s_len] = '\0';
-                if (*source == '\0') { raiseError("Unterminated string"); }
+                if (*source == '\0') { raiseError("Unterminated string", "E0002"); }
                 break;
             case '\'':
                 tokens[token_count].type = TOKEN_QUOTE;
@@ -104,7 +105,7 @@ void tokenize(const char* file) {
                     source++;
                 }
                 tokens[token_count].value[t_len] = '\0';
-                if (*source == '\0') { raiseError("Unterminated string"); }
+                if (*source == '\0') { raiseError("Unterminated string", "E0002"); }
                 break;
             case '&':
                 tokens[token_count].type = TOKEN_AMPERSAND;
@@ -113,7 +114,7 @@ void tokenize(const char* file) {
                 if (isalpha(*source)) {
                     int len = 0;
                     char buffer[64];
-                    
+
                     while ((isalnum(*source) || *source == '.') && len < 63) {
                         buffer[len++] = *source;
                         source++;
@@ -165,7 +166,7 @@ void tokenize(const char* file) {
                     token_count++;
                     continue;
                 } else {
-                    raiseError("Unknown character");
+                    raiseError("Unknown character", "E0003");
                     source++;
                     continue;
                 }

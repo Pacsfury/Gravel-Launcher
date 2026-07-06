@@ -39,7 +39,7 @@ typedef enum {
     NODE_BINARY_OP2
 } NodeType;
 
-void raiseError(char error[]);
+void raiseError(char error[], char id[]);
 
 void skipBlank(const char** current);
 
