@@ -41,7 +41,7 @@ val name := value
 ```
 
 ### Namespaces
-Create namespaces using `namespace name:` and use the `end` keyword. (separation: '.')
+Create namespaces using `namespace name` and use the `end` keyword. (separation: '.')
 
 ### If, while and for
 Use the `end` keyword, and use the following syntax: `whatever cond:`. For `for`, use: `for i in list`, but classic syntax will also  be accepted `for int i=0; i<10; i++` or as wanted.
