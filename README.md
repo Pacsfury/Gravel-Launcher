@@ -41,7 +41,7 @@ val name := value
 ```
 
 ### Namespaces
-Create namespaces using `namespace name:` and use the `end` keyword. (separation: '.')
+Create namespaces using `namespace name` and use the `end` keyword. (separation: '.')
 
 ### If, while and for
 Use the `end` keyword, and use the following syntax: `whatever cond:`. For `for`, use: `for i in list`, but classic syntax will also  be accepted `for int i=0; i<10; i++` or as wanted.
@@ -95,8 +95,8 @@ Right now, this is the current development of every feature:
 |AST      |FINISHED (can have updates)|
 |Parser   |FINISHED (can have updates) |
 |LLVM converter | FINISHED (can have updates) |
-|Variables, types and classes | FINISHED (can have updates), 1/3 |
-|Functions, namespaces, if, while, etc | NOT STARTED |
+|Variables, types and classes | 1/3 |
+|Functions, namespaces, if, while, etc | 1/5 |
 |Packages, pointers, import and basic packages | NOT STARTED |
 
 ## Launcher
@@ -113,4 +113,5 @@ gravel run main.grv dependencies path space separated.
 Current compiler status:
 * Can compile files
 * Can do `scho`
+* Can declare and use `namespace`
 * Can define int variables and be used

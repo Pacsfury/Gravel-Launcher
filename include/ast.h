@@ -46,10 +46,10 @@ typedef struct ASTNode {
 
 Token* peek(const Token* t, const int* c);
 Token* advance(const Token* t, int* c);
-ASTNode* parse_primary(const Token* t, int* c);
-ASTNode* parse_multiplicative(const Token* t, int* c);
-ASTNode* parse_additive(const Token* t, int* c);
-ASTNode* parse_expression(const Token* t, int* c);
-ASTNode* parse_statement(const Token* t, int* c);
 ASTNode* parse(const Token* tokens, int count);
+ASTNode* parse_primary(const Token* t, int* c, const char* ns);
+ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns);
+ASTNode* parse_additive(const Token* t, int* c, const char* ns);
+ASTNode* parse_expression(const Token* t, int* c, const char* ns);
+ASTNode* parse_statement(const Token* t, int* c, const char* ns);
 void print_ast(const ASTNode* node, int depth);
