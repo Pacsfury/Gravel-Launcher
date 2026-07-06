@@ -145,10 +145,9 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
         }
         
         return result;
-    } 
-    else if (current->type == TOKEN_NEWLINE) {
-        advance(t, c); // Consume newline and advance
-        return NULL;   // Return NULL so `parse` can ignore it safely
+    } else if (current->type == TOKEN_NEWLINE) {
+        advance(t, c);
+        return NULL;
     } else {
         return parse_expression(t, c, ns);
     }
@@ -157,10 +156,9 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
 ASTNode* parse(const Token* tokens, int count) {
     int current_token = 0;
     
-    // Support nested namespaces (e.g., namespace a \ namespace b \ end \ end)
     char ns_stack[10][64]; 
     int ns_depth = 0;
-    char current_namespace[256] = ""; // Active namespace prefix (e.g., "a.b")
+    char current_namespace[256] = "";
     
     ASTNode* program_node = (ASTNode*)malloc(sizeof(ASTNode));
     if (!program_node) raiseError("Memory allocation failed");
@@ -178,45 +176,39 @@ ASTNode* parse(const Token* tokens, int count) {
 
         Token* current = peek(tokens, &current_token);
 
-        // -- HANDLE NAMESPACE CREATION --
         if (current->type == TOKEN_NAMESPACE) {
-            advance(tokens, &current_token); // consume 'namespace'
+            advance(tokens, &current_token); 
             
             Token* name_token = peek(tokens, &current_token);
             if (name_token->type != TOKEN_NAME) raiseError("Expected identifier after 'namespace'");
             
             if (ns_depth >= 10) raiseError("Maximum namespace depth exceeded");
             
-            // Add to stack
             strcpy(ns_stack[ns_depth++], name_token->value);
-            advance(tokens, &current_token); // consume name
+            advance(tokens, &current_token);
             
-            // Rebuild active namespace string
             current_namespace[0] = '\0';
             for (int i = 0; i < ns_depth; i++) {
                 strcat(current_namespace, ns_stack[i]);
                 if (i < ns_depth - 1) strcat(current_namespace, ".");
             }
-            continue; // Go to next token without adding a statement
+            continue;
         }
 
-        // -- HANDLE NAMESPACE END --
         if (current->type == TOKEN_END) {
-            advance(tokens, &current_token); // consume 'end'
+            advance(tokens, &current_token);
             if (ns_depth == 0) raiseError("Unexpected 'end' without matching 'namespace'");
             
-            ns_depth--; // Pop from stack
+            ns_depth--;
             
-            // Rebuild active namespace string
             current_namespace[0] = '\0';
             for (int i = 0; i < ns_depth; i++) {
                 strcat(current_namespace, ns_stack[i]);
                 if (i < ns_depth - 1) strcat(current_namespace, ".");
             }
-            continue; // Go to next token
+            continue; 
         }
 
-        // Parse regular statement with current namespace context
         ASTNode* stmt = parse_statement(tokens, &current_token, current_namespace);
         
         if (stmt != NULL) {
