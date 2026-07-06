@@ -1,5 +1,0 @@
-namespace ab
-    val a := 97
-end
-
-scho(ab.a)
