@@ -113,4 +113,5 @@ gravel run main.grv dependencies path space separated.
 Current compiler status:
 * Can compile files
 * Can do `scho`
+* Can declare and use `namespace`
 * Can define int variables and be used
