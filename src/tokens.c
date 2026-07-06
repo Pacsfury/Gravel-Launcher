@@ -113,13 +113,11 @@ void tokenize(const char* file) {
                 if (isalpha(*source)) {
                     int len = 0;
                     char buffer[64];
-                    while (isalnum(*source)) {
+                    
+                    while ((isalnum(*source) || *source == '.') && len < 63) {
                         buffer[len++] = *source;
                         source++;
                     }
-                    if (len > 63) {
-                        raiseError("Exceeded max size.");
-                    } 
                     buffer[len] = '\0';
 
                     if (strcmp(buffer, "val") == 0) {
@@ -134,6 +132,9 @@ void tokenize(const char* file) {
                         tokens[token_count].type = TOKEN_SCHO;
                     } else if (strcmp(buffer, "end") == 0) {
                         tokens[token_count].type = TOKEN_END;
+                    } else if (strcmp(buffer, "namespace") == 0) {
+                        // FIX: Changed '==' to '='
+                        tokens[token_count].type = TOKEN_NAMESPACE;
                     } else {
                         tokens[token_count].type = TOKEN_NAME;
                         strcpy(tokens[token_count].value, buffer);
@@ -168,8 +169,6 @@ void tokenize(const char* file) {
                     source++;
                     continue;
                 }
-
-
         }  
         source++;
         token_count++;
@@ -177,7 +176,6 @@ void tokenize(const char* file) {
     tokens[token_count].type = TOKEN_EOF;
 
     to_llvm_ir(tokens, token_count);
-    //Finish with tokenizer
 }
 
 void tokenizeFile(char* file) {

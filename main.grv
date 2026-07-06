@@ -1,13 +1,5 @@
-scho('H')
-val a = 65
-scho('l')
-scho('l')
-scho('o')
-scho(',')
-scho(' ')
-scho(a)
-scho('o')
-scho('r')
-scho('l')
-scho('d')
-scho('!')
+namespace ab
+    val a := 97
+end
+
+scho(ab.a)

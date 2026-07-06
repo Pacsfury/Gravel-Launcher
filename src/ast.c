@@ -13,13 +13,13 @@ Token* advance(const Token* t, int* c) {
     return (Token*)&t[(*c)-1];
 }
 
-ASTNode* parse_multiplicative(const Token* t, int* c) {
-    ASTNode* left = parse_primary(t, c);
+ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns) {
+    ASTNode* left = parse_primary(t, c, ns);
     
     while (peek(t, c)->type == TOKEN_STAR || peek(t, c)->type == TOKEN_DIV) {
         Token* op_token = advance(t, c);
 
-        ASTNode* right = parse_primary(t, c);
+        ASTNode* right = parse_primary(t, c, ns);
         ASTNode* bin_node = (ASTNode*)malloc(sizeof(ASTNode));
         if (!bin_node) raiseError("Memory allocation failed");
         
@@ -33,13 +33,13 @@ ASTNode* parse_multiplicative(const Token* t, int* c) {
     return left;
 }
 
-ASTNode* parse_additive(const Token* t, int* c) {
-    ASTNode* left = parse_multiplicative(t, c);
+ASTNode* parse_additive(const Token* t, int* c, const char* ns) {
+    ASTNode* left = parse_multiplicative(t, c, ns);
     
     while (peek(t, c)->type == TOKEN_ADD || peek(t, c)->type == TOKEN_SUB) {
         Token* op_token = advance(t, c);
 
-        ASTNode* right = parse_multiplicative(t, c);
+        ASTNode* right = parse_multiplicative(t, c, ns);
         ASTNode* bin_node = (ASTNode*)malloc(sizeof(ASTNode));
         if (!bin_node) raiseError("Memory allocation failed");
 
@@ -53,7 +53,7 @@ ASTNode* parse_additive(const Token* t, int* c) {
     return left;
 }
 
-ASTNode* parse_primary(const Token* t, int* c) {
+ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
     Token* current = peek(t, c);
 
     if (current->type == TOKEN_INT || current->type == TOKEN_FLOAT || current->type == TOKEN_QUOTE) {
@@ -72,7 +72,13 @@ ASTNode* parse_primary(const Token* t, int* c) {
         
         node->type = NODE_VARIABLE;
         Token* var_token = advance(t, c);
-        strcpy(node->data.literal.value, var_token->value); 
+        
+        // If we are currently inside a namespace AND the variable isn't already explicitly prefixed
+        if (ns != NULL && ns[0] != '\0' && strchr(var_token->value, '.') == NULL) {
+            sprintf(node->data.literal.value, "%s.%s", ns, var_token->value);
+        } else {
+            strcpy(node->data.literal.value, var_token->value); 
+        }
         return node;
     }
 
@@ -80,11 +86,11 @@ ASTNode* parse_primary(const Token* t, int* c) {
     return NULL; 
 }
 
-ASTNode* parse_expression(const Token* t, int* c) {
-    return parse_additive(t, c);
+ASTNode* parse_expression(const Token* t, int* c, const char* ns) {
+    return parse_additive(t, c, ns);
 }
 
-ASTNode* parse_statement(const Token* t, int* c) {
+ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
     Token* current = peek(t, c);
 
     if (current->type == TOKEN_VAR_DEF) {
@@ -96,7 +102,13 @@ ASTNode* parse_statement(const Token* t, int* c) {
         
         if (peek(t, c)->type == TOKEN_NAME) {
             Token* name_token = advance(t, c);
-            strcpy(result->data.var_decl.name, name_token->value);
+            
+            // Apply namespace prefix to the newly declared variable
+            if (ns != NULL && ns[0] != '\0') {
+                sprintf(result->data.var_decl.name, "%s.%s", ns, name_token->value);
+            } else {
+                strcpy(result->data.var_decl.name, name_token->value);
+            }
         } else {
             raiseError("Missing variable name after 'val'");
         }
@@ -107,7 +119,7 @@ ASTNode* parse_statement(const Token* t, int* c) {
             raiseError("Missing '=' (or :=) in variable declaration");
         }
         
-        result->data.var_decl.value = parse_expression(t, c);
+        result->data.var_decl.value = parse_expression(t, c, ns);
         return result;
     } 
 
@@ -124,7 +136,7 @@ ASTNode* parse_statement(const Token* t, int* c) {
             raiseError("Missing '(' after 'scho' function");
         }
 
-        result->data.scho_stmt.value = parse_expression(t, c);
+        result->data.scho_stmt.value = parse_expression(t, c, ns);
 
         if (peek(t, c)->type == TOKEN_RPAREN) {
             advance(t, c); // consume ')'
@@ -133,15 +145,22 @@ ASTNode* parse_statement(const Token* t, int* c) {
         }
         
         return result;
-    } else if (current->type == TOKEN_NEWLINE) {
-        advance(t, c); // Consumir el salt de línia i avançar al següent token
-        return NULL;   // Retornar NULL és correcte aquí perquè 'parse' sap ignorar-lo
+    } 
+    else if (current->type == TOKEN_NEWLINE) {
+        advance(t, c); // Consume newline and advance
+        return NULL;   // Return NULL so `parse` can ignore it safely
     } else {
-        return parse_expression(t, c);
+        return parse_expression(t, c, ns);
     }
 }
+
 ASTNode* parse(const Token* tokens, int count) {
     int current_token = 0;
+    
+    // Support nested namespaces (e.g., namespace a \ namespace b \ end \ end)
+    char ns_stack[10][64]; 
+    int ns_depth = 0;
+    char current_namespace[256] = ""; // Active namespace prefix (e.g., "a.b")
     
     ASTNode* program_node = (ASTNode*)malloc(sizeof(ASTNode));
     if (!program_node) raiseError("Memory allocation failed");
@@ -157,7 +176,48 @@ ASTNode* parse(const Token* tokens, int count) {
             raiseError("Program exceeds maximum limit of 100 statements");
         }
 
-        ASTNode* stmt = parse_statement(tokens, &current_token);
+        Token* current = peek(tokens, &current_token);
+
+        // -- HANDLE NAMESPACE CREATION --
+        if (current->type == TOKEN_NAMESPACE) {
+            advance(tokens, &current_token); // consume 'namespace'
+            
+            Token* name_token = peek(tokens, &current_token);
+            if (name_token->type != TOKEN_NAME) raiseError("Expected identifier after 'namespace'");
+            
+            if (ns_depth >= 10) raiseError("Maximum namespace depth exceeded");
+            
+            // Add to stack
+            strcpy(ns_stack[ns_depth++], name_token->value);
+            advance(tokens, &current_token); // consume name
+            
+            // Rebuild active namespace string
+            current_namespace[0] = '\0';
+            for (int i = 0; i < ns_depth; i++) {
+                strcat(current_namespace, ns_stack[i]);
+                if (i < ns_depth - 1) strcat(current_namespace, ".");
+            }
+            continue; // Go to next token without adding a statement
+        }
+
+        // -- HANDLE NAMESPACE END --
+        if (current->type == TOKEN_END) {
+            advance(tokens, &current_token); // consume 'end'
+            if (ns_depth == 0) raiseError("Unexpected 'end' without matching 'namespace'");
+            
+            ns_depth--; // Pop from stack
+            
+            // Rebuild active namespace string
+            current_namespace[0] = '\0';
+            for (int i = 0; i < ns_depth; i++) {
+                strcat(current_namespace, ns_stack[i]);
+                if (i < ns_depth - 1) strcat(current_namespace, ".");
+            }
+            continue; // Go to next token
+        }
+
+        // Parse regular statement with current namespace context
+        ASTNode* stmt = parse_statement(tokens, &current_token, current_namespace);
         
         if (stmt != NULL) {
             int idx = program_node->data.program.count;
@@ -166,39 +226,9 @@ ASTNode* parse(const Token* tokens, int count) {
         }
     }
     
-    return program_node; 
-}
-
-void print_ast(const ASTNode* node, int depth) {
-    if (node == NULL) return;
-
-    for (int i = 0; i < depth; i++) printf("  ");
-
-    switch (node->type) {
-        case NODE_DECLARATION:
-            printf("[DECLARATION] Variable: %s\n", node->data.var_decl.name);
-            print_ast(node->data.var_decl.value, depth + 1);
-            break;
-            
-        case NODE_LITERAL:
-            printf("[LITERAL] Value: %s\n", node->data.literal.value);
-            break;
-            
-        case NODE_VARIABLE:
-            printf("[VARIABLE] Name: %s\n", node->data.literal.value);
-            break;
-            
-        case NODE_BINARY_OP:
-            printf("[BINARY_OP] Operator Type: %d\n", node->data.binary_op.op);
-            print_ast(node->data.binary_op.left, depth + 1);
-            print_ast(node->data.binary_op.right, depth + 1);
-            break;
-            
-        case NODE_PROGRAM:
-            printf("[PROGRAM] Total Lines: %d\n", node->data.program.count);
-            for (int i = 0; i < node->data.program.count; i++) {
-                print_ast(node->data.program.statements[i], depth + 1);
-            }
-            break;
+    if (ns_depth > 0) {
+        raiseError("Unexpected end of file: missing 'end' for namespace");
     }
+    
+    return program_node; 
 }
