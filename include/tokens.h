@@ -21,10 +21,11 @@ typedef enum {
     TOKEN_LPAREN,
     TOKEN_ARROW,
     TOKEN_QUOTE,
-    
+
     //Keywords
     TOKEN_SCHO,
-    TOKEN_END
+    TOKEN_END,
+    TOKEN_NAMESPACE
 } TokenType;
 
 
