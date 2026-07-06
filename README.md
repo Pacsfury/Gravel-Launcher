@@ -95,8 +95,8 @@ Right now, this is the current development of every feature:
 |AST      |FINISHED (can have updates)|
 |Parser   |FINISHED (can have updates) |
 |LLVM converter | FINISHED (can have updates) |
-|Variables, types and classes | FINISHED (can have updates), 1/3 |
-|Functions, namespaces, if, while, etc | NOT STARTED |
+|Variables, types and classes | 1/3 |
+|Functions, namespaces, if, while, etc | 1/5 |
 |Packages, pointers, import and basic packages | NOT STARTED |
 
 ## Launcher
