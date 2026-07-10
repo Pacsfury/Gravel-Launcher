@@ -199,3 +199,7 @@ Current compiler status:
 
 ### 2026-07-07
 - Updated README with changelog
+
+### 2026-07-10
+- Optimized with constant folding
+- Added new flag (`-wE`) for showing time spent compiling
