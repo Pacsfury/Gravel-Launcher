@@ -115,3 +115,87 @@ Current compiler status:
 * Can do `scho`
 * Can declare and use `namespace`
 * Can define int variables and be used
+
+## Changelog
+<sub>The changelog idea is from [BeknYTprogamador](https://github.com/BeknYTprogamador)</sub>
+
+### 2026-06-12
+- Project initialization and first commit
+- Started development on the compiler (Day 1: Tokenizer)
+- Added initial README file with small fixes
+
+### 2026-06-13
+- Continued tokenizer development
+- Removed accidental files
+- Updated README with new `gravel` command usage details
+- Clarified `extl` and `impl` definitions in the README
+
+### 2026-06-14
+- Finished tokenizer development and started AST (Abstract Syntax Tree)
+
+### 2026-06-15
+- Finished AST development and started the parser
+- Updated project status section in the README
+
+### 2026-06-16
+- Prepared AST and parser for bug fixes
+- Fixed bugs, debugged, and added `clang.exe` for future use
+
+### 2026-06-17
+- Fixed various bugs
+
+### 2026-06-18
+- Started LLVM IR translation and noted initial bugs
+
+### 2026-06-20
+- Started mapping variables to LLVM IR
+
+### 2026-06-21
+- Added `libs` folder featuring standard packages written in Gravel
+- Implemented single-character output experimentation in LLVM
+- Continued LLVM IR transpilation work and resolved active bugs
+- Updated the README
+
+### 2026-06-23
+- Codebase fixes and general maintenance
+
+### 2026-06-25
+- Code debugging and system fixes
+- Fixed the random library implementation
+
+### 2026-06-26
+- Fixed spelling errors and enhanced terminology clarity in the README
+
+### 2026-06-28
+- Implemented LLVM transpilation updates and performed debugging
+
+### 2026-06-30
+- Removed forced indentation requirements
+- Added notes to the README regarding the future Gravel dependency tracking file
+
+### 2026-07-01
+- Released the first working version of the project
+- Updated project status and removed temporary notes from the README
+
+### 2026-07-02
+- Added compilation details to the update section of the README
+
+### 2026-07-04
+- Achieved successful file compilation and executed the first "Hello, World!"
+- Updated the README with bug notes and future development plans
+- General code fixes
+
+### 2026-07-05
+- Added error management logic and variable inference capabilities for `INT`
+- General code tweaks and performance optimization
+- Updated project status in the README
+- Deleted the temporary `main.grv` file
+
+### 2026-07-06
+- Added full support and implementation for Namespaces
+- Updated the README with the new namespace syntax and declaration capabilities
+- Revised progress status in the README
+- Prepared infrastructure for Error Explaining 2.0
+
+### 2026-07-07
+- Updated README with changelog
