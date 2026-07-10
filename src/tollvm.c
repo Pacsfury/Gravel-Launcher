@@ -4,6 +4,7 @@
 #include "../include/tokens.h"
 #include "../include/ast.h"
 #include "../include/tollvm.h"
+#include "../include/argc.h"
 
 static char* safe_strdup(const char* s) {
     char* d = malloc(strlen(s) + 1);
@@ -92,7 +93,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
     return NULL;
 }
 
-int to_llvm_ir(const Token* tokens, int token_count) {
+int to_llvm_ir(const Token* tokens, int token_count, ARGS_CONTEX* ctx) {
     FILE *outf = fopen("output.ll", "w");
     if (outf == NULL) {
         printf("Error: Could not open or create output.ll file.\n");
@@ -142,6 +143,8 @@ int to_llvm_ir(const Token* tokens, int token_count) {
 
     fclose(outf);
     printf("Compiled Succesfully");
-    exit(0);
+    if (!hasArg(ctx, "-wE")) {
+        exit(0);
+    }
     return 0;
 }
