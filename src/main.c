@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "../include/launcher.h"
 #include "../include/argc.h"
 #include "../include/tokens.h"
@@ -7,6 +8,8 @@
 #include "../include/tollvm.h"
 
 int main(int argc, char *argv[]) {
+
+    clock_t start_time = clock();
 
     ARGS_CONTEX ctx = { argc, argv };
     args_init(&ctx, argc, argv);
@@ -16,7 +19,8 @@ int main(int argc, char *argv[]) {
     }
 
     if(hasArg(&ctx, "run")) {
-        tokenizeFile(getArg(&ctx, "run"));
+        tokenizeFile(getArg(&ctx, "run"), &ctx);
+        printf("\ndone\n");
         
     }
     
@@ -27,5 +31,10 @@ int main(int argc, char *argv[]) {
         _launcherFree();
     }
     
+    clock_t end_time = clock();
+
+    double time_taken = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+
+    printf("Task finished! It took %f seconds.\n", time_taken);
     return 0;
 }
