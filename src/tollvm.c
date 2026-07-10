@@ -142,7 +142,7 @@ int to_llvm_ir(const Token* tokens, int token_count, ARGS_CONTEX* ctx) {
     fprintf(outf, "}\n");
 
     fclose(outf);
-    printf("Compiled Succesfully");
+    printf("\nCompiled Succesfully\n");
     if (!hasArg(ctx, "-wE")) {
         exit(0);
     }
