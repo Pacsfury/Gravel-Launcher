@@ -1,4 +1,5 @@
 #pragma once
+#include "argc.h"
 
 typedef enum {
     TOKEN_EOF,
@@ -43,8 +44,8 @@ void raiseError(char error[], char id[]);
 
 void skipBlank(const char** current);
 
-void tokenize(const char* file);
+void tokenize(const char* file, ARGS_CONTEX* ctx);
 
 void showTokens();
 
-void tokenizeFile(char* file);
+void tokenizeFile(char* file, ARGS_CONTEX* ctx);

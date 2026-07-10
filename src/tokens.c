@@ -1,22 +1,35 @@
 #include "../include/tokens.h"
 #include "../include/vector.h"
+#include "../include/argc.h"
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-//TOKENIZER
+// TOKENIZER
 
 void raiseError(char error[], char id[]) {
-    //Make errors more helping and explaining
     printf("--- ERROR! ---\n");
     printf("%s\n", error);
-    printf("Run `gravel explain %s` to get more details (COMING SOON)", id);
+    printf("Run `gravel explain %s` to get more details (COMING SOON)\n", id);
     exit(1);
 } 
 
-Token tokens[512];
+Token* tokens = NULL;
 int token_count = 0;
+int token_capacity = 0; 
+
+void reserveTokenSpace() {
+    if (token_count >= token_capacity) {
+        token_capacity = (token_capacity == 0) ? 512 : token_capacity * 2;
+        Token* temp = realloc(tokens, token_capacity * sizeof(Token));
+        if (!temp) {
+            free(tokens);
+            raiseError("Out of memory allocation for tokens", "E0000");
+        }
+        tokens = temp;
+    }
+}
 
 void skipBlank(const char** current) {
     while (**current == ' ' || **current == '\t') {
@@ -27,12 +40,12 @@ void skipBlank(const char** current) {
 void showTokens() {
     int i = 0;
     while(tokens[i].type != TOKEN_EOF) {
-        printf(tokens[i].value);
+        printf("%s", tokens[i].value);
         i++;
     }
 }
 
-void tokenize(const char* file) {
+void tokenize(const char* file, ARGS_CONTEX* ctx) {
     const char* source = file;
     while (*source != '\0') {
         skipBlank(&source);
@@ -40,6 +53,8 @@ void tokenize(const char* file) {
         if (*source == '\0') {
             break;
         }
+
+        reserveTokenSpace();
 
         switch (*source) {
             case '+':
@@ -134,7 +149,6 @@ void tokenize(const char* file) {
                     } else if (strcmp(buffer, "end") == 0) {
                         tokens[token_count].type = TOKEN_END;
                     } else if (strcmp(buffer, "namespace") == 0) {
-                        // FIX: Changed '==' to '='
                         tokens[token_count].type = TOKEN_NAMESPACE;
                     } else {
                         tokens[token_count].type = TOKEN_NAME;
@@ -174,20 +188,26 @@ void tokenize(const char* file) {
         source++;
         token_count++;
     }
+    
+    reserveTokenSpace();
     tokens[token_count].type = TOKEN_EOF;
 
-    to_llvm_ir(tokens, token_count);
+    to_llvm_ir(tokens, token_count, ctx);
+    
+
 }
 
-void tokenizeFile(char* file) {
+void tokenizeFile(char* file, ARGS_CONTEX* ctx) {
     FILE* input = fopen(file, "r");
+    if (!input) return;
+
     char line[256];
-    char *buffer = malloc(2048);
+    size_t buffer_capacity = 2048;
+    char *buffer = malloc(buffer_capacity);
     size_t buffer_len = 0;
 
-    if (!input || !buffer) {
-        if (input) fclose(input);
-        free(buffer);
+    if (!buffer) {
+        fclose(input);
         return;
     }
 
@@ -195,15 +215,25 @@ void tokenizeFile(char* file) {
 
     while (fgets(line, sizeof(line), input) != NULL) {
         size_t line_len = strlen(line);
-        if (buffer_len + line_len >= 2048) {
-            break;
+        
+        while (buffer_len + line_len >= buffer_capacity) {
+            buffer_capacity *= 2;
+            char* temp = realloc(buffer, buffer_capacity);
+            if (!temp) {
+                free(buffer);
+                fclose(input);
+                raiseError("Out of memory allocation for file buffer", "E0000");
+            }
+            buffer = temp;
         }
+        
         memcpy(buffer + buffer_len, line, line_len + 1);
         buffer_len += line_len;
     }
 
-    tokenize(buffer);
+    tokenize(buffer, ctx);
 
     fclose(input);
     free(buffer);
+    free(tokens);
 }
