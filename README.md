@@ -1,6 +1,8 @@
 <img src="img/logo.png">
 
 # Gravel
+<sub>Alpha 0.0.3</sub>
+
 ---
 ## Approach
 **Gravel** is a **IN DEVELOPMENT** programming language. It's made to have a simple and neat syntax while having all low level power.
