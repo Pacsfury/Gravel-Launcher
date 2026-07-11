@@ -91,10 +91,10 @@ Right now, this is the current development of every feature:
  
 | Feature | Status |
 |---------|--------|
-|Tokenizer|FINISHED (can have updates)|
-|AST      |FINISHED (can have updates)|
-|Parser   |FINISHED (can have updates) |
-|LLVM converter | FINISHED (can have updates) |
+|Tokenizer|Working|
+|AST      |Working|
+|Parser   |Working|
+|LLVM converter |Working|
 |Variables, types and classes | 1/3 |
 |Functions, namespaces, if, while, etc | 1/5 |
 |Packages, pointers, import and basic packages | NOT STARTED |
@@ -109,12 +109,15 @@ gravel run main.grv dependencies path space separated.
 ```
 (Maybe we will add a file for tracking dependencies, like Cargo.toml but for Gravel)
 
+## Flags
+* `-wE`: Shows various information, as time and token count.
+
 ## Update
 Current compiler status:
 * Can compile files
 * Can do `scho`
 * Can declare and use `namespace`
-* Can define int variables and be used
+* Can define int variables (with inference) and be used
 
 ## Changelog
 <sub>The changelog idea is from [BeknYTprogamador](https://github.com/BeknYTprogamador)</sub>
@@ -203,3 +206,6 @@ Current compiler status:
 ### 2026-07-10
 - Optimized with constant folding
 - Added new flag (`-wE`) for showing time spent compiling
+
+### 2026-07-11
+- Added token count when using `-wE`.

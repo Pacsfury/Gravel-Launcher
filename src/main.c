@@ -20,7 +20,6 @@ int main(int argc, char *argv[]) {
 
     if(hasArg(&ctx, "run")) {
         tokenizeFile(getArg(&ctx, "run"), &ctx);
-        
     }
     
 
@@ -34,6 +33,7 @@ int main(int argc, char *argv[]) {
 
     double time_taken = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
-    printf("| %f s |\n", time_taken);
+    printf("| %f s | %d tokens |\n", time_taken, token_count);
+
     return 0;
 }
