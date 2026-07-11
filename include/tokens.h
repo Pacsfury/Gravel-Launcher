@@ -49,3 +49,5 @@ void tokenize(const char* file, ARGS_CONTEX* ctx);
 void showTokens();
 
 void tokenizeFile(char* file, ARGS_CONTEX* ctx);
+
+extern int token_count;
