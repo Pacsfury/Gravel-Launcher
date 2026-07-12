@@ -1,21 +1,36 @@
 #include "../include/tokens.h"
 #include "../include/vector.h"
+#include "../include/argc.h"
+#include "../include/tollvm.h"
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-//TOKENIZER
+// TOKENIZER
 
-void raiseError(char error[]) {
-    //Make errors more helping and explaining
+void raiseError(char error[], char id[]) {
     printf("--- ERROR! ---\n");
     printf("%s\n", error);
+    printf("Run `gravel explain %s` to get more details (COMING SOON)\n", id);
     exit(1);
 } 
 
-Token tokens[512];
+Token* tokens = NULL;
 int token_count = 0;
+int token_capacity = 0; 
+
+void reserveTokenSpace() {
+    if (token_count >= token_capacity) {
+        token_capacity = (token_capacity == 0) ? 512 : token_capacity * 2;
+        Token* temp = realloc(tokens, token_capacity * sizeof(Token));
+        if (!temp) {
+            free(tokens);
+            raiseError("Out of memory allocation for tokens", "E0000");
+        }
+        tokens = temp;
+    }
+}
 
 void skipBlank(const char** current) {
     while (**current == ' ' || **current == '\t') {
@@ -26,12 +41,12 @@ void skipBlank(const char** current) {
 void showTokens() {
     int i = 0;
     while(tokens[i].type != TOKEN_EOF) {
-        printf(tokens[i].value);
+        printf("%s", tokens[i].value);
         i++;
     }
 }
 
-void tokenize(const char* file) {
+void tokenize(const char* file, ARGS_CONTEX* ctx) {
     const char* source = file;
     while (*source != '\0') {
         skipBlank(&source);
@@ -39,6 +54,8 @@ void tokenize(const char* file) {
         if (*source == '\0') {
             break;
         }
+
+        reserveTokenSpace();
 
         switch (*source) {
             case '+':
@@ -71,7 +88,7 @@ void tokenize(const char* file) {
                     tokens[token_count].type = TOKEN_VAR_INFER;
                     source++;
                 } else {
-                    raiseError("Unexpected token");
+                    raiseError("Unexpected token", "E0001");
                 }
                 break;
             case '\n':
@@ -93,7 +110,7 @@ void tokenize(const char* file) {
                     source++;
                 }
                 tokens[token_count].value[s_len] = '\0';
-                if (*source == '\0') { raiseError("Unterminated string"); }
+                if (*source == '\0') { raiseError("Unterminated string", "E0002"); }
                 break;
             case '\'':
                 tokens[token_count].type = TOKEN_QUOTE;
@@ -104,7 +121,7 @@ void tokenize(const char* file) {
                     source++;
                 }
                 tokens[token_count].value[t_len] = '\0';
-                if (*source == '\0') { raiseError("Unterminated string"); }
+                if (*source == '\0') { raiseError("Unterminated string", "E0002"); }
                 break;
             case '&':
                 tokens[token_count].type = TOKEN_AMPERSAND;
@@ -113,7 +130,7 @@ void tokenize(const char* file) {
                 if (isalpha(*source)) {
                     int len = 0;
                     char buffer[64];
-                    
+
                     while ((isalnum(*source) || *source == '.') && len < 63) {
                         buffer[len++] = *source;
                         source++;
@@ -133,8 +150,17 @@ void tokenize(const char* file) {
                     } else if (strcmp(buffer, "end") == 0) {
                         tokens[token_count].type = TOKEN_END;
                     } else if (strcmp(buffer, "namespace") == 0) {
-                        // FIX: Changed '==' to '='
                         tokens[token_count].type = TOKEN_NAMESPACE;
+                    } else if (strcmp(buffer, "import") == 0) {
+                        tokens[token_count].type = TOKEN_IMPORT;
+                    } else if (strcmp(buffer, "class") == 0) {
+                        tokens[token_count].type = TOKEN_CLASS;
+                    } else if (strcmp(buffer, "fun") == 0) {
+                        tokens[token_count].type = TOKEN_FUN;
+                    } else if (strcmp(buffer, "impl") == 0) {
+                        tokens[token_count].type = TOKEN_IMPL;
+                    } else if (strcmp(buffer, "extl") == 0) {
+                        tokens[token_count].type = TOKEN_EXTL;
                     } else {
                         tokens[token_count].type = TOKEN_NAME;
                         strcpy(tokens[token_count].value, buffer);
@@ -165,7 +191,7 @@ void tokenize(const char* file) {
                     token_count++;
                     continue;
                 } else {
-                    raiseError("Unknown character");
+                    raiseError("Unknown character", "E0003");
                     source++;
                     continue;
                 }
@@ -173,20 +199,26 @@ void tokenize(const char* file) {
         source++;
         token_count++;
     }
+    
+    reserveTokenSpace();
     tokens[token_count].type = TOKEN_EOF;
 
-    to_llvm_ir(tokens, token_count);
+    to_llvm_ir(tokens, token_count, ctx);
+    
+
 }
 
-void tokenizeFile(char* file) {
+void tokenizeFile(char* file, ARGS_CONTEX* ctx) {
     FILE* input = fopen(file, "r");
+    if (!input) return;
+
     char line[256];
-    char *buffer = malloc(2048);
+    size_t buffer_capacity = 2048;
+    char *buffer = malloc(buffer_capacity);
     size_t buffer_len = 0;
 
-    if (!input || !buffer) {
-        if (input) fclose(input);
-        free(buffer);
+    if (!buffer) {
+        fclose(input);
         return;
     }
 
@@ -194,15 +226,25 @@ void tokenizeFile(char* file) {
 
     while (fgets(line, sizeof(line), input) != NULL) {
         size_t line_len = strlen(line);
-        if (buffer_len + line_len >= 2048) {
-            break;
+        
+        while (buffer_len + line_len >= buffer_capacity) {
+            buffer_capacity *= 2;
+            char* temp = realloc(buffer, buffer_capacity);
+            if (!temp) {
+                free(buffer);
+                fclose(input);
+                raiseError("Out of memory allocation for file buffer", "E0000");
+            }
+            buffer = temp;
         }
+        
         memcpy(buffer + buffer_len, line, line_len + 1);
         buffer_len += line_len;
     }
 
-    tokenize(buffer);
+    tokenize(buffer, ctx);
 
     fclose(input);
     free(buffer);
+    free(tokens);
 }

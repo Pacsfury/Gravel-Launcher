@@ -1,4 +1,5 @@
 #pragma once
+#include "argc.h"
 
 typedef enum {
     TOKEN_EOF,
@@ -21,11 +22,19 @@ typedef enum {
     TOKEN_LPAREN,
     TOKEN_ARROW,
     TOKEN_QUOTE,
+    TOKEN_COMMA,
 
     //Keywords
     TOKEN_SCHO,
     TOKEN_END,
-    TOKEN_NAMESPACE
+    TOKEN_NAMESPACE,
+    TOKEN_IMPORT,
+    TOKEN_CLASS,
+    TOKEN_FUN,
+    TOKEN_IMPL,
+    TOKEN_EXTL,
+    TOKEN_RETURN
+
 } TokenType;
 
 
@@ -39,12 +48,14 @@ typedef enum {
     NODE_BINARY_OP2
 } NodeType;
 
-void raiseError(char error[]);
+void raiseError(char error[], char id[]);
 
 void skipBlank(const char** current);
 
-void tokenize(const char* file);
+void tokenize(const char* file, ARGS_CONTEX* ctx);
 
 void showTokens();
 
-void tokenizeFile(char* file);
+void tokenizeFile(char* file, ARGS_CONTEX* ctx);
+
+extern int token_count;

@@ -1,6 +1,8 @@
 <img src="img/logo.png">
 
 # Gravel
+<sub>Alpha 0.0.3</sub>
+
 ---
 ## Approach
 **Gravel** is a **IN DEVELOPMENT** programming language. It's made to have a simple and neat syntax while having all low level power.
@@ -42,6 +44,20 @@ val name := value
 
 ### Namespaces
 Create namespaces using `namespace name` and use the `end` keyword. (separation: '.')
+
+#### Virtual Namespaces
+Instead of defining a lot of small namespaces like this:
+```
+namespace rounded_math
+    val pi := 3
+    val e := 2
+end
+```
+You can write, getting the exact same effect:
+```
+val rounded_math.pi := 3
+val rounded_math.e := 2
+```
 
 ### If, while and for
 Use the `end` keyword, and use the following syntax: `whatever cond:`. For `for`, use: `for i in list`, but classic syntax will also  be accepted `for int i=0; i<10; i++` or as wanted.
@@ -91,10 +107,10 @@ Right now, this is the current development of every feature:
  
 | Feature | Status |
 |---------|--------|
-|Tokenizer|FINISHED (can have updates)|
-|AST      |FINISHED (can have updates)|
-|Parser   |FINISHED (can have updates) |
-|LLVM converter | FINISHED (can have updates) |
+|Tokenizer|Working|
+|AST      |Working|
+|Parser   |Working|
+|LLVM converter |Working|
 |Variables, types and classes | 1/3 |
 |Functions, namespaces, if, while, etc | 1/5 |
 |Packages, pointers, import and basic packages | NOT STARTED |
@@ -109,9 +125,110 @@ gravel run main.grv dependencies path space separated.
 ```
 (Maybe we will add a file for tracking dependencies, like Cargo.toml but for Gravel)
 
+## Benchmarks
+This repo includes a `bench.grv` file with 33571 tokens. You can execute it to test the speed. I got 0.010000 s, let's see what you get running `./main run main.grv -wE` (change `./main` for the actual executable).
+
+## Flags
+* `-wE`: Shows various information, as time and token count. (only time used compiling to LLVM, not the LLVM execution itself)
+
 ## Update
 Current compiler status:
 * Can compile files
 * Can do `scho`
 * Can declare and use `namespace`
-* Can define int variables and be used
+* Can define int variables (with inference) and be used
+
+## Changelog
+<sub>The changelog idea is from [BeknYTprogamador](https://github.com/BeknYTprogamador)</sub>
+
+### 2026-06-12
+- Project initialization and first commit
+- Started development on the compiler (Day 1: Tokenizer)
+- Added initial README file with small fixes
+
+### 2026-06-13
+- Continued tokenizer development
+- Removed accidental files
+- Updated README with new `gravel` command usage details
+- Clarified `extl` and `impl` definitions in the README
+
+### 2026-06-14
+- Finished tokenizer development and started AST (Abstract Syntax Tree)
+
+### 2026-06-15
+- Finished AST development and started the parser
+- Updated project status section in the README
+
+### 2026-06-16
+- Prepared AST and parser for bug fixes
+- Fixed bugs, debugged, and added `clang.exe` for future use
+
+### 2026-06-17
+- Fixed various bugs
+
+### 2026-06-18
+- Started LLVM IR translation and noted initial bugs
+
+### 2026-06-20
+- Started mapping variables to LLVM IR
+
+### 2026-06-21
+- Added `libs` folder featuring standard packages written in Gravel
+- Implemented single-character output experimentation in LLVM
+- Continued LLVM IR transpilation work and resolved active bugs
+- Updated the README
+
+### 2026-06-23
+- Codebase fixes and general maintenance
+
+### 2026-06-25
+- Code debugging and system fixes
+- Fixed the random library implementation
+
+### 2026-06-26
+- Fixed spelling errors and enhanced terminology clarity in the README
+
+### 2026-06-28
+- Implemented LLVM transpilation updates and performed debugging
+
+### 2026-06-30
+- Removed forced indentation requirements
+- Added notes to the README regarding the future Gravel dependency tracking file
+
+### 2026-07-01
+- Released the first working version of the project
+- Updated project status and removed temporary notes from the README
+
+### 2026-07-02
+- Added compilation details to the update section of the README
+
+### 2026-07-04
+- Achieved successful file compilation and executed the first "Hello, World!"
+- Updated the README with bug notes and future development plans
+- General code fixes
+
+### 2026-07-05
+- Added error management logic and variable inference capabilities for `INT`
+- General code tweaks and performance optimization
+- Updated project status in the README
+- Deleted the temporary `main.grv` file
+
+### 2026-07-06
+- Added full support and implementation for Namespaces
+- Updated the README with the new namespace syntax and declaration capabilities
+- Revised progress status in the README
+- Prepared infrastructure for Error Explaining 2.0
+
+### 2026-07-07
+- Updated README with changelog
+
+### 2026-07-10
+- Optimized with constant folding
+- Added new flag (`-wE`) for showing time spent compiling
+
+### 2026-07-11
+- Added token count when using `-wE`
+
+### 2026-07-12
+- Update libs with new syntax
+- Add `bench.grv` to test its speed

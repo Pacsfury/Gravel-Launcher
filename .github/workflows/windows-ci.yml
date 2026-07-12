@@ -1,0 +1,24 @@
+name: Windows C CI
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up MSVC Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Compile code
+      run: cl src/main.c src/*.c /Fe:gravel.exe
+
+    - name: Run application
+      run: .\gravel.exe
