@@ -18,7 +18,7 @@ jobs:
       uses: vmactions/freebsd-vm@v1
       with:
         usesh: true
-        sync: nodeploy
+        sync: rsync
         run: |
           clang src/*.c -o my_program
           ./my_program
