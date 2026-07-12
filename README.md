@@ -1,6 +1,6 @@
 <img src="img/logo.png">
 
-# Gravel
+# Gravel, A Programming Language
 <sub>Alpha 0.0.3</sub>
 
 ---
