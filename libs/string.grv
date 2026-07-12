@@ -1,6 +1,6 @@
 package: string
 
-namespace std:
+namespace std
 	class string: -> type
 		extl char[] text
 		impl int length
@@ -46,4 +46,6 @@ namespace std:
 			end
 			return -1
 		end
+	end
+end
 				

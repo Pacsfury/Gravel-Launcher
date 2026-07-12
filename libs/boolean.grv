@@ -2,7 +2,7 @@ package: boolean
 
 lazy opt import "warnings" //lazy -> import when needed. opt -> if not found, ignore instead of crashing
 
-namespace std:
+namespace std
 	class boolean: -> type
 		extl int ivalue
 		impl char[] bvalue
@@ -49,7 +49,7 @@ namespace std:
 				bvalue = "true"
 			end
 		end
-	namespace bool:
+	namespace bool
 		const boolean TRUE  = 1
 		const boolean FALSE = 0
 	end
