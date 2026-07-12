@@ -1,0 +1,24 @@
+name: FreeBSD CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run compilation in FreeBSD VM
+      uses: vmactions/freebsd-vm@v1
+      with:
+        usesh: true
+        sync: nodeploy
+        run: |
+          clang src/main.c src/*.c -o my_program
+          ./my_program
