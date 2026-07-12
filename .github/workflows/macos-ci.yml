@@ -1,0 +1,21 @@
+name: macOS CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Compile with Clang
+      run: clang src/main.c src/*.c -o my_program
+
+    - name: Run application
+      run: ./my_program
