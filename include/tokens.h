@@ -26,7 +26,13 @@ typedef enum {
     //Keywords
     TOKEN_SCHO,
     TOKEN_END,
-    TOKEN_NAMESPACE
+    TOKEN_NAMESPACE,
+    TOKEN_IMPORT,
+    TOKEN_CLASS,
+    TOKEN_FUN,
+    TOKEN_IMPL,
+    TOKEN_EXTL,
+
 } TokenType;
 
 

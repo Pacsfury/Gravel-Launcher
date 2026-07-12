@@ -211,3 +211,6 @@ Current compiler status:
 
 ### 2026-07-11
 - Added token count when using `-wE`.
+
+### 2026-07-12
+- Update libs with new syntax
