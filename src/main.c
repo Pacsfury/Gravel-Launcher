@@ -22,7 +22,6 @@ int main(int argc, char *argv[]) {
         tokenizeFile(getArg(&ctx, "run"), &ctx);
     }
     
-
     if(hasArg(&ctx, "end")) {
         _launcherFree();
     } else {
@@ -30,7 +29,6 @@ int main(int argc, char *argv[]) {
     }
     
     clock_t end_time = clock();
-
     double time_taken = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
     printf("| %f s | %d tokens |\n", time_taken, token_count);

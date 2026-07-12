@@ -111,8 +111,11 @@ gravel run main.grv dependencies path space separated.
 ```
 (Maybe we will add a file for tracking dependencies, like Cargo.toml but for Gravel)
 
+## Benchmarks
+This repo includes a `bench.grv` file with 33571 tokens. You can execute it to test the speed. I got 0.010000 s, let's see what you get running `./main run main.grv -wE` (change `./main` for the actual executable).
+
 ## Flags
-* `-wE`: Shows various information, as time and token count.
+* `-wE`: Shows various information, as time and token count. (only time used compiling to LLVM, not the LLVM execution itself)
 
 ## Update
 Current compiler status:
@@ -210,7 +213,8 @@ Current compiler status:
 - Added new flag (`-wE`) for showing time spent compiling
 
 ### 2026-07-11
-- Added token count when using `-wE`.
+- Added token count when using `-wE`
 
 ### 2026-07-12
 - Update libs with new syntax
+- Add `bench.grv` to test its speed
