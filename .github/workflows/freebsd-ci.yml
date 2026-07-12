@@ -20,5 +20,5 @@ jobs:
         usesh: true
         sync: nodeploy
         run: |
-          clang src/*.c -o my_program
+          clang -o my_program
           ./my_program
