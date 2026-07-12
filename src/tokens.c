@@ -150,6 +150,16 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                         tokens[token_count].type = TOKEN_END;
                     } else if (strcmp(buffer, "namespace") == 0) {
                         tokens[token_count].type = TOKEN_NAMESPACE;
+                    } else if (strcmp(buffer, "import") == 0) {
+                        tokens[token_count].type = TOKEN_IMPORT;
+                    } else if (strcmp(buffer, "class") == 0) {
+                        tokens[token_count].type = TOKEN_CLASS;
+                    } else if (strcmp(buffer, "fun") == 0) {
+                        tokens[token_count].type = TOKEN_FUN;
+                    } else if (strcmp(buffer, "impl") == 0) {
+                        tokens[token_count].type = TOKEN_IMPL;
+                    } else if (strcmp(buffer, "extl") == 0) {
+                        tokens[token_count].type = TOKEN_EXTL;
                     } else {
                         tokens[token_count].type = TOKEN_NAME;
                         strcpy(tokens[token_count].value, buffer);
