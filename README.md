@@ -45,6 +45,20 @@ val name := value
 ### Namespaces
 Create namespaces using `namespace name` and use the `end` keyword. (separation: '.')
 
+#### Virtual Namespaces
+Instead of defining a lot of small namespaces like this:
+```
+namespace rounded_math
+    val pi := 3
+    val e := 2
+end
+```
+You can write, getting the exact same effect:
+```
+val rounded_math.pi := 3
+val rounded_math.e := 2
+```
+
 ### If, while and for
 Use the `end` keyword, and use the following syntax: `whatever cond:`. For `for`, use: `for i in list`, but classic syntax will also  be accepted `for int i=0; i<10; i++` or as wanted.
 
