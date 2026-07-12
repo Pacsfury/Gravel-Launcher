@@ -131,6 +131,10 @@ This repo includes a `bench.grv` file with 33571 tokens. You can execute it to t
 ## Flags
 * `-wE`: Shows various information, as time and token count. (only time used compiling to LLVM, not the LLVM execution itself)
 
+## Optimitzations
+* **Constant Folding**: Numerical operations including numbers (and future constant varibles) are done during compilation.
+* **Namespace Flattening**: Namespace are flattened instead of saving complex tree structures.
+
 ## Update
 Current compiler status:
 * Can compile files
