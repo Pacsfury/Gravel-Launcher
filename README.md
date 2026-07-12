@@ -5,7 +5,7 @@
 
 ---
 ## Approach
-**Gravel** is a **IN DEVELOPMENT** programming language. It's made to have a simple and neat syntax while having all low level power.
+**Gravel** is an **IN DEVELOPMENT** programming language. It's made to have a simple and neat syntax while having all low level power.
 
 ## Syntax
 _Note: Syntax is really variable in this early-development, as this is **JUST PLANNING**_
