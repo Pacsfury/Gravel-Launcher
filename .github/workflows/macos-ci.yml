@@ -15,7 +15,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Compile with Clang
-      run: clang src/main.c src/*.c -o my_program
+      run: clang src/*.c -o my_program
 
     - name: Run application
       run: ./my_program
