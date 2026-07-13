@@ -96,7 +96,7 @@ ASTNode* parse_additive(const Token* t, int* c, const char* ns) {
 ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
     Token* current = peek(t, c);
 
-    if (current->type == TOKEN_INT || current->type == TOKEN_FLOAT || current->type == TOKEN_QUOTE) {
+    if (current->type == TOKEN_L_INT || current->type == TOKEN_L_FLOAT || current->type == TOKEN_QUOTE) {
         ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
         if (!node) raiseError("Memory allocation failed", "E0004");
         
@@ -119,6 +119,9 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
             strcpy(node->data.literal.value, var_token->value); 
         }
         return node;
+        
+    } else if (current->type == TOKEN_REPEAT) {
+        parse_repeat(t, c, ns);
     }
 
     raiseError("Unexpected token: expected a variable or literal expression", "E0001:1");
@@ -199,7 +202,7 @@ ASTNode* parse_repeat(const Token* t, int* c, const char* ns) {
     Token* value_token = peek(t, c);
     if (value_token->type != TOKEN_L_INT) raiseError("Expected integer after 'repeat'", "E0009");
     advance(t, c); // consume repeat count
-    
+
     ASTNode* newNode = (ASTNode*)malloc(sizeof(ASTNode));
     if (!newNode) raiseError("Memory allocation failed", "E0004");
     newNode->type = NODE_REPEAT;
