@@ -62,6 +62,18 @@ val rounded_math.e := 2
 ### If, while and for
 Use the `end` keyword, and use the following syntax: `whatever cond:`. For `for`, use: `for i in list`, but classic syntax will also  be accepted `for int i=0; i<10; i++` or as wanted.
 
+### Repeat
+Use this syntax:
+```
+repeat 10
+    scho('a')
+end
+```
+output:
+```
+aaaaaaaaaa
+```
+
 ### Functions
 Use the `end` keyword, and use the reserved word `fun`. Define return type after args (optional).
 
@@ -112,7 +124,7 @@ Right now, this is the current development of every feature:
 |Parser   |Working|
 |LLVM converter |Working|
 |Variables, types and classes | 1/3 |
-|Functions, namespaces, if, while, etc | 1/5 |
+|Functions, namespaces, if, while, repeat, etc | 2/6 |
 |Packages, pointers, import and basic packages | NOT STARTED |
 
 ## Launcher
@@ -126,7 +138,13 @@ gravel run main.grv dependencies path space separated.
 (Maybe we will add a file for tracking dependencies, like Cargo.toml but for Gravel)
 
 ## Benchmarks
-This repo includes a `bench.grv` file with 33571 tokens. You can execute it to test the speed. I got 0.010000 s, let's see what you get running `./main run main.grv -wE` (change `./main` for the actual executable).
+**New version of the benchmark: it now repeats 30 times!**
+This repo includes a `bench.grv` file with 33576 tokens. You can execute it to test the speed. I got 0.379000 s, let's see what you get running `./main run main.grv -wE` (change `./main` for the actual executable).
+
+> This time includes only:
+> * Detection of argument "run" and getting the path
+> * Opening the file and compiling it
+> * Write the `.ll` file
 
 ## Flags
 * `-wE`: Shows various information, as time and token count. (only time used compiling to LLVM, not the LLVM execution itself)
