@@ -186,9 +186,54 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
     } else if (current->type == TOKEN_NEWLINE) {
         advance(t, c);
         return NULL;
+    } else if (current->type == TOKEN_REPEAT) {
+        return parse_repeat(t, c, ns);
     } else {
         return parse_expression(t, c, ns);
     }
+}
+
+ASTNode* parse_repeat(const Token* t, int* c, const char* ns) {
+    advance(t, c); // consume 'repeat'
+
+    Token* value_token = peek(t, c);
+    if (value_token->type != TOKEN_L_INT) raiseError("Expected integer after 'repeat'", "E0009");
+    advance(t, c); // consume repeat count
+    
+    ASTNode* newNode = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!newNode) raiseError("Memory allocation failed", "E0004");
+    newNode->type = NODE_REPEAT;
+    newNode->data.repeat_stmt.repeat_count = atoi(value_token->value);
+
+    int rep_capacity = 10;
+    newNode->data.repeat_stmt.count = 0;
+    newNode->data.repeat_stmt.statements = (ASTNode**)malloc(sizeof(ASTNode*) * rep_capacity);
+    if (!newNode->data.repeat_stmt.statements) raiseError("Memory allocation failed", "E0004");
+
+    while (peek(t, c)->type != TOKEN_END && peek(t, c)->type != TOKEN_EOF) {
+        ASTNode* inner = parse_statement(t, c, ns);
+        if (inner != NULL) {
+            if (newNode->data.repeat_stmt.count >= rep_capacity) {
+                rep_capacity *= 2;
+                ASTNode** tmp = (ASTNode**)realloc(newNode->data.repeat_stmt.statements, sizeof(ASTNode*) * rep_capacity);
+                if (!tmp) {
+                    free(newNode->data.repeat_stmt.statements);
+                    free(newNode);
+                    raiseError("Memory allocation failed while expanding repeat statements", "E0004");
+                }
+                newNode->data.repeat_stmt.statements = tmp;
+            }
+            newNode->data.repeat_stmt.statements[newNode->data.repeat_stmt.count++] = inner;
+        }
+    }
+
+    if (peek(t, c)->type == TOKEN_END) {
+        advance(t, c);
+    } else {
+        raiseError("Unexpected end of file: missing 'end' for repeat block", "E0010.1");
+    }
+
+    return newNode;
 }
 
 ASTNode* parse(const Token* tokens, int count) {
@@ -232,7 +277,7 @@ ASTNode* parse(const Token* tokens, int count) {
 
         if (current->type == TOKEN_END) {
             advance(tokens, &current_token);
-            if (ns_depth == 0) raiseError("Unexpected 'end' without matching 'namespace'", "E0010");
+            if (ns_depth == 0) raiseError("Unexpected 'end' without matching entry", "E0010");
             
             ns_depth--;
             
