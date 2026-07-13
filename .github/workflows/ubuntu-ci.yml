@@ -1,0 +1,21 @@
+name: Ubuntu CI
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Compile with GCC
+      run: gcc src/*.c -o my_program
+
+    - name: Run application
+      run: ./my_program
