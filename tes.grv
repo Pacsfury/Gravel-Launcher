@@ -1,0 +1,5 @@
+repeat 5
+    repeat 4
+        scho('a')
+    end
+end
