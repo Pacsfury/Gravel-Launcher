@@ -160,10 +160,13 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                         tokens[token_count].type = TOKEN_IMPL;
                     } else if (strcmp(buffer, "extl") == 0) {
                         tokens[token_count].type = TOKEN_EXTL;
+                    } else if (strcmp(buffer, "repeat") == 0) {
+                        tokens[token_count].type = TOKEN_REPEAT;
+
                     } else {
                         tokens[token_count].type = TOKEN_NAME;
                         strcpy(tokens[token_count].value, buffer);
-                    }
+                    } 
                     token_count++;
                     continue;
                 } else if (isdigit(*source)) {
@@ -181,9 +184,9 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                     n_buffer[n_len] = '\0';
 
                     if (is_float) {
-                        tokens[token_count].type = TOKEN_FLOAT;
+                        tokens[token_count].type = TOKEN_L_FLOAT;
                     } else {
-                        tokens[token_count].type = TOKEN_INT;
+                        tokens[token_count].type = TOKEN_L_INT;
                     }
                     strcpy(tokens[token_count].value, n_buffer);
                     

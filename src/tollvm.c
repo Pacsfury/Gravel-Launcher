@@ -1,3 +1,5 @@
+#define MAX_EMITTED_GLOBALS 1024
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,6 +7,37 @@
 #include "../include/ast.h"
 #include "../include/tollvm.h"
 #include "../include/argc.h"
+
+static char emitted_globals[MAX_EMITTED_GLOBALS][256];
+static int emitted_globals_count = 0;
+
+static int already_emitted(const char* name) {
+    for (int i = 0; i < emitted_globals_count; i++) {
+        if (strcmp(emitted_globals[i], name) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void mark_emitted(const char* name) {
+    if (emitted_globals_count < MAX_EMITTED_GLOBALS) {
+        strcpy(emitted_globals[emitted_globals_count++], name);
+    }
+}
+
+static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
+    if (stmt->type == NODE_DECLARATION) {
+        if (!already_emitted(stmt->data.var_decl.name)) {
+            fprintf(outf, "@%s = global i32 0, align 4\n", stmt->data.var_decl.name);
+            mark_emitted(stmt->data.var_decl.name);
+        }
+    } else if (stmt->type == NODE_REPEAT) {
+        for (int i = 0; i < stmt->data.repeat_stmt.count; i++) {
+            emit_globals_for_statement(stmt->data.repeat_stmt.statements[i], outf);
+        }
+    }
+}
 
 static char* safe_strdup(const char* s) {
     char* d = malloc(strlen(s) + 1);
@@ -88,6 +121,16 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
         
         case NODE_PROGRAM:
             return NULL;
+
+        case NODE_REPEAT: {
+            for (int r = 0; r < node->data.repeat_stmt.repeat_count; r++) {
+                for (int s = 0; s < node->data.repeat_stmt.count; s++) {
+                    char* leftover = compile_node(outf, node->data.repeat_stmt.statements[s], register_count);
+                    if (leftover) free(leftover);
+                }
+            }
+            return NULL;
+        }
     }
     
     return NULL;
@@ -122,6 +165,10 @@ int to_llvm_ir(const Token* tokens, int token_count, ARGS_CONTEX* ctx) {
         ASTNode* stmt = ast_root->data.program.statements[i];
         if (stmt->type == NODE_DECLARATION) {
             fprintf(outf, "@%s = global i32 0, align 4\n", stmt->data.var_decl.name);
+        } else if (stmt->type == NODE_REPEAT) {
+            for (int j = 0; j < stmt->data.repeat_stmt.count; j++) {
+                emit_globals_for_statement(stmt->data.repeat_stmt.statements[j], outf);
+            }
         }
     }
 

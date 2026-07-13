@@ -23,6 +23,8 @@ typedef enum {
     TOKEN_ARROW,
     TOKEN_QUOTE,
     TOKEN_COMMA,
+    TOKEN_L_INT,
+    TOKEN_L_FLOAT,
 
     //Keywords
     TOKEN_SCHO,
@@ -33,7 +35,8 @@ typedef enum {
     TOKEN_FUN,
     TOKEN_IMPL,
     TOKEN_EXTL,
-    TOKEN_RETURN
+    TOKEN_RETURN,
+    TOKEN_REPEAT
 
 } TokenType;
 
