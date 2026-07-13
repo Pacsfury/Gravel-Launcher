@@ -1,6 +1,7 @@
 #include "../include/tokens.h"
 #include "../include/vector.h"
 #include "../include/argc.h"
+#include "../include/tollvm.h"
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>

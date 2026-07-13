@@ -1,11 +1,11 @@
 <img src="img/logo.png">
 
-# Gravel
+# Gravel, A Programming Language
 <sub>Alpha 0.0.3</sub>
 
 ---
 ## Approach
-**Gravel** is a **IN DEVELOPMENT** programming language. It's made to have a simple and neat syntax while having all low level power.
+**Gravel** is an **IN DEVELOPMENT** programming language. It's made to have a simple and neat syntax while having all low level power.
 
 ## Syntax
 _Note: Syntax is really variable in this early-development, as this is **JUST PLANNING**_
@@ -44,6 +44,20 @@ val name := value
 
 ### Namespaces
 Create namespaces using `namespace name` and use the `end` keyword. (separation: '.')
+
+#### Virtual Namespaces
+Instead of defining a lot of small namespaces like this:
+```
+namespace rounded_math
+    val pi := 3
+    val e := 2
+end
+```
+You can write, getting the exact same effect:
+```
+val rounded_math.pi := 3
+val rounded_math.e := 2
+```
 
 ### If, while and for
 Use the `end` keyword, and use the following syntax: `whatever cond:`. For `for`, use: `for i in list`, but classic syntax will also  be accepted `for int i=0; i<10; i++` or as wanted.
@@ -116,6 +130,10 @@ This repo includes a `bench.grv` file with 33571 tokens. You can execute it to t
 
 ## Flags
 * `-wE`: Shows various information, as time and token count. (only time used compiling to LLVM, not the LLVM execution itself)
+
+## Optimitzations
+* **Constant Folding**: Numerical operations including numbers (and future constant varibles) are done during compilation.
+* **Namespace Flattening**: Namespace are flattened instead of saving complex tree structures.
 
 ## Update
 Current compiler status:
@@ -216,5 +234,6 @@ Current compiler status:
 - Added token count when using `-wE`
 
 ### 2026-07-12
-- Update libs with new syntax
-- Add `bench.grv` to test its speed
+- Updated libs with new syntax
+- Added `bench.grv` to test its speed
+- Added Actions for Windows, Ubuntu, MacOS and FreeBSD
