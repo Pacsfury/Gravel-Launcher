@@ -234,5 +234,6 @@ Current compiler status:
 - Added token count when using `-wE`
 
 ### 2026-07-12
-- Update libs with new syntax
-- Add `bench.grv` to test its speed
+- Updated libs with new syntax
+- Added `bench.grv` to test its speed
+- Added Actions for Windows, Ubuntu, MacOS and FreeBSD
