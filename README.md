@@ -42,6 +42,8 @@ Inferred:
 val name := value
 ```
 
+You can now define constant variables (as normal ones can't be modificated, at the moment, there is no difference at all, tho) using `const name := val`
+
 ### Namespaces
 Create namespaces using `namespace name` and use the `end` keyword. (separation: '.')
 
@@ -258,3 +260,6 @@ Current compiler status:
 
 ### 2026-07-13
 - Add `repeat` functionality
+
+### 2026-07-14
+- Add constant definition

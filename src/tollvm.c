@@ -28,7 +28,7 @@ static void mark_emitted(const char* name) {
 }
 
 static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
-    if (stmt->type == NODE_DECLARATION) {
+    if (stmt->type == NODE_DECLARATION || stmt->type == NODE_CONSTANT) {
         if (!already_emitted(stmt->data.var_decl.name)) {
             fprintf(outf, "@%s = global i32 0, align 4\n", stmt->data.var_decl.name);
             mark_emitted(stmt->data.var_decl.name);
@@ -69,14 +69,16 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             }
             return safe_strdup(v);
         }
-        case NODE_VARIABLE: {
-            int reg = (*register_count)++;
-            fprintf(outf, "    %%%d = load i32, ptr @%s, align 4\n", reg, node->data.literal.value);
-            
-            char buf[32];
-            snprintf(buf, sizeof(buf), "%%%d", reg);
-            return safe_strdup(buf);
+        case NODE_CONSTANT:
+        case NODE_DECLARATION: {
+            char* val = compile_node(outf, node->data.var_decl.value, register_count);
+            fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.var_decl.name);
+            free(val);
+
+            return NULL; 
         }
+
+
 
         case NODE_BINARY_OP: {
             char* left = compile_node(outf, node->data.binary_op.left, register_count);
@@ -101,15 +103,6 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             snprintf(buf, sizeof(buf), "%%%d", reg);
             return safe_strdup(buf);
         }
-
-        case NODE_DECLARATION: {
-            char* val = compile_node(outf, node->data.var_decl.value, register_count);
-            fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.var_decl.name);
-            free(val);
-
-            return NULL; 
-        }
-
 
         case NODE_SCHO: {
             char* val = compile_node(outf, node->data.scho_stmt.value, register_count);
@@ -164,7 +157,7 @@ int to_llvm_ir(const Token* tokens, int token_count, ARGS_CONTEX* ctx) {
 
     for (int i = 0; i < ast_root->data.program.count; i++) {
         ASTNode* stmt = ast_root->data.program.statements[i];
-        if (stmt->type == NODE_DECLARATION) {
+        if (stmt->type == NODE_DECLARATION || stmt->type == NODE_CONSTANT) {
             fprintf(outf, "@%s = global i32 0, align 4\n", stmt->data.var_decl.name);
         } else if (stmt->type == NODE_REPEAT) {
             for (int j = 0; j < stmt->data.repeat_stmt.count; j++) {
