@@ -10,7 +10,6 @@ typedef enum {
     TOKEN_SUB,
     TOKEN_STAR, //Can be either pointer dereference or multiplication
     TOKEN_DIV,
-    TOKEN_VAR_DEF, // val
     TOKEN_VAR_INFER, // :=
     TOKEN_ASSIGN, // =
     TOKEN_NAME,
@@ -36,7 +35,9 @@ typedef enum {
     TOKEN_IMPL,
     TOKEN_EXTL,
     TOKEN_RETURN,
-    TOKEN_REPEAT
+    TOKEN_REPEAT,
+    TOKEN_VAR_DEF, // val
+    TOKEN_CONST
 
 } TokenType;
 
