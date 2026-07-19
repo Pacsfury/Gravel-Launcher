@@ -276,3 +276,6 @@ Current compiler status:
 
 ### 2026-07-14
 - Add constant definition
+
+### 2026-07-19
+- Upgrade README (PR)
