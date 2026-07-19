@@ -2,14 +2,27 @@
 
 # Gravel, A Programming Language
 <sub>Alpha 0.0.3</sub>
+## Table of Contents
+
+- [Approach](#approach)
+- [Syntax](#syntax)
+- [Status](#status)
+- [Launcher](#launcher)
+- [Benchmarks](#benchmarks)
+- [Flags](#flags)
+- [Optimizations](#optimizations)
+- [Update](#update)
+- [Changelog](#changelog)
 
 ---
 ## Approach
-**Gravel** is an **IN DEVELOPMENT** programming language. It's made to have a simple and neat syntax while having all low level power.
+Gravel is an **experimental programming language** currently under active development. Its goal is to provide a clean and intuitive syntax while preserving the flexibility and power of low-level programming languages.
 
+As the project is still in its early stages, features and syntax may evolve over time.
 ## Syntax
-_Note: Syntax is really variable in this early-development, as this is **JUST PLANNING**_
-
+> **Note**
+>
+> Gravel is still in active development. The syntax shown below represents the current design and may change in future releases.
 ### Packages
 For using files as libraries, use packages, so you will need to use the package name instead of the path.
 
@@ -42,7 +55,7 @@ Inferred:
 val name := value
 ```
 
-You can now define constant variables (as normal ones can't be modificated, at the moment, there is no difference at all, tho) using `const name := val`
+You can now define constant variables (as normal ones can't be modified, at the moment, there is no difference at all, tho) using `const name := val`
 
 ### Namespaces
 Create namespaces using `namespace name` and use the `end` keyword. (separation: '.')
@@ -151,7 +164,7 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 ## Flags
 * `-wE`: Shows various information, as time and token count. (only time used compiling to LLVM, not the LLVM execution itself)
 
-## Optimitzations
+## Optimization
 * **Constant Folding**: Numerical operations including numbers (and future constant varibles) are done during compilation.
 * **Namespace Flattening**: Namespace are flattened instead of saving complex tree structures.
 
