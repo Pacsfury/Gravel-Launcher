@@ -1,15 +1,28 @@
 <img src="img/logo.png">
 
-# Gravel
+# Gravel, A Programming Language
 <sub>Alpha 0.0.3</sub>
+## Table of Contents
+
+- [Approach](#approach)
+- [Syntax](#syntax)
+- [Status](#status)
+- [Launcher](#launcher)
+- [Benchmarks](#benchmarks)
+- [Flags](#flags)
+- [Optimizations](#optimizations)
+- [Update](#update)
+- [Changelog](#changelog)
 
 ---
 ## Approach
-**Gravel** is an **IN DEVELOPMENT** programming language. It's made to have a simple and neat syntax while having all low level power.
+Gravel is an **experimental programming language** currently under active development. Its goal is to provide a clean and intuitive syntax while preserving the flexibility and power of low-level programming languages.
 
+As the project is still in its early stages, features and syntax may evolve over time.
 ## Syntax
-_Note: Syntax is really variable in this early-development, as this is **JUST PLANNING**_
-
+> **Note**
+>
+> Gravel is still in active development. The syntax shown below represents the current design and may change in future releases.
 ### Packages
 For using files as libraries, use packages, so you will need to use the package name instead of the path.
 
@@ -42,6 +55,8 @@ Inferred:
 val name := value
 ```
 
+You can now define constant variables (as normal ones can't be modified, at the moment, there is no difference at all, tho) using `const name := val`
+
 ### Namespaces
 Create namespaces using `namespace name` and use the `end` keyword. (separation: '.')
 
@@ -61,6 +76,18 @@ val rounded_math.e := 2
 
 ### If, while and for
 Use the `end` keyword, and use the following syntax: `whatever cond:`. For `for`, use: `for i in list`, but classic syntax will also  be accepted `for int i=0; i<10; i++` or as wanted.
+
+### Repeat
+Use this syntax:
+```
+repeat 10
+    scho('a')
+end
+```
+output:
+```
+aaaaaaaaaa
+```
 
 ### Functions
 Use the `end` keyword, and use the reserved word `fun`. Define return type after args (optional).
@@ -112,7 +139,7 @@ Right now, this is the current development of every feature:
 |Parser   |Working|
 |LLVM converter |Working|
 |Variables, types and classes | 1/3 |
-|Functions, namespaces, if, while, etc | 1/5 |
+|Functions, namespaces, if, while, repeat, etc | 2/6 |
 |Packages, pointers, import and basic packages | NOT STARTED |
 
 ## Launcher
@@ -126,10 +153,20 @@ gravel run main.grv dependencies path space separated.
 (Maybe we will add a file for tracking dependencies, like Cargo.toml but for Gravel)
 
 ## Benchmarks
-This repo includes a `bench.grv` file with 33571 tokens. You can execute it to test the speed. I got 0.010000 s, let's see what you get running `./main run main.grv -wE` (change `./main` for the actual executable).
+**New version of the benchmark: it now repeats 30 times!**
+This repo includes a `bench.grv` file with 33576 tokens. You can execute it to test the speed. I got 0.379000 s, let's see what you get running `./main run main.grv -wE` (change `./main` for the actual executable).
+
+> This time includes only:
+> * Detection of argument "run" and getting the path
+> * Opening the file and compiling it
+> * Write the `.ll` file
 
 ## Flags
 * `-wE`: Shows various information, as time and token count. (only time used compiling to LLVM, not the LLVM execution itself)
+
+## Optimization
+* **Constant Folding**: Numerical operations including numbers (and future constant varibles) are done during compilation.
+* **Namespace Flattening**: Namespace are flattened instead of saving complex tree structures.
 
 ## Update
 Current compiler status:
@@ -230,5 +267,15 @@ Current compiler status:
 - Added token count when using `-wE`
 
 ### 2026-07-12
-- Update libs with new syntax
-- Add `bench.grv` to test its speed
+- Updated libs with new syntax
+- Added `bench.grv` to test its speed
+- Added Actions for Windows, Ubuntu, MacOS and FreeBSD
+
+### 2026-07-13
+- Add `repeat` functionality
+
+### 2026-07-14
+- Add constant definition
+
+### 2026-07-19
+- Upgrade README (PR)

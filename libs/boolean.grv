@@ -1,7 +1,5 @@
 package: boolean
 
-lazy opt import "warnings" //lazy -> import when needed. opt -> if not found, ignore instead of crashing
-
 namespace std
 	class boolean: -> type
 		extl int ivalue
@@ -35,7 +33,8 @@ namespace std
 				bvalue = "true"
 			else:
 				ivalue = 0
-				bvalue = "false"
+				bvalue = "false
+				import "warnings"
 				std.warn.logWarning("Given char[] is invalid.")
 			end
 		end
