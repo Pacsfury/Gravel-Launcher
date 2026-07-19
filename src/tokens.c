@@ -73,7 +73,14 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                 tokens[token_count].type = TOKEN_STAR;
                 break;
             case '/':
-                tokens[token_count].type = TOKEN_DIV;
+                if (*(source + 1) == '/') {
+                    while (*source != '\n' && *source != '\0') {
+                        source++;
+                    }
+                    continue;
+                } else {
+                    tokens[token_count].type = TOKEN_DIV;
+                }
                 break;
             case '=':
                 if (*(source + 1) == '=') {
