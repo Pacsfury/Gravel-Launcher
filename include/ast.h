@@ -9,7 +9,9 @@ typedef enum {
     NODE_VARIABLE,
     NODE_DECLARATION,
     NODE_PROGRAM,
-    NODE_SCHO
+    NODE_SCHO,
+    NODE_REPEAT,
+    NODE_CONSTANT
 } ASTNodeType;
 
 typedef struct ASTNode {
@@ -37,8 +39,20 @@ typedef struct ASTNode {
         } program;
 
         struct {
+            int times;
+            struct ASTNode** statements;
+            int count;
+            int repeat_count;
+        } repeat_stmt;
+
+        struct {
             struct ASTNode* value; 
         } scho_stmt;
+
+        struct {
+            char name[64];
+            struct ASTNode* value;
+        } const_var;
 
     } data;
 } ASTNode;
@@ -52,4 +66,5 @@ ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns);
 ASTNode* parse_additive(const Token* t, int* c, const char* ns);
 ASTNode* parse_expression(const Token* t, int* c, const char* ns);
 ASTNode* parse_statement(const Token* t, int* c, const char* ns);
+ASTNode* parse_repeat(const Token* t, int* c, const char* ns);
 void print_ast(const ASTNode* node, int depth);
