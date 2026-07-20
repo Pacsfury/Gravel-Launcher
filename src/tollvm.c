@@ -60,11 +60,16 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
     if (!node) return NULL;
 
     switch (node->type) {
-        case NODE_LITERAL: {
+case NODE_LITERAL: {
             const char* v = node->data.literal.value;
-            if (strlen(v) == 1 && !isdigit(v[0])) {
+
+            if (strcmp(v, "\\n") == 0) {
+                return safe_strdup("10");
+            }
+
+            if (strlen(v) == 1 && !isdigit((unsigned char)v[0])) {
                 char buf[8];
-                snprintf(buf, sizeof(buf), "%d", (int)v[0]);
+                snprintf(buf, sizeof(buf), "%d", (int)(unsigned char)v[0]);
                 return safe_strdup(buf);
             }
             return safe_strdup(v);
