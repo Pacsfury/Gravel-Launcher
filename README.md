@@ -279,3 +279,5 @@ Current compiler status:
 
 ### 2026-07-19
 - Upgrade README (PR)
+- Comment support (PR)
+- Create examples folder (PR)
