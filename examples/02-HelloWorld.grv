@@ -10,3 +10,5 @@ scho('r')
 scho('l')
 scho('d')
 scho('\n')
+
+// When packages and imports are added, just as functions and more, there will be a function to print directly instead of doing scho one hundred times
