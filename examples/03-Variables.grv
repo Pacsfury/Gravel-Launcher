@@ -1,0 +1,8 @@
+// Explicit variable definition
+int explicit_var = 100
+
+// Inferred variable definition
+val inferred_var := 200
+
+// Constant variable definition
+const my_constant := 300
