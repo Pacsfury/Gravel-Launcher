@@ -284,3 +284,4 @@ Current compiler status:
 ### 2026-07-20
 - Create examples folder (PR)
 - Add newline (`\n`) support
+- Add AI-POLICY.md
