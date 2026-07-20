@@ -129,6 +129,35 @@ and
 
 `std.in.ask(&ref, char[])`
 
+### Methods
+Gravel features a handful of methods for primitives.
+Integer methods are still a work in progress.
+
+String Methods:
+- upcase -> uppercase every character of a string
+- downcase -> lowercase every character of a string
+- split() -> separate each value in a string by the given operator. if none, split by spaces. Returns an array of each extracted value.
+- bite -> removes the newline from std.in.ask
+- to_integer -> turns a string like '1' into the integer 1.
+
+Array Methods:
+- prepend -> add a value to the front of an array and shift every other value
+- push -> add a value to the end of an array
+- erase/clear -> removes all values
+- length/size -> the amount of values
+- purity -> returns a boolean of true if all values are truthy; returns false if there is a falsy value.
+- divide -> argue an integer; it will split the array at the index of the given integer:
+`['foobar', 'baz', 'qux'].divide(2) # => ['foobar', 'baz']`
+Note that it will discard every value after the given index.
+
+Dictionary Methods:
+- exists-> checks if the dictionary has a key matching the argument -- see 'alive' below.
+- alive -> checks if the dictionary has a value matching the argument
+- count -> how many keys a dictionary has
+- brothers/siblings -> returns an integer of how many keys have a value that is truthy.
+- family -> returns a boolean if any key is missing a value or if any key is falsy
+- purify -> assigns undefined/undef to every value; preserves keys. Optionally, this could return an array of every removed value.
+
 ## Status
 Right now, this is the current development of every feature:
  
