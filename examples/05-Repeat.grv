@@ -1,0 +1,5 @@
+repeat 10
+    scho('a')
+end
+
+scho('\n')
