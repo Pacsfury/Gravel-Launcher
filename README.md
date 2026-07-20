@@ -314,3 +314,4 @@ Current compiler status:
 - Create examples folder (PR)
 - Add newline (`\n`) support
 - Add AI-POLICY.md
+- Add methods for primitives ideas on readme (PR)
