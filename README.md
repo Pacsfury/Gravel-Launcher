@@ -280,4 +280,7 @@ Current compiler status:
 ### 2026-07-19
 - Upgrade README (PR)
 - Comment support (PR)
+
+### 2026-07-20
 - Create examples folder (PR)
+- Add newline (`\n`) support
