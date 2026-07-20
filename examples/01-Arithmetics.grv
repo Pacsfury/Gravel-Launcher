@@ -1,0 +1,7 @@
+val a := 10
+int b = 5
+
+val sum := a + b
+val diff := a - b
+val mult := a * b
+val div := a / b
