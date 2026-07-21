@@ -157,6 +157,12 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
 
                     if (strcmp(buffer, "val") == 0) {
                         tokens[token_count].type = TOKEN_VAR_DEF;
+                    } else if (strcmp(buffer, "if") == 0) {
+                        tokens[token_count].type = TOKEN_IF;
+                    } else if (strcmp(buffer, "elseif") == 0) {
+                        tokens[token_count].type = TOKEN_ELSEIF;
+                    } else if (strcmp(buffer, "else") == 0) {
+                        tokens[token_count].type = TOKEN_ELSE;
                     } else if (strcmp(buffer, "int") == 0) {
                         tokens[token_count].type = TOKEN_INT;
                     } else if (strcmp(buffer, "float") == 0) {
