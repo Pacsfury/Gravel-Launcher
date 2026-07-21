@@ -12,6 +12,8 @@ typedef enum {
     NODE_SCHO,
     NODE_REPEAT,
     NODE_CONSTANT
+    ,
+    NODE_IF
 } ASTNodeType;
 
 typedef struct ASTNode {
@@ -50,6 +52,13 @@ typedef struct ASTNode {
         } scho_stmt;
 
         struct {
+            struct ASTNode* condition;
+            struct ASTNode** then_statements;
+            int then_count;
+            struct ASTNode* else_node; // can be NODE_PROGRAM or NODE_IF or NULL
+        } if_stmt;
+
+        struct {
             char name[64];
             struct ASTNode* value;
         } const_var;
@@ -64,7 +73,9 @@ ASTNode* parse(const Token* tokens, int count);
 ASTNode* parse_primary(const Token* t, int* c, const char* ns);
 ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns);
 ASTNode* parse_additive(const Token* t, int* c, const char* ns);
+ASTNode* parse_equality(const Token* t, int* c, const char* ns);
 ASTNode* parse_expression(const Token* t, int* c, const char* ns);
 ASTNode* parse_statement(const Token* t, int* c, const char* ns);
 ASTNode* parse_repeat(const Token* t, int* c, const char* ns);
+ASTNode* parse_if(const Token* t, int* c, const char* ns);
 void print_ast(const ASTNode* node, int depth);
