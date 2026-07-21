@@ -121,7 +121,9 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
         return node;
         
     } else if (current->type == TOKEN_REPEAT) {
-        parse_repeat(t, c, ns);
+        return parse_repeat(t, c, ns);
+    } else if (current->type == TOKEN_ELSE || current->type == TOKEN_IF || current->type == TOKEN_ELSEIF) {
+        return parse_if(t,c,ns);
     }
 
     raiseError("Unexpected token: expected a variable or literal expression", "E0001:1");
@@ -129,7 +131,25 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
 }
 
 ASTNode* parse_expression(const Token* t, int* c, const char* ns) {
-    return parse_additive(t, c, ns);
+    return parse_equality(t, c, ns);
+}
+
+ASTNode* parse_equality(const Token* t, int* c, const char* ns) {
+    ASTNode* left = parse_additive(t, c, ns);
+    while (peek(t, c)->type == TOKEN_EQUAL) {
+        Token* op_token = advance(t, c);
+        ASTNode* right = parse_additive(t, c, ns);
+
+        ASTNode* bin_node = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!bin_node) raiseError("Memory allocation failed", "E0004");
+        bin_node->type = NODE_BINARY_OP;
+        bin_node->data.binary_op.op = op_token->type;
+        bin_node->data.binary_op.left = left;
+        bin_node->data.binary_op.right = right;
+
+        left = bin_node;
+    }
+    return left;
 }
 
 ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
@@ -245,6 +265,8 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
         return NULL;
     } else if (current->type == TOKEN_REPEAT) {
         return parse_repeat(t, c, ns);
+    } else if (current->type == TOKEN_IF) {
+        return parse_if(t, c, ns);
     } else {
         return parse_expression(t, c, ns);
     }
@@ -371,4 +393,143 @@ ASTNode* parse(const Token* tokens, int count) {
     }
     
     return program_node; 
+}
+
+ASTNode* parse_if(const Token* t, int* c, const char* ns) {
+    advance(t, c);
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!node) raiseError("Memory allocation failed", "E0004");
+    node->type = NODE_IF;
+    node->data.if_stmt.condition = NULL;
+
+    int cap = 8;
+    node->data.if_stmt.then_count = 0;
+    node->data.if_stmt.then_statements = (ASTNode**)malloc(sizeof(ASTNode*) * cap);
+    if (!node->data.if_stmt.then_statements) raiseError("Memory allocation failed", "E0004");
+    node->data.if_stmt.else_node = NULL;
+
+    // optional parentheses around condition: allow `if expr` or `if (expr)`
+    ASTNode* condition = NULL;
+    if (peek(t, c)->type == TOKEN_LPAREN) {
+        advance(t, c);
+        condition = parse_expression(t, c, ns);
+        if (peek(t, c)->type == TOKEN_RPAREN) {
+            advance(t, c);
+        } else {
+            raiseError("Missing ')' after if condition", "E0020.2");
+        }
+    } else {
+        condition = parse_expression(t, c, ns);
+    }
+    node->data.if_stmt.condition = condition;
+
+    while (peek(t, c)->type != TOKEN_ELSEIF && peek(t, c)->type != TOKEN_ELSE && peek(t, c)->type != TOKEN_END && peek(t, c)->type != TOKEN_EOF) {
+        ASTNode* inner = parse_statement(t, c, ns);
+        if (inner != NULL) {
+            if (node->data.if_stmt.then_count >= cap) {
+                cap *= 2;
+                ASTNode** tmp = (ASTNode**)realloc(node->data.if_stmt.then_statements, sizeof(ASTNode*) * cap);
+                if (!tmp) {
+                    free(node->data.if_stmt.then_statements);
+                    free(node);
+                    raiseError("Memory allocation failed while expanding if statements", "E0004");
+                }
+                node->data.if_stmt.then_statements = tmp;
+            }
+            node->data.if_stmt.then_statements[node->data.if_stmt.then_count++] = inner;
+        }
+    }
+
+    ASTNode* current_if = node;
+    while (peek(t, c)->type == TOKEN_ELSEIF) {
+        advance(t, c);
+
+        ASTNode* elseif_cond = NULL;
+        if (peek(t, c)->type == TOKEN_LPAREN) {
+            advance(t, c);
+            elseif_cond = parse_expression(t, c, ns);
+            if (peek(t, c)->type == TOKEN_RPAREN) {
+                advance(t, c);
+            } else {
+                raiseError("Missing ')' after elseif condition", "E0021.2");
+            }
+        } else {
+            elseif_cond = parse_expression(t, c, ns);
+        }
+
+        ASTNode* elseif_node = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!elseif_node) raiseError("Memory allocation failed", "E0004");
+        elseif_node->type = NODE_IF;
+        elseif_node->data.if_stmt.condition = elseif_cond;
+        int cap2 = 8;
+        elseif_node->data.if_stmt.then_count = 0;
+        elseif_node->data.if_stmt.then_statements = (ASTNode**)malloc(sizeof(ASTNode*) * cap2);
+        if (!elseif_node->data.if_stmt.then_statements) raiseError("Memory allocation failed", "E0004");
+        elseif_node->data.if_stmt.else_node = NULL;
+
+        while (peek(t, c)->type != TOKEN_ELSEIF && peek(t, c)->type != TOKEN_ELSE && peek(t, c)->type != TOKEN_END && peek(t, c)->type != TOKEN_EOF) {
+            ASTNode* inner = parse_statement(t, c, ns);
+            if (inner != NULL) {
+                if (elseif_node->data.if_stmt.then_count >= cap2) {
+                    cap2 *= 2;
+                    ASTNode** tmp = (ASTNode**)realloc(elseif_node->data.if_stmt.then_statements, sizeof(ASTNode*) * cap2);
+                    if (!tmp) {
+                        free(elseif_node->data.if_stmt.then_statements);
+                        free(elseif_node);
+                        raiseError("Memory allocation failed while expanding elseif statements", "E0004");
+                    }
+                    elseif_node->data.if_stmt.then_statements = tmp;
+                }
+                elseif_node->data.if_stmt.then_statements[elseif_node->data.if_stmt.then_count++] = inner;
+            }
+        }
+
+        current_if->data.if_stmt.else_node = elseif_node;
+        current_if = elseif_node;
+    }
+
+    if (peek(t, c)->type == TOKEN_ELSE) {
+        advance(t, c);
+
+        // create a program-like node to hold else statements
+        ASTNode* else_block = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!else_block) raiseError("Memory allocation failed", "E0004");
+        else_block->type = NODE_PROGRAM;
+        int cap3 = 8;
+        else_block->data.program.count = 0;
+        else_block->data.program.statements = (ASTNode**)malloc(sizeof(ASTNode*) * cap3);
+
+        while (peek(t, c)->type != TOKEN_END && peek(t, c)->type != TOKEN_EOF) {
+            ASTNode* inner = parse_statement(t, c, ns);
+            if (inner != NULL) {
+                if (else_block->data.program.count >= cap3) {
+                    cap3 *= 2;
+                    ASTNode** tmp = (ASTNode**)realloc(else_block->data.program.statements, sizeof(ASTNode*) * cap3);
+                    if (!tmp) {
+                        free(else_block->data.program.statements);
+                        free(else_block);
+                        raiseError("Memory allocation failed while expanding else statements", "E0004");
+                    }
+                    else_block->data.program.statements = tmp;
+                }
+                else_block->data.program.statements[else_block->data.program.count++] = inner;
+            }
+        }
+
+        if (peek(t, c)->type == TOKEN_END) {
+            advance(t, c);
+        } else {
+            raiseError("Unexpected end of file: missing 'end' for if/else block", "E0022");
+        }
+
+        current_if->data.if_stmt.else_node = else_block;
+        return node;
+    }
+
+    if (peek(t, c)->type == TOKEN_END) {
+        advance(t, c);
+        return node;
+    }
+
+    return node;
 }
