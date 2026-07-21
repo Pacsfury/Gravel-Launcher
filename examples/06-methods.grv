@@ -1,20 +1,28 @@
+/*
+ALL THESE METHODS ARE INDEVELOPMENT: SYNTAX CAN CHANGE DURING ITS IMPLEMENTATION
+*/
+
+import ("string", "stdio")
+
 // string methods
-val myVariable := 'I Just Love Maltese so much!'
+std.string myVariable = 'I Just Love Maltese so much!'
 
-myVariable.upcase // => 'I JUST LOVE MALTESE SO MUCH!'
+myVariable.upcase() // => 'I JUST LOVE MALTESE SO MUCH!'
 
-myVariable.downcase // => 'i just love maltese so much'
+myVariable.downcase() // => 'i just love maltese so much'
 
-myVariable.split // => ['I', 'Just', 'Love', 'Maltese', 'so', 'much']
+myVariable.split() // => ['I', 'Just', 'Love', 'Maltese', 'so', 'much']
 myVariable.split('so') // => ['I Just Love Maltese', 'so much']
 
-myVariable.bite // doesn't do anything in this case, but is useful for grabbing input:
-myVariable = std.in.ask
-myVariable.bite
+myVariable.bite() // doesn't do anything in this case, but is useful for grabbing input:
+std.in.ask(&myVariable, "")
+myVariable.bite()
 
 myVariable.to_integer // if the variable is one similar to '1' or '1995', then it will translate it to the integer equivalent: '1995' -> 1995
 // Just don't call this method on a string of plain text like 'foobar'.
 
+
+// Arrays and dictionaries: builtin or library?
 
 // array methods
 val myArray := ['Hamachi', 'Yellowtail', 'Sanma', 'Unagi']
@@ -26,16 +34,16 @@ myArray.prepend('Tuna')
 myArray.push('Tuna')
 
 // erases every value; be careful!
-myArray.erase 
+myArray.erase()
 // alternatively, you can use clear as an alias:
-myArray.clear
+myArray.clear()
 
 myArray.length // => 4
 // or the alias, size:
 myArray.size
 
 // returns a boolean; true if every value is truthy; false if any value is falsy.
-myArray.purity
+myArray.purity()
 
 // argue an integer; it will split the array at the index of the given integer, and discard the remainder.
 myArray.divide(2) // ['Hamachi', 'Yellowtail']
@@ -61,9 +69,9 @@ myDict.siblings
 myDict.family
 
 //assigns undefined/undef to every value; preserves keys.
-myDict.purify
+myDict.purify()
 // or, the alias cleanse:
-myDict.cleanse
+myDict.cleanse()
 
 
 
