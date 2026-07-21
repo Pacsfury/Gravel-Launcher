@@ -318,3 +318,5 @@ Current compiler status:
 
 ### 2026-07-21
 - Implement code blocks
+- Bug fixes
+- Add explicit int variables
