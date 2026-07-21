@@ -78,6 +78,13 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                         source++;
                     }
                     continue;
+                } else if (*(source + 1) == '*') {
+                    while (*source != '*' && *(++source) != '/') {
+                        source++;
+                    }
+                    source++;
+                    source++;
+                    continue;
                 } else {
                     tokens[token_count].type = TOKEN_DIV;
                 }
