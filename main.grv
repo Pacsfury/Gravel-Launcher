@@ -1,3 +1,4 @@
-int a = 65
-int b = a+1
-scho(b)
+int gravity = 10 //m*s^2
+int distance = 650 //m
+int res = distance/gravity
+scho(res)
