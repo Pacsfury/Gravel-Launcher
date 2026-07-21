@@ -157,7 +157,34 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
         if (peek(t, c)->type == TOKEN_VAR_INFER) {
             advance(t, c); 
         } else {
-            raiseError("Missing '=' (or :=) in variable declaration", "E0006");
+            raiseError("Missing ':='  in variable declaration", "E0006");
+        }
+        
+        result->data.var_decl.value = parse_expression(t, c, ns);
+        return result;
+    } else if (current->type == TOKEN_INT) {
+        ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!result) raiseError("Memory allocation failed", "E0004");
+        
+        result->type = NODE_DECLARATION;
+        advance(t, c);
+        
+        if (peek(t, c)->type == TOKEN_NAME) {
+            Token* name_token = advance(t, c);
+            
+            if (ns != NULL && ns[0] != '\0') {
+                sprintf(result->data.var_decl.name, "%s.%s", ns, name_token->value);
+            } else {
+                strcpy(result->data.var_decl.name, name_token->value);
+            }
+        } else {
+            raiseError("Missing variable name after 'int'", "E0005");
+        }
+        
+        if (peek(t, c)->type == TOKEN_ASSIGN) {
+            advance(t, c); 
+        } else {
+            raiseError("Missing '=' in variable declaration", "E0006");
         }
         
         result->data.var_decl.value = parse_expression(t, c, ns);
