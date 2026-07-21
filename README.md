@@ -75,7 +75,16 @@ val rounded_math.e := 2
 ```
 
 ### If, while and for
-Use the `end` keyword, and use the following syntax: `whatever cond:`. For `for`, use: `for i in list`, but classic syntax will also  be accepted `for int i=0; i<10; i++` or as wanted.
+Use the `end` keyword, and use the following syntax: `whatever cond`. For `for`, use: `for i in list`, but classic syntax will also  be accepted `for int i=0; i<10; i++` or as wanted.
+```lua
+if cond
+    ...
+elseif cond
+    ...
+else
+    ...
+end
+```
 
 ### Repeat
 Use this syntax:
@@ -168,7 +177,7 @@ Right now, this is the current development of every feature:
 |Parser   |Working|
 |LLVM converter |Working|
 |Variables, types and classes | 1/3 |
-|Functions, namespaces, if, while, repeat, etc | 2/6 |
+|Functions, namespaces, if, while, repeat, etc | 3/6 |
 |Packages, pointers, import and basic packages | NOT STARTED |
 
 ## Launcher
@@ -198,11 +207,12 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 * **Namespace Flattening**: Namespace are flattened instead of saving complex tree structures.
 
 ## Update
-Current compiler status:
-* Can compile files
-* Can do `scho`
-* Can declare and use `namespace`
-* Can define int variables (with inference) and be used
+**Currently available contents**
+- scho('A') / scho(intvar)
+- int intvar = 65 / val intvar := 65
+- namespace name ... end / name.getthis
+- val namespace.gettheanother := 65
+- Line comments // and block comments /* */
 
 ## Changelog
 <sub>The changelog idea is from [BeknYTprogamador](https://github.com/BeknYTprogamador)</sub>
@@ -320,3 +330,5 @@ Current compiler status:
 - Implement code blocks
 - Bug fixes
 - Add explicit int variables
+- Update "Update" section
+- Add if, elseif, else
