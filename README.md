@@ -315,3 +315,6 @@ Current compiler status:
 - Add newline (`\n`) support
 - Add AI-POLICY.md
 - Add methods for primitives ideas on readme (PR)
+
+### 2026-07-21
+- Implement code blocks
