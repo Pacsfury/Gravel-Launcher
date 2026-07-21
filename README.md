@@ -33,7 +33,7 @@ package: string
 _If no package defined, couldn't be used for libraries. Naming the package isn't mandatory, but really recommended_
 
 ### Import
-To import packages, use a tuple of a single string for importing them.
+To import packages, use a tuple or a single string for importing them.
 
 ```
 import "string"
