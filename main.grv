@@ -1,4 +1,10 @@
-int gravity = 10 //m*s^2
-int distance = 650 //m
-int res = distance/gravity
-scho(res)
+if 1==4
+    int gravity = 10 //m*s^2
+    int distance = 650 //m
+    int res = distance/gravity
+    scho(res)
+elseif 2==5
+    scho('a')
+else
+    scho('b')
+end

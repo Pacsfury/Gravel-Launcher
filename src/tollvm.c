@@ -38,6 +38,21 @@ static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
         for (int i = 0; i < stmt->data.repeat_stmt.count; i++) {
             emit_globals_for_statement(stmt->data.repeat_stmt.statements[i], outf);
         }
+    } else if (stmt->type == NODE_IF) {
+        // emit globals from then branch
+        for (int i = 0; i < stmt->data.if_stmt.then_count; i++) {
+            emit_globals_for_statement(stmt->data.if_stmt.then_statements[i], outf);
+        }
+        // emit globals from else branch (could be NODE_IF (elseif) or NODE_PROGRAM)
+        if (stmt->data.if_stmt.else_node) {
+            if (stmt->data.if_stmt.else_node->type == NODE_IF) {
+                emit_globals_for_statement(stmt->data.if_stmt.else_node, outf);
+            } else if (stmt->data.if_stmt.else_node->type == NODE_PROGRAM) {
+                for (int j = 0; j < stmt->data.if_stmt.else_node->data.program.count; j++) {
+                    emit_globals_for_statement(stmt->data.if_stmt.else_node->data.program.statements[j], outf);
+                }
+            }
+        }
     }
 }
 
@@ -50,6 +65,8 @@ static char* safe_strdup(const char* s) {
     strcpy(d, s);
     return d;
 }
+
+static int label_counter = 0;
 
 void llvm_scho(FILE* outf, const char* val_to_print) {
     fprintf(outf, "    call void @cprint(i32 %s)\n", val_to_print);
@@ -103,18 +120,32 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
                 case TOKEN_SUB:  op_str = "sub"; break;
                 case TOKEN_STAR: op_str = "mul"; break;
                 case TOKEN_DIV:  op_str = "sdiv"; break;
+                case TOKEN_EQUAL: op_str = "eq"; break;
                 default:         op_str = "add"; break;
             }
+            if (node->data.binary_op.op == TOKEN_EQUAL) {
+                int cmp_reg = (*register_count)++;
+                fprintf(outf, "    %%%d = icmp eq i32 %s, %s\n", cmp_reg, left, right);
+                int zext_reg = (*register_count)++;
+                fprintf(outf, "    %%%d = zext i1 %%%d to i32\n", zext_reg, cmp_reg);
 
-            int reg = (*register_count)++;
-            fprintf(outf, "    %%%d = %s i32 %s, %s\n", reg, op_str, left, right);
-            
-            free(left);
-            free(right);
+                free(left);
+                free(right);
 
-            char buf[32];
-            snprintf(buf, sizeof(buf), "%%%d", reg);
-            return safe_strdup(buf);
+                char buf[32];
+                snprintf(buf, sizeof(buf), "%%%d", zext_reg);
+                return safe_strdup(buf);
+            } else {
+                int reg = (*register_count)++;
+                fprintf(outf, "    %%%d = %s i32 %s, %s\n", reg, op_str, left, right);
+
+                free(left);
+                free(right);
+
+                char buf[32];
+                snprintf(buf, sizeof(buf), "%%%d", reg);
+                return safe_strdup(buf);
+            }
         }
 
         case NODE_SCHO: {
@@ -124,6 +155,46 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             return NULL;
         }
         
+        case NODE_IF: {
+            int my_id = label_counter++;
+
+            char* cond = compile_node(outf, node->data.if_stmt.condition, register_count);
+            int cmp_reg = (*register_count)++;
+            fprintf(outf, "    %%%d = icmp ne i32 %s, 0\n", cmp_reg, cond);
+            free(cond);
+
+            int then_label = my_id * 3 + 1;
+            int else_label = my_id * 3 + 2;
+            int end_label = my_id * 3 + 3;
+
+            fprintf(outf, "    br i1 %%%d, label %%then%d, label %%else%d\n", cmp_reg, then_label, else_label);
+
+            fprintf(outf, "then%d:\n", then_label);
+            for (int i = 0; i < node->data.if_stmt.then_count; i++) {
+                char* leftover = compile_node(outf, node->data.if_stmt.then_statements[i], register_count);
+                if (leftover) free(leftover);
+            }
+            fprintf(outf, "    br label %%end%d\n", end_label);
+
+            fprintf(outf, "else%d:\n", else_label);
+            if (node->data.if_stmt.else_node) {
+                if (node->data.if_stmt.else_node->type == NODE_IF) {
+                    char* leftover = compile_node(outf, node->data.if_stmt.else_node, register_count);
+                    if (leftover) free(leftover);
+                } else if (node->data.if_stmt.else_node->type == NODE_PROGRAM) {
+                    for (int i = 0; i < node->data.if_stmt.else_node->data.program.count; i++) {
+                        char* leftover = compile_node(outf, node->data.if_stmt.else_node->data.program.statements[i], register_count);
+                        if (leftover) free(leftover);
+                    }
+                }
+            }
+            fprintf(outf, "    br label %%end%d\n", end_label);
+
+            // end
+            fprintf(outf, "end%d:\n", end_label);
+            return NULL;
+        }
+
         case NODE_PROGRAM:
             return NULL;
 
@@ -166,19 +237,9 @@ int to_llvm_ir(const Token* tokens, int token_count, ARGS_CONTEX* ctx) {
     fprintf(outf, "    ret void\n");
     fprintf(outf, "}\n\n");
 
-    // Emit global variables
+    // Emit global variables (including those declared inside if/elseif/else/repeat)
     for (int i = 0; i < ast_root->data.program.count; i++) {
-        ASTNode* stmt = ast_root->data.program.statements[i];
-        if (stmt->type == NODE_DECLARATION || stmt->type == NODE_CONSTANT) {
-            if (!already_emitted(stmt->data.var_decl.name)) {
-                fprintf(outf, "@%s = global i32 0, align 4\n", stmt->data.var_decl.name);
-                mark_emitted(stmt->data.var_decl.name);
-            }
-        } else if (stmt->type == NODE_REPEAT) {
-            for (int j = 0; j < stmt->data.repeat_stmt.count; j++) {
-                emit_globals_for_statement(stmt->data.repeat_stmt.statements[j], outf);
-            }
-        }
+        emit_globals_for_statement(ast_root->data.program.statements[i], outf);
     }
 
     fprintf(outf, "\n");

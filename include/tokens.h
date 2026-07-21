@@ -28,6 +28,9 @@ typedef enum {
     //Keywords
     TOKEN_SCHO,
     TOKEN_END,
+    TOKEN_IF,
+    TOKEN_ELSEIF,
+    TOKEN_ELSE,
     TOKEN_NAMESPACE,
     TOKEN_IMPORT,
     TOKEN_CLASS,
