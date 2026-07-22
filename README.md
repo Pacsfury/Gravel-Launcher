@@ -328,7 +328,7 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Add methods for primitives ideas on readme (PR)
 
 ### 2026-07-21
-- Implement code blocks
+- Implement comment blocks
 - Bug fixes
 - Add explicit int variables
 - Update "Update" section
