@@ -81,14 +81,14 @@ Use the `end` keyword, and use the following syntax: `whatever cond`. For `for`,
 Traditional for-loop:
 ```
 for int i=0; i<10; i++
-    std.out.print('hello, but tenfold!'[])
+    std.out.print("hello, but tenfold!")
 end
 ```
 
 Modern for-loop:
 ```
 for entry in list
-    std.out.print(entry[])
+    std.out.print(entry)
 end
 ```
 
