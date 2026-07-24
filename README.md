@@ -79,27 +79,27 @@ val rounded_math.e := 2
 Use the `end` keyword, and use the following syntax: `whatever cond`. For `for`, use: `for i in list`, but classic syntax will also  be accepted `for int i=0; i<10; i++` or as wanted.
 
 Traditional for-loop:
-`
+```
 for int i=0; i<10; i++
     std.out.print('hello, but tenfold!'[])
 end
-`
+```
 
 Modern for-loop:
-`
+```
 for entry in list
     std.out.print(entry[])
 end
-`
+```
 
 While loops:
-`
+```
 val qux := 10
 
 while qux < 10
     qux += 1
 end
-`
+```
 
 Conditionals:
 ```lua
