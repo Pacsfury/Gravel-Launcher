@@ -124,6 +124,9 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
         return parse_repeat(t, c, ns);
     } else if (current->type == TOKEN_ELSE || current->type == TOKEN_IF || current->type == TOKEN_ELSEIF) {
         return parse_if(t,c,ns);
+    } else if (current->type == TOKEN_FUN) {
+        raiseError("Unexpected token: function definitions must be parsed at the top level", "E0009");
+        return NULL;
     }
 
     raiseError("Unexpected token: expected a variable or literal expression", "E0001:1");
@@ -351,6 +354,83 @@ ASTNode* parse(const Token* tokens, int count) {
                 strcat(current_namespace, ns_stack[i]);
                 if (i < ns_depth - 1) strcat(current_namespace, ".");
             }
+            continue;
+        }
+
+        if (current->type == TOKEN_FUN) {
+            advance(tokens, &current_token);
+            ASTNode* funNode = (ASTNode*)malloc(sizeof(ASTNode));
+            if (!funNode) raiseError("Memory allocation failed", "E0004");
+            funNode->type = NODE_FUN_DEF;
+
+            Token* name_token = peek(tokens, &current_token);
+            if (name_token->type != TOKEN_NAME) raiseError("Expected identifier after 'fun'", "E0009");
+
+            if (current_namespace != NULL && current_namespace[0] != '\0')
+                sprintf(funNode->data.fun_def.name, "%s.%s", current_namespace, name_token->value);
+            else
+                sprintf(funNode->data.fun_def.name, "%s", name_token->value);
+
+            advance(tokens, &current_token); // consume name
+
+            if (peek(tokens, &current_token)->type == TOKEN_LPAREN) {
+                advance(tokens, &current_token); // consume '('
+                while (peek(tokens, &current_token)->type != TOKEN_RPAREN && peek(tokens, &current_token)->type != TOKEN_EOF) {
+                    // skip parameters for now
+                    advance(tokens, &current_token);
+                }
+                if (peek(tokens, &current_token)->type == TOKEN_RPAREN) advance(tokens, &current_token);
+                else raiseError("Unterminated parameter list", "E0009");
+            } else {
+                raiseError("Expected parenthesis", "E0009");
+            }
+
+            // optional return type
+            if (peek(tokens, &current_token)->type == TOKEN_NAME || peek(tokens, &current_token)->type == TOKEN_L_INT || peek(tokens, &current_token)->type == TOKEN_L_FLOAT) {
+                Token* rt = advance(tokens, &current_token);
+                strcpy(funNode->data.fun_def.returnType, rt->value);
+            } else {
+                funNode->data.fun_def.returnType[0] = '\0';
+            }
+
+            // parse function body into a program node until END
+            ASTNode* body = (ASTNode*)malloc(sizeof(ASTNode));
+            if (!body) raiseError("Memory allocation failed", "E0004");
+            body->type = NODE_PROGRAM;
+            body->data.program.count = 0;
+            int body_capacity = 8;
+            body->data.program.statements = (ASTNode**)malloc(sizeof(ASTNode*) * body_capacity);
+            if (!body->data.program.statements) raiseError("Memory allocation failed", "E0004");
+
+            while (peek(tokens, &current_token)->type != TOKEN_END && peek(tokens, &current_token)->type != TOKEN_EOF) {
+                ASTNode* inner = parse_statement(tokens, &current_token, current_namespace);
+                if (inner != NULL) {
+                    if (body->data.program.count >= body_capacity) {
+                        body_capacity *= 2;
+                        ASTNode** tmp = (ASTNode**)realloc(body->data.program.statements, sizeof(ASTNode*) * body_capacity);
+                        if (!tmp) { free(body->data.program.statements); free(body); raiseError("Memory allocation failed while expanding function body", "E0004"); }
+                        body->data.program.statements = tmp;
+                    }
+                    body->data.program.statements[body->data.program.count++] = inner;
+                }
+            }
+
+            if (peek(tokens, &current_token)->type == TOKEN_END) {
+                advance(tokens, &current_token); // consume END
+            } else {
+                raiseError("Unexpected end of file: missing 'end' for function", "E0010");
+            }
+
+            funNode->data.fun_def.body = body;
+
+            // append function node to program_node
+            if (program_node->data.program.count >= statement_capacity) {
+                statement_capacity *= 2;
+                ASTNode** temp = (ASTNode**)realloc(program_node->data.program.statements, sizeof(ASTNode*) * statement_capacity);
+                if (!temp) { free(program_node->data.program.statements); free(program_node); raiseError("Memory allocation failed while expanding statements", "E0004"); }
+                program_node->data.program.statements = temp;
+            }
+            program_node->data.program.statements[program_node->data.program.count++] = funNode;
             continue;
         }
 
