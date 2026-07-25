@@ -11,8 +11,9 @@ typedef enum {
     NODE_PROGRAM,
     NODE_SCHO,
     NODE_REPEAT,
-    NODE_CONSTANT
-    ,
+    NODE_CONSTANT,
+    NODE_FUN_DEF,
+    NODE_CALL,
     NODE_IF
 } ASTNodeType;
 
@@ -63,6 +64,17 @@ typedef struct ASTNode {
             struct ASTNode* value;
         } const_var;
 
+        struct {
+            char name[64];
+            char args[64]; // implement later 
+            char returnType[32]; // implement later
+            struct ASTNode* body;
+        } fun_def;
+
+        struct {
+            char name[64];
+            char returnType[32];
+        } fun_call;
     } data;
 } ASTNode;
 
