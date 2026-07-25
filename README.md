@@ -203,7 +203,7 @@ Right now, this is the current development of every feature:
 |Parser   |Working|
 |LLVM converter |Working|
 |Variables, types and classes | 1/3 |
-|Functions, namespaces, if, while, repeat, etc | 3/6 |
+|Functions, namespaces, if, while, repeat| 4/5 |
 |Packages, pointers, import and basic packages | NOT STARTED |
 
 ## Launcher
