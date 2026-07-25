@@ -1,3 +1,14 @@
-fun add()
-    scho('a')
+namespace test
+    fun init()
+        int text1 = 65
+        int text2 = 66
+    end
+
+    fun print()
+        scho(text1)
+        scho(text2)
+    end
 end
+
+test.init()
+test.print()

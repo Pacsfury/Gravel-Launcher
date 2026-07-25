@@ -110,9 +110,27 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
         ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
         if (!node) raiseError("Memory allocation failed", "E0004");
         
-        node->type = NODE_VARIABLE;
         Token* var_token = advance(t, c);
-        
+
+        if (peek(t, c)->type == TOKEN_LPAREN) {
+            advance(t, c);
+            node->type = NODE_CALL;
+            node->data.fun_call.returnType[0] = '\0';
+            if (ns != NULL && ns[0] != '\0' && strchr(var_token->value, '.') == NULL) {
+                sprintf(node->data.fun_call.name, "%s.%s", ns, var_token->value);
+            } else {
+                strcpy(node->data.fun_call.name, var_token->value);
+            }
+
+            if (peek(t, c)->type == TOKEN_RPAREN) {
+                advance(t, c);
+            } else {
+                raiseError("Expected ')' after function call", "E0009");
+            }
+            return node;
+        }
+
+        node->type = NODE_VARIABLE;
         if (ns != NULL && ns[0] != '\0' && strchr(var_token->value, '.') == NULL) {
             sprintf(node->data.literal.value, "%s.%s", ns, var_token->value);
         } else {
