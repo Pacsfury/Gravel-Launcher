@@ -333,3 +333,7 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Add explicit int variables
 - Update "Update" section
 - Add if, elseif, else
+
+### 2026-07-25
+- Implement noarg & no return function definition
+- These functions are now callable
