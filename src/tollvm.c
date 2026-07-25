@@ -56,6 +56,41 @@ static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
     }
 }
 
+static const char* llvm_type_for(const char* type_name) {
+    if (!type_name || type_name[0] == '\0') return "i32";
+    if (strcmp(type_name, "int") == 0 || strcmp(type_name, "i32") == 0) return "i32";
+    if (strcmp(type_name, "float") == 0 || strcmp(type_name, "f32") == 0) return "float";
+    if (strcmp(type_name, "void") == 0) return "void";
+    return "i32";
+}
+
+static char* compile_node(FILE* outf, ASTNode* node, int* register_count);
+
+static void emit_function_definition(FILE* outf, ASTNode* node) {
+    if (!node || node->type != NODE_FUN_DEF) return;
+
+    const char* return_type = llvm_type_for(node->data.fun_def.returnType);
+    fprintf(outf, "define %s @%s() {\n", return_type, node->data.fun_def.name);
+    fprintf(outf, "entry:\n");
+
+    int function_register_count = 1;
+    if (node->data.fun_def.body && node->data.fun_def.body->type == NODE_PROGRAM) {
+        for (int i = 0; i < node->data.fun_def.body->data.program.count; i++) {
+            ASTNode* stmt = node->data.fun_def.body->data.program.statements[i];
+            char* leftover = compile_node(outf, stmt, &function_register_count);
+            if (leftover) free(leftover);
+        }
+    }
+
+    if (strcmp(return_type, "void") == 0) {
+        fprintf(outf, "    ret void\n");
+    } else {
+        fprintf(outf, "    ret %s 0\n", return_type);
+    }
+
+    fprintf(outf, "}\n\n");
+}
+
 static char* safe_strdup(const char* s) {
     char* d = malloc(strlen(s) + 1);
     if (d == NULL) {
@@ -244,15 +279,27 @@ int to_llvm_ir(const Token* tokens, int token_count, ARGS_CONTEX* ctx) {
 
     fprintf(outf, "\n");
 
-    fprintf(outf, "define i32 @main() {\n");
-    fprintf(outf, "entry:\n");
-    
     int register_count = 1;
 
     for (int i = 0; i < ast_root->data.program.count; i++) {
         ASTNode* stmt = ast_root->data.program.statements[i];
-        char* leftover = compile_node(outf, stmt, &register_count);
-        if (leftover) free(leftover); 
+        if (stmt->type == NODE_FUN_DEF) {
+            emit_function_definition(outf, stmt);
+        } else {
+            char* leftover = compile_node(outf, stmt, &register_count);
+            if (leftover) free(leftover);
+        }
+    }
+
+    fprintf(outf, "define i32 @main() {\n");
+    fprintf(outf, "entry:\n");
+
+    for (int i = 0; i < ast_root->data.program.count; i++) {
+        ASTNode* stmt = ast_root->data.program.statements[i];
+        if (stmt->type != NODE_FUN_DEF) {
+            char* leftover = compile_node(outf, stmt, &register_count);
+            if (leftover) free(leftover);
+        }
     }
 
     fprintf(outf, "    ret i32 0\n");
