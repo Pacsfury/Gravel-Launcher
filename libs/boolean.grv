@@ -19,7 +19,7 @@ namespace std
 		end
 
 		fun toCustom(char[] trueStr, char[] falseStr)
-			if ivalue == 0:
+			if ivalue == 0
 				return falseStr
 			end
 			return trueStr
