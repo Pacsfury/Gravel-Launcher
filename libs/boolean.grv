@@ -33,7 +33,7 @@ namespace std
 				bvalue = "true"
 			else:
 				ivalue = 0
-				bvalue = "false
+				bvalue = "false"
 				import "warnings"
 				std.warn.logWarning("Given char[] is invalid.")
 			end
