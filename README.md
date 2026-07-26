@@ -128,7 +128,7 @@ aaaaaaaaaa
 Use the `end` keyword, and use the reserved word `fun`. Define return type after args (optional).
 
 ```
-fun Main() char:
+fun Main() char
 ```
 
 ### Classes
