@@ -1,0 +1,33 @@
+{
+  "name": "gravel-lang-support",
+  "displayName": "Gravel Support",
+  "version": "0.0.5",
+  "publisher": "gravel-lang",
+  "galleryFlags": ["Public"],
+  "private":false,
+  "description": "Smart language support for the Gravel programming language",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "gravel",
+        "extensions": [".grv"],
+        "aliases": ["Gravel", "gravel"],
+        "icon": {
+          "light": "./icons/logo.png",
+          "dark": "./icons/logo.png"
+        },
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "gravel",
+        "scopeName": "source.grv",
+        "path": "./gravel.tmLanguage.json"
+      }
+    ]
+  }
+}
