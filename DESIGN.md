@@ -1,5 +1,5 @@
 
-# Gravel's Internal Desing
+# Gravel's Internal Design
 
 In this document I propose myself to write down Gravel's internals to make it easier to understand, hence making it easier for contributors to do so.
 
@@ -35,7 +35,7 @@ The tokenizer's job is to split the source into individual parts (called _tokens
 
   
 
-For example, if we have this line of out custom language:
+For example, if we have this line of our custom language:
 
 ```
 var age is 32
@@ -66,7 +66,7 @@ NODE_PROGRAM {
 ### CodeGen
 The code generator (also _backend_ or _code generator_) goes through the AST and generates the final code.
 
-For example, for the last example, if the backend language was C, it would genereate something like:
+For example, for the last example, if the backend language was C, it would generate something like:
 ```c
 int main(void) {
 	int age = 32;
@@ -160,7 +160,7 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                     continue;                  
 ```
 
-So after doing this, we sucessfullt have an array of tokens with the correspondent value in case it isn't a keyword.
+So after doing this, we successfully have an array of tokens with the correspondent value in case it isn't a keyword.
 
 ### AST
 To have an AST, first we need to have  some nodes defined, where we will say how every type of node is saved.
@@ -315,7 +315,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             return safe_strdup(buf);
         }
 ```
-Here we can see a chunk of the function to compile nodes. Other nodes call this to genereate inner LLVM, like functions. 
+Here we can see a chunk of the function to compile nodes. Other nodes call this to generate inner LLVM, like functions. 
 
 Gravel writes the file directly instead of saving the data in a buffer to then do a single `fprintf`, which can sometimes affect performance.
 
@@ -335,9 +335,9 @@ For defining functions, Gravel uses a simple struct as seen here:
 
 Later, the AST generator fills the gaps.
 
-RIght now, functions can't have args nor return types, so I have marked them as "implement later".
+Right now, functions can't have args nor return types, so I have marked them as "implement later".
 
-Every field of the stuct has a specific job:
+Every field of the struct has a specific job:
 | **Name** | **Function** |
 |----------|--------------|
 | name     | Saves how the function will be called. |
@@ -393,7 +393,7 @@ This decition (_namespace flattening_) is what natively allows _virtual namespac
 
 ## Optimizations
 
-Right now, Gravel triggers two optimitzations during the AST generation to make the final code faster and smaller.
+Right now, Gravel triggers two optimizations during the AST generation to make the final code faster and smaller.
 * **Literal Folding**: while this is not still available for constant variables, arithmetical operations are resolved on compile time to reduce the quantity of "add" or "div" at the final LLVM code.
 
 It works like this:
