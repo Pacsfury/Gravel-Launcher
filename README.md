@@ -366,3 +366,4 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 ### 2026-07-26
 - Add DESIGN.md
 - Fix spelling in readme and design (PR)
+- Add VScode extension
