@@ -362,3 +362,6 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 ### 2026-07-25
 - Implement noarg & no return function definition
 - These functions are now callable
+
+### 2026-07-26
+- Add DESIGN.md
