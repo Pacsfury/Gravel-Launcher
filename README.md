@@ -77,6 +77,31 @@ val rounded_math.e := 2
 
 ### If, while and for
 Use the `end` keyword, and use the following syntax: `whatever cond`. For `for`, use: `for i in list`, but classic syntax will also  be accepted `for int i=0; i<10; i++` or as wanted.
+
+Traditional for-loop:
+```
+for int i=0; i<10; i++
+    std.out.print("hello, but tenfold!")
+end
+```
+
+Modern for-loop:
+```
+for entry in list
+    std.out.print(entry)
+end
+```
+
+While loops:
+```
+val qux := 10
+
+while qux < 10
+    qux += 1
+end
+```
+
+Conditionals:
 ```lua
 if cond
     ...
@@ -178,7 +203,7 @@ Right now, this is the current development of every feature:
 |Parser   |Working|
 |LLVM converter |Working|
 |Variables, types and classes | 1/3 |
-|Functions, namespaces, if, while, repeat, etc | 3/6 |
+|Functions, namespaces, if, while, repeat| 4/5 |
 |Packages, pointers, import and basic packages | NOT STARTED |
 
 ## Launcher
