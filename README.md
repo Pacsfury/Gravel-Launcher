@@ -56,7 +56,7 @@ Inferred:
 val name := value
 ```
 
-You can now define constant variables (as normal ones can't be modified, at the moment, there is no difference at all, tho) using `const name := val`
+You can now define constant variables (as normal ones can't be modified, at the moment, there is no difference at all, though) using `const name := val`
 
 ### Namespaces
 Create namespaces using `namespace name` and use the `end` keyword. (separation: '.')
