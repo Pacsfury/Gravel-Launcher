@@ -56,7 +56,7 @@ Inferred:
 val name := value
 ```
 
-You can now define constant variables (as normal ones can't be modified, at the moment, there is no difference at all, tho) using `const name := val`
+You can now define constant variables (as normal ones can't be modified, at the moment, there is no difference at all, though) using `const name := val`
 
 ### Namespaces
 Create namespaces using `namespace name` and use the `end` keyword. (separation: '.')
@@ -365,6 +365,11 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 ### 2026-07-25
 - Implement noarg & no return function definition
 - These functions are now callable
+
+### 2026-07-26
+- Add DESIGN.md
+- Fix spelling in readme and design (PR)
+- Add VScode extension
 
 ### 2026-07-27
 - Change syntax: no colons and _-> type_ to only _type_
