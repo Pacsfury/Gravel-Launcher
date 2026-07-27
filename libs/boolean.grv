@@ -1,7 +1,7 @@
 package: boolean
 
 namespace std
-	class boolean: -> type
+	class boolean: type
 		extl int ivalue
 		impl char[] bvalue
 		
