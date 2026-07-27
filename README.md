@@ -132,15 +132,15 @@ fun Main() char
 ```
 
 ### Classes
-As everywhere, use `end` to declare when the class ends. if you put `-> type` at the end of `class name:`, you are saying that this class will act as a type, instead of being a constructor that only saves things in memory using another type.
+As everywhere, use `end` to declare when the class ends. if you put `type` at the end of `class name:`, you are saying that this class will act as a type, instead of being a constructor that only saves things in memory using another type.
 
-With -> type:
+With type:
 
 ```
-class string: -> type
+class string: type
     extl char[] text
     impl int len
-    fun __USE__():
+    fun __USE__()
         text = extl
         len = sizeof(text)
     end
@@ -239,6 +239,9 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - namespace name ... end / name.getthis
 - val namespace.gettheanother := 65
 - Line comments // and block comments /* */
+- If elseif else
+- No args and noreturn functions
+
 
 ## Changelog
 <sub>The changelog idea is from [BeknYTprogamador](https://github.com/BeknYTprogamador)</sub>
@@ -367,3 +370,6 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Add DESIGN.md
 - Fix spelling in readme and design (PR)
 - Add VScode extension
+
+### 2026-07-27
+- Change syntax: no colons and _-> type_ to only _type_
