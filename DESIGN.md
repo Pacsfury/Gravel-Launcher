@@ -55,7 +55,7 @@ Then, the AST (_Abstract Syntax Tree_) generates a tree made out of custom nodes
 So, following the last example, the AST would generate something like:
 ```
 NODE_PROGRAM {
-  NODE_VARDECL {
+  body=NODE_VARDECL {
     name="age"
     value=32
     type=int
