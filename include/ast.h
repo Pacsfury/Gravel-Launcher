@@ -14,7 +14,8 @@ typedef enum {
     NODE_CONSTANT,
     NODE_FUN_DEF,
     NODE_CALL,
-    NODE_IF
+    NODE_IF,
+    NODE_RETURN
 } ASTNodeType;
 
 typedef struct ASTNode {
@@ -58,6 +59,10 @@ typedef struct ASTNode {
             int then_count;
             struct ASTNode* else_node; // can be NODE_PROGRAM or NODE_IF or NULL
         } if_stmt;
+
+        struct {
+            struct ASTNode* value;
+        } return_stmt;
 
         struct {
             char name[64];
