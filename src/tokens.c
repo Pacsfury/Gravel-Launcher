@@ -189,6 +189,8 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                         tokens[token_count].type = TOKEN_REPEAT;
                     } else if (strcmp(buffer, "const") == 0) {
                         tokens[token_count].type = TOKEN_CONST;
+                    } else if (strcmp(buffer, "return") == 0) {
+                        tokens[token_count].type = TOKEN_RETURN;
 
                     } else {
                         tokens[token_count].type = TOKEN_NAME;

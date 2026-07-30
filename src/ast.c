@@ -259,6 +259,18 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
         return result;
     } 
 
+    else if (current->type == TOKEN_RETURN) {
+        ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!result) raiseError("Memory allocation failed", "E0004");
+
+        result->type = NODE_RETURN;
+        advance(t, c); // consume 'return'
+
+        // return may be followed by an expression
+        result->data.return_stmt.value = parse_expression(t, c, ns);
+        return result;
+    }
+
     else if (current->type == TOKEN_SCHO) {
         ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
         if (!result) raiseError("Memory allocation failed", "E0004");
@@ -407,6 +419,12 @@ ASTNode* parse(const Token* tokens, int count) {
             if (peek(tokens, &current_token)->type == TOKEN_NAME || peek(tokens, &current_token)->type == TOKEN_L_INT || peek(tokens, &current_token)->type == TOKEN_L_FLOAT) {
                 Token* rt = advance(tokens, &current_token);
                 strcpy(funNode->data.fun_def.returnType, rt->value);
+            } else if (peek(tokens, &current_token)->type == TOKEN_INT) {
+                advance(tokens, &current_token);
+                strcpy(funNode->data.fun_def.returnType, "int");
+            } else if (peek(tokens, &current_token)->type == TOKEN_FLOAT) {
+                advance(tokens, &current_token);
+                strcpy(funNode->data.fun_def.returnType, "float");
             } else {
                 funNode->data.fun_def.returnType[0] = '\0';
             }

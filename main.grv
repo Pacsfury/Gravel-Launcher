@@ -1,14 +1,13 @@
-namespace test
-    fun init()
-        int text1 = 65
-        int text2 = 66
-    end
+val a := 3
 
-    fun print()
-        scho(text1)
-        scho(text2)
-    end
+fun bad_factorial() int
+    return a * a-1 * a-2
 end
 
-test.init()
-test.print()
+val res := bad_factorial()
+
+if res == 6
+    scho("V")
+else
+    scho("X")
+end

@@ -11,6 +11,28 @@
 
 static char emitted_globals[MAX_EMITTED_GLOBALS][256];
 static int emitted_globals_count = 0;
+static const char* current_function_return_type = "void";
+static int current_function_has_return = 0;
+#define MAX_EMITTED_FUNCS 1024
+static char emitted_funcs[MAX_EMITTED_FUNCS][256];
+static char emitted_funcs_ret[MAX_EMITTED_FUNCS][32];
+static int emitted_funcs_count = 0;
+
+static void register_emitted_function(const char* name, const char* ret) {
+    if (emitted_funcs_count < MAX_EMITTED_FUNCS) {
+        strcpy(emitted_funcs[emitted_funcs_count], name);
+        strncpy(emitted_funcs_ret[emitted_funcs_count], ret, sizeof(emitted_funcs_ret[0]) - 1);
+        emitted_funcs_ret[emitted_funcs_count][sizeof(emitted_funcs_ret[0]) - 1] = '\0';
+        emitted_funcs_count++;
+    }
+}
+
+static const char* lookup_emitted_function_return(const char* name) {
+    for (int i = 0; i < emitted_funcs_count; i++) {
+        if (strcmp(emitted_funcs[i], name) == 0) return emitted_funcs_ret[i];
+    }
+    return NULL;
+}
 
 static int already_emitted(const char* name) {
     for (int i = 0; i < emitted_globals_count; i++) {
@@ -82,10 +104,14 @@ static void emit_function_definition(FILE* outf, ASTNode* node) {
     if (!node || node->type != NODE_FUN_DEF) return;
 
     const char* return_type = llvm_type_for(node->data.fun_def.returnType);
+    register_emitted_function(node->data.fun_def.name, return_type);
     fprintf(outf, "define %s @%s() {\n", return_type, node->data.fun_def.name);
     fprintf(outf, "entry:\n");
 
     int function_register_count = 1;
+    /* set current function return type for use by compile_node when emitting returns */
+    current_function_return_type = return_type;
+    current_function_has_return = 0;
     if (node->data.fun_def.body && node->data.fun_def.body->type == NODE_PROGRAM) {
         for (int i = 0; i < node->data.fun_def.body->data.program.count; i++) {
             ASTNode* stmt = node->data.fun_def.body->data.program.statements[i];
@@ -94,10 +120,19 @@ static void emit_function_definition(FILE* outf, ASTNode* node) {
         }
     }
 
-    if (strcmp(return_type, "void") == 0) {
-        fprintf(outf, "    ret void\n");
-    } else {
-        fprintf(outf, "    ret %s 0\n", return_type);
+    /* reset current function return type after body compiled */
+    const int had_ret = current_function_has_return;
+    current_function_return_type = "void";
+    current_function_has_return = 0;
+
+    if (!had_ret) {
+        if (strcmp(return_type, "void") == 0) {
+            fprintf(outf, "    ret void\n");
+        } else if (strcmp(return_type, "float") == 0) {
+            fprintf(outf, "    ret float 0.0\n");
+        } else {
+            fprintf(outf, "    ret %s 0\n", return_type);
+        }
     }
 
     fprintf(outf, "}\n\n");
@@ -203,17 +238,40 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
         }
 
         case NODE_CALL: {
-            const char* return_type = node->data.fun_call.returnType[0] ? node->data.fun_call.returnType : "void";
-            if (strcmp(return_type, "void") == 0) {
+            const char* rt = NULL;
+            if (node->data.fun_call.returnType[0]) rt = node->data.fun_call.returnType;
+            if (!rt) rt = lookup_emitted_function_return(node->data.fun_call.name);
+            if (!rt) rt = "void";
+
+            if (strcmp(rt, "void") == 0) {
                 fprintf(outf, "    call void @%s()\n", node->data.fun_call.name);
                 return NULL;
             }
 
             int reg = (*register_count)++;
-            fprintf(outf, "    %%%d = call %s @%s()\n", reg, return_type, node->data.fun_call.name);
+            fprintf(outf, "    %%%d = call %s @%s()\n", reg, rt, node->data.fun_call.name);
             char buf[32];
             snprintf(buf, sizeof(buf), "%%%d", reg);
             return safe_strdup(buf);
+        }
+
+        case NODE_RETURN: {
+            current_function_has_return = 1;
+            if (node->data.return_stmt.value) {
+                char* val = compile_node(outf, node->data.return_stmt.value, register_count);
+                if (strcmp(current_function_return_type, "void") == 0) {
+                    /* function declared void but return has value: still emit ret i32 by default */
+                    fprintf(outf, "    ret i32 %s\n", val);
+                } else if (strcmp(current_function_return_type, "float") == 0) {
+                    fprintf(outf, "    ret float %s\n", val);
+                } else {
+                    fprintf(outf, "    ret %s %s\n", current_function_return_type, val);
+                }
+                free(val);
+            } else {
+                fprintf(outf, "    ret void\n");
+            }
+            return NULL;
         }
         
         case NODE_IF: {
