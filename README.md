@@ -383,3 +383,4 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 ### 2026-07-31
 - Updated vscode extension
 - Fixed libaries code
+- Added CONTRIBUTING.md
