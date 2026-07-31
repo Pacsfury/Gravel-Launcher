@@ -14,16 +14,17 @@ namespace std
 			end
 		end
 
-		fun getPair()
+		fun getPair() (char[], int)
 			return (bvalue, ivalue)
 		end
 
-		fun toCustom(char[] trueStr, char[] falseStr)
+		fun toCustom(char[] trueStr, char[] falseStr) char[]
 			if ivalue == 0
 				return falseStr
 			end
 			return trueStr
 		end
+		
 		fun fromCustom(char[] text, char[] trueStr, char[] falseStr)
 			if text == falseStr
 				ivalue = 0
@@ -48,6 +49,7 @@ namespace std
 				bvalue = "true"
 			end
 		end
+
 	namespace bool
 		const boolean TRUE  = 1
 		const boolean FALSE = 0
