@@ -206,6 +206,8 @@ Right now, this is the current development of every feature:
 |Functions, namespaces, if, while, repeat| 4/5 |
 |Packages, pointers, import and basic packages | NOT STARTED |
 
+To propose or vote on small syntax changes, please go to discussions.
+
 ## Launcher
 This is the Gravel _launcher_. This launcher goal is to provide basic CLI tools to run your Gravel code.
 
