@@ -6,3 +6,5 @@ val diff := a - b
 val mult := a * b
 val div := a / b
 val mod := a % b
+
+//Works now: yes
