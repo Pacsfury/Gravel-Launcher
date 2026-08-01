@@ -1,0 +1,8 @@
+fun print()
+    scho('H')
+    scho('i')
+end
+
+print()
+
+//Works now: yes

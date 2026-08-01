@@ -46,7 +46,7 @@ To build and contribute to Gravel, you need a C compiler and LLVM tools installe
 
 3. **Run a test Gravel file:**
    ```bash
-   ./gravel run examples/hello.grv -wE
+   ./gravel run examples/02-HelloWorld.grv -wE
    ```
 
 ---
