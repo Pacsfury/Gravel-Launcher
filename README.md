@@ -182,7 +182,7 @@ Array Methods:
 - length/size -> the amount of values
 - purity -> returns a boolean of true if all values are truthy; returns false if there is a falsy value.
 - divide -> argue an integer; it will split the array at the index of the given integer:
-`['foobar', 'baz', 'qux'].divide(2) # => ['foobar', 'baz']`
+`['foobar', 'baz', 'qux'].divide(2) // => ['foobar', 'baz']`
 Note that it will discard every value after the given index.
 
 Dictionary Methods:
