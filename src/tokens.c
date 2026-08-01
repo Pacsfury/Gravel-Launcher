@@ -89,6 +89,9 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                     tokens[token_count].type = TOKEN_DIV;
                 }
                 break;
+            case '%':
+                tokens[token_count].type = TOKEN_MODULO;
+                break;
             case '=':
                 if (*(source + 1) == '=') {
                     tokens[token_count].type = TOKEN_EQUAL;
