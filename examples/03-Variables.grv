@@ -6,3 +6,10 @@ val inferred_var := 200
 
 // Constant variable definition
 const my_constant := 300
+
+// Reassign
+
+explicit_var = 200
+inferred_var = 400
+
+//Works now: yes
