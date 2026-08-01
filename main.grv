@@ -1,13 +1,1 @@
-val a := 3
-
-fun bad_factorial() int
-    return a * a-1 * a-2
-end
-
-val res := bad_factorial()
-
-if res == 6
-    scho("V")
-else
-    scho("X")
-end
+val inferred_val := 3

@@ -148,7 +148,7 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                     int len = 0;
                     char buffer[64];
 
-                    while ((isalnum(*source) || *source == '.') && len < 63) {
+                    while ((isalnum(*source) || *source == '.' || *source == '_') && len < 63) {
                         if (*source=='\\' && *(++source) == 'n') {
                             buffer[len++] = '\n';
                         } else {
