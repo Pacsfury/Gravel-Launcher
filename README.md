@@ -240,7 +240,8 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - val namespace.gettheanother := 65
 - Line comments // and block comments /* */
 - If elseif else
-- No args and noreturn functions
+- No args and int/void functions
+- Reassing varibles
 
 
 ## Changelog
@@ -388,3 +389,6 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 ### 2026-08-01
 - Added modulo operation (PR)
 - Names can contain '_'
+- Fix ifs
+- Change main.grv to a factorial function
+- Add variable reassing

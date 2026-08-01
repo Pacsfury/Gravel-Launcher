@@ -173,6 +173,14 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             return safe_strdup(v);
         }
 
+        case NODE_REASSIGN: {
+            char* val = compile_node(outf, node->data.reassign.value, register_count);
+            fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.reassign.name);
+            free(val);
+            return NULL;
+        }
+
+
         case NODE_VARIABLE: {
             int reg = (*register_count)++;
             fprintf(outf, "    %%%d = load i32, ptr @%s, align 4\n", reg, node->data.literal.value);
@@ -290,25 +298,35 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             fprintf(outf, "    br i1 %%%d, label %%then%d, label %%else%d\n", cmp_reg, then_label, else_label);
 
             fprintf(outf, "then%d:\n", then_label);
+            int then_returned = 0;
             for (int i = 0; i < node->data.if_stmt.then_count; i++) {
+                if (node->data.if_stmt.then_statements[i]->type == NODE_RETURN) then_returned = 1;
+                
                 char* leftover = compile_node(outf, node->data.if_stmt.then_statements[i], register_count);
                 if (leftover) free(leftover);
             }
-            fprintf(outf, "    br label %%end%d\n", end_label);
+            if (!then_returned) {
+                fprintf(outf, "    br label %%end%d\n", end_label);
+            }
 
             fprintf(outf, "else%d:\n", else_label);
+            int else_returned = 0;
             if (node->data.if_stmt.else_node) {
                 if (node->data.if_stmt.else_node->type == NODE_IF) {
                     char* leftover = compile_node(outf, node->data.if_stmt.else_node, register_count);
                     if (leftover) free(leftover);
                 } else if (node->data.if_stmt.else_node->type == NODE_PROGRAM) {
                     for (int i = 0; i < node->data.if_stmt.else_node->data.program.count; i++) {
+                        if (node->data.if_stmt.else_node->data.program.statements[i]->type == NODE_RETURN) else_returned = 1;
+                        
                         char* leftover = compile_node(outf, node->data.if_stmt.else_node->data.program.statements[i], register_count);
                         if (leftover) free(leftover);
                     }
                 }
             }
-            fprintf(outf, "    br label %%end%d\n", end_label);
+            if (!else_returned) {
+                fprintf(outf, "    br label %%end%d\n", end_label);
+            }
 
             // end
             fprintf(outf, "end%d:\n", end_label);
