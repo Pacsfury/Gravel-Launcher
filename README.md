@@ -1,7 +1,7 @@
 <img src="img/logo.png">
 
 # Gravel, A Programming Language
-<sub>Alpha 0.0.4</sub>
+<sub>Alpha 0.0.5</sub>
 ## Table of Contents
 
 - [Approach](#approach)
@@ -56,7 +56,7 @@ Inferred:
 val name := value
 ```
 
-You can now define constant variables (as normal ones can't be modified, at the moment, there is no difference at all, tho) using `const name := val`
+You can now define constant variables (as normal ones can't be modified, at the moment, there is no difference at all, though) using `const name := val`
 
 ### Namespaces
 Create namespaces using `namespace name` and use the `end` keyword. (separation: '.')
@@ -128,19 +128,19 @@ aaaaaaaaaa
 Use the `end` keyword, and use the reserved word `fun`. Define return type after args (optional).
 
 ```
-fun Main() char:
+fun Main() char
 ```
 
 ### Classes
-As everywhere, use `end` to declare when the class ends. if you put `-> type` at the end of `class name:`, you are saying that this class will act as a type, instead of being a constructor that only saves things in memory using another type.
+As everywhere, use `end` to declare when the class ends. if you put `type` at the end of `class name:`, you are saying that this class will act as a type, instead of being a constructor that only saves things in memory using another type.
 
-With -> type:
+With type:
 
 ```
-class string: -> type
+class string: type
     extl char[] text
     impl int len
-    fun __USE__():
+    fun __USE__()
         text = extl
         len = sizeof(text)
     end
@@ -239,6 +239,10 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - namespace name ... end / name.getthis
 - val namespace.gettheanother := 65
 - Line comments // and block comments /* */
+- If elseif else
+- No args and int/void functions
+- Reassing varibles
+
 
 ## Changelog
 <sub>The changelog idea is from [BeknYTprogamador](https://github.com/BeknYTprogamador)</sub>
@@ -362,3 +366,30 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 ### 2026-07-25
 - Implement noarg & no return function definition
 - These functions are now callable
+
+### 2026-07-26
+- Add DESIGN.md
+- Fix spelling in readme and design (PR)
+- Add VScode extension
+
+### 2026-07-27
+- Change syntax: no colons and _-> type_ to only _type_
+
+### 2026-07-28
+- Fix AST example at DESIGN.md
+
+### 2026-07-30
+- Functions can return ints now
+
+### 2026-07-31
+- Updated vscode extension
+- Fixed libaries code
+- Added CONTRIBUTING.md
+
+### 2026-08-01
+- Added modulo operation (PR)
+- Names can contain '_'
+- Fix ifs
+- Change main.grv to a factorial function
+- Add variable reassing
+- Add and improve examples

@@ -15,3 +15,5 @@ end
 if factorial() == 120
     scho('A')
 end
+
+//Works now: yes
