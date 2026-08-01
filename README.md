@@ -391,4 +391,4 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Names can contain '_'
 - Fix ifs
 - Change main.grv to a factorial function
-- Add function reassing
+- Add variable reassing
