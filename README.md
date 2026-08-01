@@ -182,7 +182,7 @@ Array Methods:
 - length/size -> the amount of values
 - purity -> returns a boolean of true if all values are truthy; returns false if there is a falsy value.
 - divide -> argue an integer; it will split the array at the index of the given integer:
-`['foobar', 'baz', 'qux'].divide(2) # => ['foobar', 'baz']`
+`['foobar', 'baz', 'qux'].divide(2) // => ['foobar', 'baz']`
 Note that it will discard every value after the given index.
 
 Dictionary Methods:
@@ -205,6 +205,8 @@ Right now, this is the current development of every feature:
 |Variables, types and classes | 1/3 |
 |Functions, namespaces, if, while, repeat| 4/5 |
 |Packages, pointers, import and basic packages | NOT STARTED |
+
+To propose or vote on small syntax changes, please go to discussions.
 
 ## Launcher
 This is the Gravel _launcher_. This launcher goal is to provide basic CLI tools to run your Gravel code.
