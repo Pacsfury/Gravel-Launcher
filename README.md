@@ -376,7 +376,7 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 
 ### 2026-07-28
 - Fix AST example at DESIGN.md
-- 
+
 ### 2026-07-30
 - Functions can return ints now
 

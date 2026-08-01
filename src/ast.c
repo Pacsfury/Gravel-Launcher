@@ -16,7 +16,7 @@ Token* advance(const Token* t, int* c) {
 ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns) {
     ASTNode* left = parse_primary(t, c, ns);
     
-    while (peek(t, c)->type == TOKEN_STAR || peek(t, c)->type == TOKEN_DIV) {
+    while (peek(t, c)->type == TOKEN_STAR || peek(t, c)->type == TOKEN_DIV || peek(t, c)->type == TOKEN_MODULO) {
         Token* op_token = advance(t, c);
         ASTNode* right = parse_primary(t, c, ns);
 
@@ -32,6 +32,11 @@ ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns) {
                     raiseError("Compile-time division by zero detected", "E0005");
                 }
                 res = val_left / val_right;
+            } else if (op_token->type == TOKEN_MODULO) {
+                if (val_right == 0) {
+                    raiseError("Compile-time modulo by zero detected", "E0005");
+                }
+                res = val_left % val_right;
             }
 
             snprintf(left->data.literal.value, sizeof(left->data.literal.value), "%d", res);
