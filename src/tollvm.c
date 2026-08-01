@@ -198,12 +198,13 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             
             const char* op_str = "";
             switch(node->data.binary_op.op) {
-                case TOKEN_ADD:  op_str = "add"; break;
-                case TOKEN_SUB:  op_str = "sub"; break;
-                case TOKEN_STAR: op_str = "mul"; break;
-                case TOKEN_DIV:  op_str = "sdiv"; break;
-                case TOKEN_EQUAL: op_str = "eq"; break;
-                default:         op_str = "add"; break;
+                case TOKEN_ADD:    op_str = "add"; break;
+                case TOKEN_SUB:    op_str = "sub"; break;
+                case TOKEN_STAR:   op_str = "mul"; break;
+                case TOKEN_DIV:    op_str = "sdiv"; break;
+                case TOKEN_MODULO: op_str = "srem"; break;
+                case TOKEN_EQUAL:  op_str = "eq"; break;
+                default:           op_str = "add"; break;
             }
             if (node->data.binary_op.op == TOKEN_EQUAL) {
                 int cmp_reg = (*register_count)++;
