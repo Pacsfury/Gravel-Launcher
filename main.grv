@@ -1,1 +1,17 @@
-val inferred_val := 3
+int n = 5
+
+fun factorial() int
+    if n == 1
+        return 1
+    end
+    
+    int actl = n
+    
+    n = n - 1
+    
+    return actl * factorial()
+end
+
+if factorial() == 120
+    scho('A')
+end
