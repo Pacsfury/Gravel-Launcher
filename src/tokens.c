@@ -89,6 +89,9 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                     tokens[token_count].type = TOKEN_DIV;
                 }
                 break;
+            case '%':
+                tokens[token_count].type = TOKEN_MODULO;
+                break;
             case '=':
                 if (*(source + 1) == '=') {
                     tokens[token_count].type = TOKEN_EQUAL;
@@ -145,7 +148,7 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                     int len = 0;
                     char buffer[64];
 
-                    while ((isalnum(*source) || *source == '.') && len < 63) {
+                    while ((isalnum(*source) || *source == '.' || *source == '_') && len < 63) {
                         if (*source=='\\' && *(++source) == 'n') {
                             buffer[len++] = '\n';
                         } else {
@@ -189,6 +192,8 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                         tokens[token_count].type = TOKEN_REPEAT;
                     } else if (strcmp(buffer, "const") == 0) {
                         tokens[token_count].type = TOKEN_CONST;
+                    } else if (strcmp(buffer, "return") == 0) {
+                        tokens[token_count].type = TOKEN_RETURN;
 
                     } else {
                         tokens[token_count].type = TOKEN_NAME;
