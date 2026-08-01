@@ -6,3 +6,5 @@ end
 
 // Virtual namespace assignment
 val rounded_math.tau := 6
+
+//Works now: yes
