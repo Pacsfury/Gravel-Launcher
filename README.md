@@ -387,3 +387,4 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 
 ### 2026-08-01
 - Added modulo operation (PR)
+- Names can contain '_'
