@@ -259,7 +259,7 @@ flowchart LR
     
     %% Multiplicative Level
     D -->|1. calls| E[parse_primary]
-    D -->|2. loops while TOKEN_STAR / TOKEN_DIV| E
+    D -->|2. loops while TOKEN_STAR / TOKEN_DIV / TOKEN_MODULO| E
     
     %% Primary Level & Recursion
     subgraph Primary [parse_primary Leaf Nodes]
