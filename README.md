@@ -395,3 +395,4 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Change main.grv to a factorial function
 - Add variable reassing
 - Add and improve examples
+- If reassigning an undefined variable, an error is thrown (PR)
