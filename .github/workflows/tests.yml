@@ -19,5 +19,8 @@ jobs:
       with:
         python-version: '3.10'
 
+    - name: Compile C code
+      run: gcc src/*.c -o gravel.exe
+
     - name: Run tests
       run: python tests/tests.py
