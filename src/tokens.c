@@ -245,7 +245,10 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
 
 void tokenizeFile(char* file, ARGS_CONTEX* ctx) {
     FILE* input = fopen(file, "r");
-    if (!input) return;
+    if (!input) {
+        raiseError("File does not exist or cannot be read", "E0031");
+        return ;
+    }
 
     char line[256];
     size_t buffer_capacity = 2048;
