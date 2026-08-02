@@ -1,0 +1,14 @@
+fun voidFun()
+    scho('0')
+end
+
+fun intFun() int
+    return 65
+end
+
+fun plusFive(int n) int
+    return n+5
+end
+
+scho(intFun())
+scho(plusFive(63))
