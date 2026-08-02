@@ -1,0 +1,8 @@
+namespace std
+    namespace math
+        namespace rounded
+            int pi = 3
+            int e = 3
+        end
+    end
+end
