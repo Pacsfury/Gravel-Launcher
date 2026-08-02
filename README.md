@@ -132,7 +132,7 @@ fun Main() char
 ```
 
 ### Classes
-As everywhere, use `end` to declare when the class ends. if you put `type` at the end of `class name:`, you are saying that this class will act as a type, instead of being a constructor that only saves things in memory using another type.
+As everywhere, use `end` to declare when the class ends. if you put `type` at the end of `class name:`, you are saying that this class will act as a type, instead of being a constructor for organization and creating objects.
 
 With type:
 
