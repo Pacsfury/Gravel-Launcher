@@ -84,9 +84,19 @@ Source Code (.grv) ➔ Tokenizer (tokens.c) ➔ AST (ast.c) ➔ CodeGen / LLVM I
    - Describe what changed and why.
    - Link any related issue (e.g., `Fixes #12`).
 
+### 4. Tests
+
+After a major compiler change, please make sure that the language is working correctly using the tests folder:
+```bash
+python ./tests/tests.py
+```
+If some test fail, make sure the difference is small (gives same output when LLVM IR is executed). If so, **update the corresponding `.txt` file**. 
+
+If the test fails giving a different output when executed, revise your code, as it's probably wrong.
+
 ---
 
-## 📐 Coding Standards
+## Coding Standards
 
 - **Language:** Clean standard C. Avoid compiler-specific non-standard extensions.
 - **Formatting:** Use 4 spaces for indentation. Keep functions focused and modular.
