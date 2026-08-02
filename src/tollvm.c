@@ -64,6 +64,13 @@ static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
         return;
     }
 
+    if(stmt->type == NODE_REASSIGN){
+        if (!already_emitted(stmt->data.var_decl.name)){
+            raiseError("An undeclared variable cannot be reassigned", "E0030");
+        }
+        return;
+    }
+
     if (stmt->type == NODE_FUN_DEF && stmt->data.fun_def.body && stmt->data.fun_def.body->type == NODE_PROGRAM) {
         for (int i = 0; i < stmt->data.fun_def.body->data.program.count; i++) {
             emit_globals_for_statement(stmt->data.fun_def.body->data.program.statements[i], outf);
