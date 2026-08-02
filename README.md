@@ -1,7 +1,7 @@
 <img src="img/logo.png">
 
 # Gravel, A Programming Language
-<sub>Alpha 0.0.5</sub>
+<sub>Alpha 0.0.6</sub>
 ## Table of Contents
 
 - [Approach](#approach)
