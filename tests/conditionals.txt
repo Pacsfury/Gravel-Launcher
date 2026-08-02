@@ -1,0 +1,73 @@
+; ModuleID = 'output.ll'
+target datalayout = "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
+
+declare i32 @putchar(i32)
+
+@A = global i32 0, align 4
+
+define void @cprint(i32 %charasc) {
+entry:
+    %0 = call i32 @putchar(i32 %charasc)
+    ret void
+}
+
+
+define i32 @main() {
+entry:
+    %1 = icmp eq i32 65, 65
+    %2 = zext i1 %1 to i32
+    %3 = icmp ne i32 %2, 0
+    br i1 %3, label %then1, label %else2
+then1:
+    call void @cprint(i32 65)
+    br label %end3
+else2:
+    br label %end3
+end3:
+    %4 = icmp eq i32 97, 97
+    %5 = zext i1 %4 to i32
+    %6 = icmp ne i32 %5, 0
+    br i1 %6, label %then4, label %else5
+then4:
+    call void @cprint(i32 66)
+    br label %end6
+else5:
+    br label %end6
+end6:
+    store i32 65, ptr @A, align 4
+    %7 = load i32, ptr @A, align 4
+    %8 = icmp eq i32 %7, 65
+    %9 = zext i1 %8 to i32
+    %10 = icmp ne i32 %9, 0
+    br i1 %10, label %then7, label %else8
+then7:
+    call void @cprint(i32 67)
+    br label %end9
+else8:
+    br label %end9
+end9:
+    %11 = load i32, ptr @A, align 4
+    %12 = icmp eq i32 %11, 66
+    %13 = zext i1 %12 to i32
+    %14 = icmp ne i32 %13, 0
+    br i1 %14, label %then10, label %else11
+then10:
+    call void @cprint(i32 88)
+    br label %end12
+else11:
+    %15 = load i32, ptr @A, align 4
+    %16 = icmp eq i32 %15, 67
+    %17 = zext i1 %16 to i32
+    %18 = icmp ne i32 %17, 0
+    br i1 %18, label %then13, label %else14
+then13:
+    call void @cprint(i32 88)
+    br label %end15
+else14:
+    call void @cprint(i32 68)
+    br label %end15
+end15:
+    br label %end12
+end12:
+    ret i32 0
+}

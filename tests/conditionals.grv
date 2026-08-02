@@ -1,0 +1,21 @@
+if 65 == 60+5
+    scho('A')
+end
+
+if 'a' == 'a'
+    scho('B')
+end
+
+int A = 65
+
+if A == 65
+    scho('C')
+end
+
+if A == 66
+    scho('X')
+elseif A==67
+    scho('X')
+else
+    scho('D')
+end
