@@ -242,7 +242,7 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - val namespace.gettheanother := 65
 - Line comments // and block comments /* */
 - If elseif else
-- No args and int/void functions
+- Int args and int/void return functions
 - Reassing varibles
 
 
@@ -396,3 +396,8 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Add variable reassing
 - Add and improve examples
 - If reassigning an undefined variable, an error is thrown (PR)
+- If file doesn't exist, error is thrown (PR)
+
+### 2026-08-02
+- Add int arguments
+
