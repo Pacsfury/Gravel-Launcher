@@ -3,4 +3,5 @@
 *.ilk
 *.obj
 *.pbd
+*.pdb
 *.ll
