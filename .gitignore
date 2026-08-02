@@ -5,3 +5,4 @@
 *.pbd
 *.pdb
 *.ll
+!llvm.exe
