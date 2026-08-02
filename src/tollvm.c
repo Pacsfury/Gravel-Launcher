@@ -13,6 +13,10 @@ static char emitted_globals[MAX_EMITTED_GLOBALS][256];
 static int emitted_globals_count = 0;
 static const char* current_function_return_type = "void";
 static int current_function_has_return = 0;
+static int current_function_param_count = 0;
+static char current_function_param_names[32][64];
+static char current_function_param_ptrs[32][64];
+static char current_function_param_types[32][32];
 #define MAX_EMITTED_FUNCS 1024
 static char emitted_funcs[MAX_EMITTED_FUNCS][256];
 static char emitted_funcs_ret[MAX_EMITTED_FUNCS][32];
@@ -92,8 +96,8 @@ static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
 
 static const char* llvm_type_for(const char* type_name) {
     if (!type_name || type_name[0] == '\0') return "void";
-    if (strcmp(type_name, "int") == 0 || strcmp(type_name, "i32") == 0) return "i32";
-    if (strcmp(type_name, "float") == 0 || strcmp(type_name, "f32") == 0) return "float";
+    if (strcmp(type_name, "int") == 0) return "i32";
+    if (strcmp(type_name, "float") == 0) return "float";
     if (strcmp(type_name, "void") == 0) return "void";
     return "i32";
 }
@@ -105,8 +109,36 @@ static void emit_function_definition(FILE* outf, ASTNode* node) {
 
     const char* return_type = llvm_type_for(node->data.fun_def.returnType);
     register_emitted_function(node->data.fun_def.name, return_type);
-    fprintf(outf, "define %s @%s() {\n", return_type, node->data.fun_def.name);
+    char arguments[256] = "";
+    current_function_param_count = 0;
+    if (node->data.fun_def.arguments) {
+        for (int i = 0; i < 32; i++) {
+            fun_args* arg = &node->data.fun_def.arguments[i];
+            if (arg->name[0] == '\0') break;
+            const char* arg_type = llvm_type_for(arg->type);
+            if (arguments[0] != '\0') {
+                strncat(arguments, ", ", sizeof(arguments) - strlen(arguments) - 1);
+            }
+            strncat(arguments, arg_type, sizeof(arguments) - strlen(arguments) - 1);
+            strncat(arguments, " %", sizeof(arguments) - strlen(arguments) - 1);
+            strncat(arguments, arg->name, sizeof(arguments) - strlen(arguments) - 1);
+
+            strncpy(current_function_param_names[current_function_param_count], arg->name, sizeof(current_function_param_names[0]) - 1);
+            current_function_param_names[current_function_param_count][sizeof(current_function_param_names[0]) - 1] = '\0';
+            strncpy(current_function_param_types[current_function_param_count], arg->type, sizeof(current_function_param_types[0]) - 1);
+            current_function_param_types[current_function_param_count][sizeof(current_function_param_types[0]) - 1] = '\0';
+            snprintf(current_function_param_ptrs[current_function_param_count], sizeof(current_function_param_ptrs[0]), "%s.addr", arg->name);
+            current_function_param_count++;
+        }
+    }
+    fprintf(outf, "define %s @%s(%s) {\n", return_type, node->data.fun_def.name, arguments);
     fprintf(outf, "entry:\n");
+
+    for (int i = 0; i < current_function_param_count; i++) {
+        const char* arg_type = llvm_type_for(current_function_param_types[i]);
+        fprintf(outf, "    %%%s = alloca %s, align 4\n", current_function_param_ptrs[i], arg_type);
+        fprintf(outf, "    store %s %%%s, ptr %%%s, align 4\n", arg_type, current_function_param_names[i], current_function_param_ptrs[i]);
+    }
 
     int function_register_count = 1;
     /* set current function return type for use by compile_node when emitting returns */
@@ -175,13 +207,36 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
 
         case NODE_REASSIGN: {
             char* val = compile_node(outf, node->data.reassign.value, register_count);
-            fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.reassign.name);
+            int arg_index = -1;
+            for (int i = 0; i < current_function_param_count; i++) {
+                if (strcmp(node->data.reassign.name, current_function_param_names[i]) == 0) {
+                    arg_index = i;
+                    break;
+                }
+            }
+            if (arg_index >= 0) {
+                const char* arg_type = llvm_type_for(current_function_param_types[arg_index]);
+                fprintf(outf, "    store %s %s, ptr %%%s, align 4\n", arg_type, val, current_function_param_ptrs[arg_index]);
+            } else {
+                fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.reassign.name);
+            }
             free(val);
             return NULL;
         }
 
 
         case NODE_VARIABLE: {
+            for (int i = 0; i < current_function_param_count; i++) {
+                if (strcmp(node->data.literal.value, current_function_param_names[i]) == 0) {
+                    const char* arg_type = llvm_type_for(current_function_param_types[i]);
+                    int reg = (*register_count)++;
+                    fprintf(outf, "    %%%d = load %s, ptr %%%s, align 4\n", reg, arg_type, current_function_param_ptrs[i]);
+                    char buf[32];
+                    snprintf(buf, sizeof(buf), "%%%d", reg);
+                    return safe_strdup(buf);
+                }
+            }
+
             int reg = (*register_count)++;
             fprintf(outf, "    %%%d = load i32, ptr @%s, align 4\n", reg, node->data.literal.value);
             
@@ -252,13 +307,35 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             if (!rt) rt = lookup_emitted_function_return(node->data.fun_call.name);
             if (!rt) rt = "void";
 
+            char args_buf[512] = "";
+            if (node->data.fun_call.arguments && node->data.fun_call.arg_count > 0) {
+                for (int i = 0; i < node->data.fun_call.arg_count; i++) {
+                    ASTNode* arg = node->data.fun_call.arguments[i];
+                    char* arg_val = compile_node(outf, arg, register_count);
+                    if (i > 0) {
+                        strncat(args_buf, ", ", sizeof(args_buf) - strlen(args_buf) - 1);
+                    }
+                    strncat(args_buf, "i32 ", sizeof(args_buf) - strlen(args_buf) - 1);
+                    strncat(args_buf, arg_val, sizeof(args_buf) - strlen(args_buf) - 1);
+                    free(arg_val);
+                }
+            }
+
             if (strcmp(rt, "void") == 0) {
-                fprintf(outf, "    call void @%s()\n", node->data.fun_call.name);
+                if (args_buf[0] != '\0') {
+                    fprintf(outf, "    call void @%s(%s)\n", node->data.fun_call.name, args_buf);
+                } else {
+                    fprintf(outf, "    call void @%s()\n", node->data.fun_call.name);
+                }
                 return NULL;
             }
 
             int reg = (*register_count)++;
-            fprintf(outf, "    %%%d = call %s @%s()\n", reg, rt, node->data.fun_call.name);
+            if (args_buf[0] != '\0') {
+                fprintf(outf, "    %%%d = call %s @%s(%s)\n", reg, rt, node->data.fun_call.name, args_buf);
+            } else {
+                fprintf(outf, "    %%%d = call %s @%s()\n", reg, rt, node->data.fun_call.name);
+            }
             char buf[32];
             snprintf(buf, sizeof(buf), "%%%d", reg);
             return safe_strdup(buf);

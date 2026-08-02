@@ -19,6 +19,11 @@ typedef enum {
     NODE_REASSIGN
 } ASTNodeType;
 
+typedef struct {
+    char name[32];
+    char type[32];
+} fun_args;
+
 typedef struct ASTNode {
     ASTNodeType type;
 
@@ -72,7 +77,7 @@ typedef struct ASTNode {
 
         struct {
             char name[64];
-            char args[64]; // implement later 
+            fun_args* arguments;
             char returnType[32];
             struct ASTNode* body;
         } fun_def;
@@ -80,6 +85,8 @@ typedef struct ASTNode {
         struct {
             char name[64];
             char returnType[32];
+            struct ASTNode** arguments;
+            int arg_count;
         } fun_call;
 
         struct {
