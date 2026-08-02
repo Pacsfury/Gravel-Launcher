@@ -450,7 +450,6 @@ int to_llvm_ir(const Token* tokens, int token_count, ARGS_CONTEX* ctx) {
     }
 
     fprintf(outf, "; ModuleID = 'output.ll'\n");
-    fprintf(outf, "target datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\n\n");
 
     fprintf(outf, "declare i32 @putchar(i32)\n\n");
 
@@ -496,6 +495,7 @@ int to_llvm_ir(const Token* tokens, int token_count, ARGS_CONTEX* ctx) {
 
     fclose(outf);
     printf("Compiled Successfully\n");
+
     if (!hasArg(ctx, "-wE")) {
         exit(0);
     }
