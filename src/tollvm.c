@@ -497,6 +497,11 @@ int to_llvm_ir(const Token* tokens, int token_count, ARGS_CONTEX* ctx) {
     printf("Compiled Successfully\n");
 
     if (!hasArg(ctx, "-wE")) {
+        #ifdef _WIN32
+            system(".\\llvm\\llvm.exe");
+        #else
+            system("./llvm/llvm.exe");
+        #endif
         exit(0);
     }
     return 0;
