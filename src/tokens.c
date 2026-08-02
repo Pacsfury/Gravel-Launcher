@@ -157,6 +157,7 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                         }
                     }
                     buffer[len] = '\0';
+                    strcpy(tokens[token_count].value, buffer);
 
                     if (strcmp(buffer, "val") == 0) {
                         tokens[token_count].type = TOKEN_VAR_DEF;
