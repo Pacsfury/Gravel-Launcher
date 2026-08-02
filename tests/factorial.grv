@@ -1,0 +1,9 @@
+fun factorial(int n) int
+    if n==1 return 1 end
+
+    return n * factorial(n-1)
+end
+
+if factorial(5) == 120
+    scho('a')
+end
