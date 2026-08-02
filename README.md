@@ -218,6 +218,18 @@ gravel run main.grv dependencies path space separated.
 ```
 (Maybe we will add a file for tracking dependencies, like Cargo.toml but for Gravel)
 
+## Run the .ll
+To run the resulting `output.ll`, do the following:
+**IF WINDOWS**: you can use:
+```bash
+./argc winll llvm\llvm.exe
+```
+**ELSE**: you can use: (_make sure to have llvmlite installed_)
+```bash
+./argc pyll llvm\llvm.py
+```
+
+
 ## Benchmarks
 **New version of the benchmark: it now repeats 30 times!**
 This repo includes a `bench.grv` file with 33576 tokens. You can execute it to test the speed. I got 0.379000 s, let's see what you get running `./main run main.grv -wE` (change `./main` for the actual executable).
@@ -401,3 +413,4 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 ### 2026-08-02
 - Add int arguments
 - Add tests
+- Add LLVM IR execution

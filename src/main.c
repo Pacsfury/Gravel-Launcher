@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include "../include/launcher.h"
@@ -16,6 +17,14 @@ int main(int argc, char *argv[]) {
 
     if(hasArg(&ctx, "init")) {
         _launcherInit();
+    }
+
+    if (hasArg(&ctx, "winll")) {
+        system(getArg(&ctx, "winll"));
+    }
+
+    if (hasArg(&ctx, "pyll")) {
+        system(strcat("python ", getArg(&ctx, "pyll")));
     }
 
     if(hasArg(&ctx, "run")) {
