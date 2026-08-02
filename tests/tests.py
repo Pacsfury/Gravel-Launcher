@@ -6,6 +6,7 @@ def execute(file):
 
     if Path("./tests/" + file.replace(".grv", ".txt")).read_text(encoding="utf-8").strip() != Path("output.ll").read_text(encoding="utf-8").strip():
         print("file " + file + " is not passing the tests\n")
+        return 1
     else:
         print(file + " passed\n")
 
