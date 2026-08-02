@@ -132,7 +132,7 @@ fun Main() char
 ```
 
 ### Classes
-As everywhere, use `end` to declare when the class ends. if you put `type` at the end of `class name:`, you are saying that this class will act as a type, instead of being a constructor that only saves things in memory using another type.
+As everywhere, use `end` to declare when the class ends. if you put `type` at the end of `class name:`, you are saying that this class will act as a type, instead of being a constructor for organization and creating objects.
 
 With type:
 
@@ -242,7 +242,7 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - val namespace.gettheanother := 65
 - Line comments // and block comments /* */
 - If elseif else
-- No args and int/void functions
+- Int args and int/void return functions
 - Reassing varibles
 
 
@@ -395,3 +395,9 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Change main.grv to a factorial function
 - Add variable reassing
 - Add and improve examples
+- If reassigning an undefined variable, an error is thrown (PR)
+- If file doesn't exist, error is thrown (PR)
+
+### 2026-08-02
+- Add int arguments
+

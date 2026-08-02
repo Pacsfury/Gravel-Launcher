@@ -121,10 +121,36 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
             advance(t, c);
             node->type = NODE_CALL;
             node->data.fun_call.returnType[0] = '\0';
+            node->data.fun_call.arguments = NULL;
+            node->data.fun_call.arg_count = 0;
             if (ns != NULL && ns[0] != '\0' && strchr(var_token->value, '.') == NULL) {
                 sprintf(node->data.fun_call.name, "%s.%s", ns, var_token->value);
             } else {
                 strcpy(node->data.fun_call.name, var_token->value);
+            }
+
+            if (peek(t, c)->type != TOKEN_RPAREN) {
+                int arg_capacity = 4;
+                node->data.fun_call.arguments = (ASTNode**)malloc(sizeof(ASTNode*) * arg_capacity);
+                if (!node->data.fun_call.arguments) raiseError("Memory allocation failed", "E0004");
+
+                while (peek(t, c)->type != TOKEN_RPAREN && peek(t, c)->type != TOKEN_EOF) {
+                    if (node->data.fun_call.arg_count >= arg_capacity) {
+                        arg_capacity *= 2;
+                        ASTNode** tmp = (ASTNode**)realloc(node->data.fun_call.arguments, sizeof(ASTNode*) * arg_capacity);
+                        if (!tmp) raiseError("Memory allocation failed", "E0004");
+                        node->data.fun_call.arguments = tmp;
+                    }
+
+                    ASTNode* arg = parse_expression(t, c, ns);
+                    node->data.fun_call.arguments[node->data.fun_call.arg_count++] = arg;
+
+                    if (peek(t, c)->type == TOKEN_COMMA) {
+                        advance(t, c);
+                    } else {
+                        break;
+                    }
+                }
             }
 
             if (peek(t, c)->type == TOKEN_RPAREN) {
@@ -429,14 +455,54 @@ ASTNode* parse(const Token* tokens, int count) {
 
             advance(tokens, &current_token); // consume name
 
+            funNode->data.fun_def.arguments = NULL;
             if (peek(tokens, &current_token)->type == TOKEN_LPAREN) {
                 advance(tokens, &current_token); // consume '('
-                while (peek(tokens, &current_token)->type != TOKEN_RPAREN && peek(tokens, &current_token)->type != TOKEN_EOF) {
-                    // skip parameters for now
-                    advance(tokens, &current_token);
+                fun_args* arguments = NULL;
+                int arg_count = 0;
+
+                if (peek(tokens, &current_token)->type != TOKEN_RPAREN) {
+                    arguments = (fun_args*)malloc(sizeof(fun_args) * 100);
+                    if (!arguments) raiseError("Memory allocation failed", "E0004");
+                    for (int i = 0; i < 100; i++) {
+                        arguments[i].name[0] = '\0';
+                        arguments[i].type[0] = '\0';
+                    }
+
+                    char next = 't'; // t -> type, n -> name
+                    fun_args newarg;
+                    while (peek(tokens, &current_token)->type != TOKEN_RPAREN && peek(tokens, &current_token)->type != TOKEN_EOF) {
+                        if (next == 't') {
+                            TokenType type_token = peek(tokens, &current_token)->type;
+                            if (type_token != TOKEN_NAME && type_token != TOKEN_INT && type_token != TOKEN_FLOAT && type_token != TOKEN_CHAR) {
+                                raiseError("Expected parameter type", "E0009");
+                            }
+                            strcpy(newarg.type, peek(tokens, &current_token)->value);
+                            next = 'n';
+                            advance(tokens, &current_token);
+                        } else if (next == 'n') {
+                            if (peek(tokens, &current_token)->type != TOKEN_NAME) raiseError("Expected parameter name", "E0009");
+                            strcpy(newarg.name, peek(tokens, &current_token)->value);
+                            advance(tokens, &current_token);
+                            arguments[arg_count++] = newarg;
+                            next = 'c';
+                        } else if (peek(tokens, &current_token)->type == TOKEN_COMMA) {
+                            advance(tokens, &current_token);
+                            if (arg_count >= 100) raiseError("Too many function parameters", "E0008");
+                            next = 't';
+                        } else {
+                            raiseError("Invalid function parameter list", "E0009");
+                        }
+                    }
                 }
-                if (peek(tokens, &current_token)->type == TOKEN_RPAREN) advance(tokens, &current_token);
-                else raiseError("Unterminated parameter list", "E0009");
+
+                if (peek(tokens, &current_token)->type == TOKEN_RPAREN) {
+                    advance(tokens, &current_token);
+                    funNode->data.fun_def.arguments = arguments;
+                } else {
+                    if (arguments) free(arguments);
+                    raiseError("Unterminated parameter list", "E0009");
+                }
             } else {
                 raiseError("Expected parenthesis", "E0009");
             }
