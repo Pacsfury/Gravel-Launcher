@@ -1,17 +1,9 @@
-int n = 5
+fun factorial(int n) int
+    if n==1 return 1 end
 
-fun factorial() int
-    if n == 1
-        return 1
-    end
-    
-    int actl = n
-    
-    n = n - 1
-    
-    return actl * factorial()
+    return n * factorial(n-1)
 end
 
-if factorial() == 120
-    scho('A')
+if factorial(5) == 120
+    scho('a')
 end
