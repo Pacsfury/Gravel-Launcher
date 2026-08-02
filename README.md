@@ -224,11 +224,13 @@ To run the resulting `output.ll`, do the following:
 ```bash
 ./argc winll llvm\llvm.exe
 ```
+but it will run automatically, so you can use this for executing othre output.ll.
+
 **ELSE**: you can use: (_make sure to have llvmlite installed_)
 ```bash
 ./argc pyll llvm\llvm.py
 ```
-
+it also runs automatically, but you need to do `pip install llvmlite`.
 
 ## Benchmarks
 **New version of the benchmark: it now repeats 30 times!**
