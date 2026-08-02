@@ -132,7 +132,7 @@ fun Main() char
 ```
 
 ### Classes
-As everywhere, use `end` to declare when the class ends. if you put `type` at the end of `class name:`, you are saying that this class will act as a type, instead of being a constructor that only saves things in memory using another type.
+As everywhere, use `end` to declare when the class ends. if you put `type` at the end of `class name:`, you are saying that this class will act as a type, instead of being a constructor for organization and creating objects.
 
 With type:
 
@@ -182,7 +182,7 @@ Array Methods:
 - length/size -> the amount of values
 - purity -> returns a boolean of true if all values are truthy; returns false if there is a falsy value.
 - divide -> argue an integer; it will split the array at the index of the given integer:
-`['foobar', 'baz', 'qux'].divide(2) # => ['foobar', 'baz']`
+`['foobar', 'baz', 'qux'].divide(2) // => ['foobar', 'baz']`
 Note that it will discard every value after the given index.
 
 Dictionary Methods:
@@ -205,6 +205,8 @@ Right now, this is the current development of every feature:
 |Variables, types and classes | 1/3 |
 |Functions, namespaces, if, while, repeat| 4/5 |
 |Packages, pointers, import and basic packages | NOT STARTED |
+
+To propose or vote on small syntax changes, please go to discussions.
 
 ## Launcher
 This is the Gravel _launcher_. This launcher goal is to provide basic CLI tools to run your Gravel code.
@@ -393,6 +395,9 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Change main.grv to a factorial function
 - Add variable reassing
 - Add and improve examples
+- If reassigning an undefined variable, an error is thrown (PR)
+- If file doesn't exist, error is thrown (PR)
 
 ### 2026-08-02
 - Add int arguments
+
