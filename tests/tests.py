@@ -18,6 +18,4 @@ def test():
         if execute(file) == 1:
             return 1
 
-test()
-
-print("Test ended")
+print("Test ended and passed" if not test() else "Error while testing")
