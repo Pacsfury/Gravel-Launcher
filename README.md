@@ -427,3 +427,4 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Fix Python test
 - Bug fix
 - Add sanitizers.yml workflow
+- Fix possible memory error
