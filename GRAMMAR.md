@@ -4,11 +4,11 @@ Here, the Gravel grammar will be explained using EBNF
 ---
 
 ```ebnf
-program     = sentence*
+program     = sentence* ;
 sentence    = scho
             | end
             | namespace
-            | if | elseif | else
+            | if
             | fun_def
             | fun_call
             | return
@@ -18,60 +18,59 @@ sentence    = scho
             | repeat
             ;
 
-letter      = "a" ... "z" | "A" ... "Z" ;
-digit       = "0" ... "9" ;
+letter      = "a" .. "z" | "A" .. "Z" ;
+digit       = "0" .. "9" ;
 
-letter      = [a-zA-Z] ;
-digit       = [0-9] ;
-character   = letter | digit | "_" | "-" | " ";
-string      = character+ (*Can also be operations, conditions...*)
+condition   = value, '==', value ;
+operation   = value, ('+' | '-' | '*' | '/' | '%'), value ;
+negation    = '-', value ;
+
+name_char   = letter | digit | "_" ;
+name        = name_char+ ;
+
+text_char   = letter | digit | "_" | "-" | " " | "." | "!" | "?" | "," ;
+text_literal= '"', text_char*, '"' ;
 
 value       = fun_call
-            | string
-            | character
-            | letter
-            | digit
+            | text_literal
+            | name
+            | operation
+            | negation
             ;
 
-end         = 'end'
+end         = 'end' ;
 
 scho        = 'scho', '(', character, ')' ;
 
-namespace   = 'namespace', string, sentence*, end;
+namespace   = 'namespace', name, sentence*, end ;
 
-if          = 'if', string, sentence*, 
-            | elseif
-            | else
-            | end
+if          = 'if', condition, sentence*,
+              (elseif | else | end) ;
+
+elseif      = 'elseif', condition, sentence*,
+              (elseif | else | end) ;
+
+else        = 'else', sentence*, end ;
+
+args        = '(', [type, name, {',', type, name}], ')' ;
+
+type        = 'int'
+            | 'char'   (*Coming soon*)
+            | 'float'  (*Coming soon*)
+            | 'string' (*Coming soon*)
             ;
 
-elseif      = 'elseif', string, sentence*,
-            | elseif
-            | else
-            | end
-            ;
+fun_def     = 'fun', name, args, [type], sentence*, end ;
 
-else        = 'else', sentence*, 'end';
+fun_call    = name, '(', [value, {',', value}], ')' ;
 
-args        = '(', (type, string)*, ')';
+return      = 'return', value ;
 
-type        = int
-            | char   (*Coming soon*)
-            | float  (*Coming soon*)
-            | string (*Coming soon*)
+inferred_var= 'val', name, ':=', value ;
+explicit_var= type, name, '=', value ;
 
-fun_def     = 'fun', string, args, type?, sentence*, end;
+variable_mod= name, '=', value ;
 
-fun_call    = string, '(', args*, ')';
-
-return      = 'return', value;
-
-inferrer_var= 'val', string, ':=', value;
-explicit_var= type, string, '=', value;
-
-variable_mod= string, '=', string;
-
-repeat      = 'repeat', digit | string, sentence*, end;
-
+repeat      = 'repeat', value, sentence*, end ;
 
 ```
