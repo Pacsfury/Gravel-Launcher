@@ -13,7 +13,9 @@ This document outlines the acceptable and unacceptable uses of Artificial Intell
 
 ## Documentation & Issues
 * **Full Transparency:** If you use AI to write documentation, commit messages, or issue descriptions, you must disclose it.
-* **Clear Attribution:** Specify exactly which parts were generated or assisted by AI. If you use AI to commit, you should write it here, otherwise, I will do it myself:
+* **Clear Attribution:** Specify exactly which parts were generated or assisted by AI.
+
+If you use AI to commit (whose account will appear as a contributor), you should write it here, otherwise, I will do it myself:
 
 | Commiter   | Changes                  | Human  |
 |------------|--------------------------|--------|
