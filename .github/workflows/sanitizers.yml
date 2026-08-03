@@ -1,0 +1,27 @@
+name: Sanitizers Audit
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Compile C Code with Sanitizers
+      run: gcc -g3 -fsanitize=address,undefined src/*.c -o gravel
+
+    - name: Run test suite with Auditing
+
+      run: python tests/tests.py
