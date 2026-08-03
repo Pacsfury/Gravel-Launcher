@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     #ifdef _WIN32
         system(".\\llvm\\llvm.exe");
     #else
-        system("./llvm/llvm.exe");
+        system("python ./llvm/llvm.py");
     #endif
 
     end_time = clock();

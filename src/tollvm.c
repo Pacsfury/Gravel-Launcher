@@ -15,7 +15,7 @@ static const char* current_function_return_type = "void";
 static int current_function_has_return = 0;
 static int current_function_param_count = 0;
 static char current_function_param_names[32][64];
-static char current_function_param_ptrs[32][64];
+static char* current_function_param_ptrs[32];
 static char current_function_param_types[32][32];
 #define MAX_EMITTED_FUNCS 1024
 static char emitted_funcs[MAX_EMITTED_FUNCS][256];
@@ -111,30 +111,65 @@ static const char* llvm_type_for(const char* type_name) {
 
 static char* compile_node(FILE* outf, ASTNode* node, int* register_count);
 
+static void clear_current_function_param_ptrs(void) {
+    for (int i = 0; i < current_function_param_count; i++) {
+        free(current_function_param_ptrs[i]);
+        current_function_param_ptrs[i] = NULL;
+    }
+}
+
 static void emit_function_definition(FILE* outf, ASTNode* node) {
     if (!node || node->type != NODE_FUN_DEF) return;
+
+    clear_current_function_param_ptrs();
+    current_function_param_count = 0;
 
     const char* return_type = llvm_type_for(node->data.fun_def.returnType);
     register_emitted_function(node->data.fun_def.name, return_type);
     char arguments[256] = "";
-    current_function_param_count = 0;
+
     if (node->data.fun_def.arguments) {
+        size_t max_params = sizeof(current_function_param_names) / sizeof(current_function_param_names[0]);
+
         for (int i = 0; i < 32; i++) {
             fun_args* arg = &node->data.fun_def.arguments[i];
             if (arg->name[0] == '\0') break;
-            const char* arg_type = llvm_type_for(arg->type);
-            if (arguments[0] != '\0') {
-                strncat(arguments, ", ", sizeof(arguments) - strlen(arguments) - 1);
-            }
-            strncat(arguments, arg_type, sizeof(arguments) - strlen(arguments) - 1);
-            strncat(arguments, " %", sizeof(arguments) - strlen(arguments) - 1);
-            strncat(arguments, arg->name, sizeof(arguments) - strlen(arguments) - 1);
 
-            strncpy(current_function_param_names[current_function_param_count], arg->name, sizeof(current_function_param_names[0]) - 1);
+            if (current_function_param_count >= max_params) {
+                break;
+            }
+
+            const char* arg_type = llvm_type_for(arg->type);
+
+            size_t current_len = strlen(arguments);
+            if (current_len < sizeof(arguments)) {
+                snprintf(arguments + current_len, 
+                        sizeof(arguments) - current_len, 
+                        "%s%s %%%s",
+                        (arguments[0] != '\0') ? ", " : "",
+                        arg_type,
+                        arg->name);
+            }
+
+            strncpy(current_function_param_names[current_function_param_count], 
+                    arg->name, 
+                    sizeof(current_function_param_names[0]) - 1);
             current_function_param_names[current_function_param_count][sizeof(current_function_param_names[0]) - 1] = '\0';
-            strncpy(current_function_param_types[current_function_param_count], arg->type, sizeof(current_function_param_types[0]) - 1);
+
+            strncpy(current_function_param_types[current_function_param_count], 
+                    arg->type, 
+                    sizeof(current_function_param_types[0]) - 1);
             current_function_param_types[current_function_param_count][sizeof(current_function_param_types[0]) - 1] = '\0';
-            snprintf(current_function_param_ptrs[current_function_param_count], sizeof(current_function_param_ptrs[0]), "%s.addr", arg->name);
+
+            size_t name_len = strlen(arg->name);
+            size_t ptr_name_len = name_len + strlen(".addr") + 1;
+            current_function_param_ptrs[current_function_param_count] = malloc(ptr_name_len);
+            if (!current_function_param_ptrs[current_function_param_count]) {
+                fprintf(stderr, "Memory allocation failed in LLVM generator\n");
+                exit(EXIT_FAILURE);
+            }
+            snprintf(current_function_param_ptrs[current_function_param_count], ptr_name_len, "%s.addr", arg->name);
+
             current_function_param_count++;
         }
     }
