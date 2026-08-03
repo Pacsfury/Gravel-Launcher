@@ -348,20 +348,21 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
     }
 
     else if (current->type == TOKEN_NAME) {
-        ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!result) raiseError("Memory allocation failed", "E0004");
+        Token* next = (Token*)&t[*c + 1];
+        if (next->type == TOKEN_ASSIGN || next->type == TOKEN_VAR_INFER) {
+            ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
+            if (!result) raiseError("Memory allocation failed", "E0004");
 
-        result->type = NODE_REASSIGN;
-        if (peek(t, c)->type == TOKEN_NAME) {
+            result->type = NODE_REASSIGN;
             Token* name_token = advance(t, c);
 
             qualify_name(result->data.reassign.name, sizeof(result->data.reassign.name), ns, name_token->value);
-            advance(t,c); //Consume =
+            advance(t, c); //Consume = or :=
             result->data.reassign.value = parse_expression(t, c, ns);
+            return result;
         }
 
-        return result;
-        
+        return parse_expression(t, c, ns);
     }
 
     else if (current->type == TOKEN_SCHO) {
