@@ -177,6 +177,16 @@ static void emit_function_definition(FILE* outf, ASTNode* node) {
     fprintf(outf, "}\n\n");
 }
 
+// compile_node returns NULL for statements; require a value when the node is
+// used in a value position (operand, argument, condition, ...).
+static char* compile_value_node(FILE* outf, ASTNode* node, int* register_count) {
+    char* val = compile_node(outf, node, register_count);
+    if (!val) {
+        raiseError("Expression does not produce a value", "E0032");
+    }
+    return val;
+}
+
 static char* safe_strdup(const char* s) {
     char* d = malloc(strlen(s) + 1);
     if (d == NULL) {
@@ -213,7 +223,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
         }
 
         case NODE_REASSIGN: {
-            char* val = compile_node(outf, node->data.reassign.value, register_count);
+            char* val = compile_value_node(outf, node->data.reassign.value, register_count);
             int arg_index = -1;
             for (int i = 0; i < current_function_param_count; i++) {
                 if (strcmp(node->data.reassign.name, current_function_param_names[i]) == 0) {
@@ -255,7 +265,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
         case NODE_CONSTANT:
         case NODE_DECLARATION: {
             if (node->data.var_decl.value) {
-                char* val = compile_node(outf, node->data.var_decl.value, register_count);
+                char* val = compile_value_node(outf, node->data.var_decl.value, register_count);
                 fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.var_decl.name);
                 free(val);
             }
@@ -263,8 +273,8 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
         }
 
         case NODE_BINARY_OP: {
-            char* left = compile_node(outf, node->data.binary_op.left, register_count);
-            char* right = compile_node(outf, node->data.binary_op.right, register_count);
+            char* left = compile_value_node(outf, node->data.binary_op.left, register_count);
+            char* right = compile_value_node(outf, node->data.binary_op.right, register_count);
             
             const char* op_str = "";
             switch(node->data.binary_op.op) {
@@ -302,7 +312,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
         }
 
         case NODE_SCHO: {
-            char* val = compile_node(outf, node->data.scho_stmt.value, register_count);
+            char* val = compile_value_node(outf, node->data.scho_stmt.value, register_count);
             llvm_scho(outf, val);
             free(val);
             return NULL;
@@ -318,7 +328,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             if (node->data.fun_call.arguments && node->data.fun_call.arg_count > 0) {
                 for (int i = 0; i < node->data.fun_call.arg_count; i++) {
                     ASTNode* arg = node->data.fun_call.arguments[i];
-                    char* arg_val = compile_node(outf, arg, register_count);
+                    char* arg_val = compile_value_node(outf, arg, register_count);
                     if (i > 0) {
                         strncat(args_buf, ", ", sizeof(args_buf) - strlen(args_buf) - 1);
                     }
@@ -351,7 +361,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
         case NODE_RETURN: {
             current_function_has_return = 1;
             if (node->data.return_stmt.value) {
-                char* val = compile_node(outf, node->data.return_stmt.value, register_count);
+                char* val = compile_value_node(outf, node->data.return_stmt.value, register_count);
                 if (strcmp(current_function_return_type, "void") == 0) {
                     /* function declared void but return has value: still emit ret i32 by default */
                     fprintf(outf, "    ret i32 %s\n", val);
@@ -370,7 +380,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
         case NODE_IF: {
             int my_id = label_counter++;
 
-            char* cond = compile_node(outf, node->data.if_stmt.condition, register_count);
+            char* cond = compile_value_node(outf, node->data.if_stmt.condition, register_count);
             int cmp_reg = (*register_count)++;
             fprintf(outf, "    %%%d = icmp ne i32 %s, 0\n", cmp_reg, cond);
             free(cond);

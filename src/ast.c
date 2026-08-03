@@ -1,8 +1,76 @@
+#include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include "../include/ast.h"
 #include "../include/tokens.h"
+
+static int add_overflow_long_long(long long a, long long b, long long *result) {
+    if ((b > 0 && a > LLONG_MAX - b) || (b < 0 && a < LLONG_MIN - b)) {
+        return 1;
+    }
+    *result = a + b;
+    return 0;
+}
+
+static int sub_overflow_long_long(long long a, long long b, long long *result) {
+    if ((b < 0 && a > LLONG_MAX + b) || (b > 0 && a < LLONG_MIN + b)) {
+        return 1;
+    }
+    *result = a - b;
+    return 0;
+}
+
+static int mul_overflow_long_long(long long a, long long b, long long *result) {
+    if (a == 0 || b == 0) {
+        *result = 0;
+        return 0;
+    }
+
+    if (a == -1 && b == LLONG_MIN) return 1;
+    if (b == -1 && a == LLONG_MIN) return 1;
+
+    long long abs_a = a < 0 ? -a : a;
+    long long abs_b = b < 0 ? -b : b;
+    if (abs_a > LLONG_MAX / abs_b) {
+        return 1;
+    }
+
+    *result = a * b;
+    return 0;
+}
+
+// Fold a binary op over two literal operands, erroring out instead of
+// overflowing. Operand strings may exceed the int range (float literals fold
+// through their integer prefix), so parse and compute in long long.
+static int fold_literals(TokenType op, const char* left, const char* right) {
+    errno = 0;
+    long long l = strtoll(left, NULL, 10);
+    long long r = strtoll(right, NULL, 10);
+    if (errno == ERANGE) raiseError("Integer literal out of range", "E0012");
+
+    long long res = 0;
+    int overflow = 0;
+    switch (op) {
+        case TOKEN_ADD: overflow = add_overflow_long_long(l, r, &res); break;
+        case TOKEN_SUB: overflow = sub_overflow_long_long(l, r, &res); break;
+        case TOKEN_STAR: overflow = mul_overflow_long_long(l, r, &res); break;
+        case TOKEN_DIV:
+            if (r == 0) raiseError("Compile-time division by zero detected", "E0005");
+            res = l / r;
+            break;
+        case TOKEN_MODULO:
+            if (r == 0) raiseError("Compile-time modulo by zero detected", "E0005");
+            res = l % r;
+            break;
+        default: break;
+    }
+    if (overflow || res > INT_MAX || res < INT_MIN) {
+        raiseError("Compile-time integer overflow", "E0012.1");
+    }
+    return (int)res;
+}
 
 Token* peek(const Token* t, const int* c) {
     return (Token*)&t[*c];
@@ -13,6 +81,20 @@ Token* advance(const Token* t, int* c) {
     return (Token*)&t[(*c)-1];
 }
 
+// Copy `name` into dest, prefixed with the current namespace unless the name
+// is already qualified. Errors out rather than overflowing or truncating.
+static void qualify_name(char* dest, size_t dest_size, const char* ns, const char* name) {
+    int n;
+    if (ns != NULL && ns[0] != '\0' && strchr(name, '.') == NULL) {
+        n = snprintf(dest, dest_size, "%s.%s", ns, name);
+    } else {
+        n = snprintf(dest, dest_size, "%s", name);
+    }
+    if (n < 0 || (size_t)n >= dest_size) {
+        raiseError("Qualified name is too long", "E0011");
+    }
+}
+
 ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns) {
     ASTNode* left = parse_primary(t, c, ns);
     
@@ -21,23 +103,7 @@ ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns) {
         ASTNode* right = parse_primary(t, c, ns);
 
         if (left->type == NODE_LITERAL && right->type == NODE_LITERAL) {
-            int val_left = atoi(left->data.literal.value);
-            int val_right = atoi(right->data.literal.value);
-            int res = 0;
-
-            if (op_token->type == TOKEN_STAR) {
-                res = val_left * val_right;
-            } else if (op_token->type == TOKEN_DIV) {
-                if (val_right == 0) {
-                    raiseError("Compile-time division by zero detected", "E0005");
-                }
-                res = val_left / val_right;
-            } else if (op_token->type == TOKEN_MODULO) {
-                if (val_right == 0) {
-                    raiseError("Compile-time modulo by zero detected", "E0005");
-                }
-                res = val_left % val_right;
-            }
+            int res = fold_literals(op_token->type, left->data.literal.value, right->data.literal.value);
 
             snprintf(left->data.literal.value, sizeof(left->data.literal.value), "%d", res);
 
@@ -67,15 +133,7 @@ ASTNode* parse_additive(const Token* t, int* c, const char* ns) {
         ASTNode* right = parse_multiplicative(t, c, ns);
 
         if (left->type == NODE_LITERAL && right->type == NODE_LITERAL) {
-            int val_left = atoi(left->data.literal.value);
-            int val_right = atoi(right->data.literal.value);
-            int res = 0;
-
-            if (op_token->type == TOKEN_ADD) {
-                res = val_left + val_right;
-            } else if (op_token->type == TOKEN_SUB) {
-                res = val_left - val_right;
-            }
+            int res = fold_literals(op_token->type, left->data.literal.value, right->data.literal.value);
 
             snprintf(left->data.literal.value, sizeof(left->data.literal.value), "%d", res);
 
@@ -108,6 +166,13 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
         node->type = NODE_LITERAL;
         Token* lit_token = advance(t, c);
         strcpy(node->data.literal.value, lit_token->value);
+        if (current->type == TOKEN_L_INT) {
+            errno = 0;
+            long long v = strtoll(lit_token->value, NULL, 10);
+            if (errno == ERANGE || v > INT_MAX) {
+                raiseError("Integer literal out of range", "E0012");
+            }
+        }
         return node;
     }
 
@@ -123,11 +188,7 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
             node->data.fun_call.returnType[0] = '\0';
             node->data.fun_call.arguments = NULL;
             node->data.fun_call.arg_count = 0;
-            if (ns != NULL && ns[0] != '\0' && strchr(var_token->value, '.') == NULL) {
-                sprintf(node->data.fun_call.name, "%s.%s", ns, var_token->value);
-            } else {
-                strcpy(node->data.fun_call.name, var_token->value);
-            }
+            qualify_name(node->data.fun_call.name, sizeof(node->data.fun_call.name), ns, var_token->value);
 
             if (peek(t, c)->type != TOKEN_RPAREN) {
                 int arg_capacity = 4;
@@ -162,11 +223,7 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
         }
 
         node->type = NODE_VARIABLE;
-        if (ns != NULL && ns[0] != '\0' && strchr(var_token->value, '.') == NULL) {
-            sprintf(node->data.literal.value, "%s.%s", ns, var_token->value);
-        } else {
-            strcpy(node->data.literal.value, var_token->value); 
-        }
+        qualify_name(node->data.literal.value, sizeof(node->data.literal.value), ns, var_token->value);
         return node;
         
     } else if (current->type == TOKEN_REPEAT) {
@@ -216,12 +273,8 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
         
         if (peek(t, c)->type == TOKEN_NAME) {
             Token* name_token = advance(t, c);
-            
-            if (ns != NULL && ns[0] != '\0') {
-                sprintf(result->data.var_decl.name, "%s.%s", ns, name_token->value);
-            } else {
-                strcpy(result->data.var_decl.name, name_token->value);
-            }
+
+            qualify_name(result->data.var_decl.name, sizeof(result->data.var_decl.name), ns, name_token->value);
         } else {
             raiseError("Missing variable name after 'val'", "E0005");
         }
@@ -243,12 +296,8 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
         
         if (peek(t, c)->type == TOKEN_NAME) {
             Token* name_token = advance(t, c);
-            
-            if (ns != NULL && ns[0] != '\0') {
-                sprintf(result->data.var_decl.name, "%s.%s", ns, name_token->value);
-            } else {
-                strcpy(result->data.var_decl.name, name_token->value);
-            }
+
+            qualify_name(result->data.var_decl.name, sizeof(result->data.var_decl.name), ns, name_token->value);
         } else {
             raiseError("Missing variable name after 'int'", "E0005");
         }
@@ -270,12 +319,8 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
         
         if (peek(t, c)->type == TOKEN_NAME) {
             Token* name_token = advance(t, c);
-            
-            if (ns != NULL && ns[0] != '\0') {
-                sprintf(result->data.var_decl.name, "%s.%s", ns, name_token->value);
-            } else {
-                strcpy(result->data.var_decl.name, name_token->value);
-            }
+
+            qualify_name(result->data.var_decl.name, sizeof(result->data.var_decl.name), ns, name_token->value);
         } else {
             raiseError("Missing variable name after 'const'", "E0005");
         }
@@ -309,12 +354,8 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
         result->type = NODE_REASSIGN;
         if (peek(t, c)->type == TOKEN_NAME) {
             Token* name_token = advance(t, c);
-            
-            if (ns != NULL && ns[0] != '\0') {
-                sprintf(result->data.reassign.name, "%s.%s", ns, name_token->value);
-            } else {
-                strcpy(result->data.reassign.name, name_token->value);
-            }
+
+            qualify_name(result->data.reassign.name, sizeof(result->data.reassign.name), ns, name_token->value);
             advance(t,c); //Consume =
             result->data.reassign.value = parse_expression(t, c, ns);
         }
@@ -367,7 +408,14 @@ ASTNode* parse_repeat(const Token* t, int* c, const char* ns) {
     ASTNode* newNode = (ASTNode*)malloc(sizeof(ASTNode));
     if (!newNode) raiseError("Memory allocation failed", "E0004");
     newNode->type = NODE_REPEAT;
-    newNode->data.repeat_stmt.repeat_count = atoi(value_token->value);
+    // the body is unrolled repeat_count times at compile time, so an
+    // unchecked count would let a two-line program emit gigabytes of IR
+    errno = 0;
+    long long repeat_count = strtoll(value_token->value, NULL, 10);
+    if (errno == ERANGE || repeat_count > 1000000) {
+        raiseError("Repeat count too large (max 1000000)", "E0013");
+    }
+    newNode->data.repeat_stmt.repeat_count = (int)repeat_count;
 
     int rep_capacity = 10;
     newNode->data.repeat_stmt.count = 0;
@@ -403,9 +451,10 @@ ASTNode* parse_repeat(const Token* t, int* c, const char* ns) {
 ASTNode* parse(const Token* tokens, int count) {
     int current_token = 0;
     
-    char ns_stack[10][64]; 
+    char ns_stack[10][64];
     int ns_depth = 0;
-    char current_namespace[256] = "";
+    // worst case: 10 names of 63 chars, 9 dots, NUL
+    char current_namespace[10 * 64] = "";
     
     ASTNode* program_node = (ASTNode*)malloc(sizeof(ASTNode));
     if (!program_node) raiseError("Memory allocation failed", "E0004");
@@ -448,10 +497,7 @@ ASTNode* parse(const Token* tokens, int count) {
             Token* name_token = peek(tokens, &current_token);
             if (name_token->type != TOKEN_NAME) raiseError("Expected identifier after 'fun'", "E0009");
 
-            if (current_namespace != NULL && current_namespace[0] != '\0')
-                sprintf(funNode->data.fun_def.name, "%s.%s", current_namespace, name_token->value);
-            else
-                sprintf(funNode->data.fun_def.name, "%s", name_token->value);
+            qualify_name(funNode->data.fun_def.name, sizeof(funNode->data.fun_def.name), current_namespace, name_token->value);
 
             advance(tokens, &current_token); // consume name
 
