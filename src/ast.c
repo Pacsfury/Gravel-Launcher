@@ -1,8 +1,41 @@
+#include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include "../include/ast.h"
 #include "../include/tokens.h"
+
+// Fold a binary op over two literal operands, erroring out instead of
+// overflowing. Operand strings may exceed the int range (float literals fold
+// through their integer prefix), so parse and compute in long long.
+static int fold_literals(TokenType op, const char* left, const char* right) {
+    errno = 0;
+    long long l = strtoll(left, NULL, 10);
+    long long r = strtoll(right, NULL, 10);
+    if (errno == ERANGE) raiseError("Integer literal out of range", "E0012");
+
+    long long res = 0;
+    int overflow = 0;
+    switch (op) {
+        case TOKEN_ADD: overflow = __builtin_add_overflow(l, r, &res); break;
+        case TOKEN_SUB: overflow = __builtin_sub_overflow(l, r, &res); break;
+        case TOKEN_STAR: overflow = __builtin_mul_overflow(l, r, &res); break;
+        case TOKEN_DIV:
+            if (r == 0) raiseError("Compile-time division by zero detected", "E0005");
+            res = l / r;
+            break;
+        case TOKEN_MODULO:
+            if (r == 0) raiseError("Compile-time modulo by zero detected", "E0005");
+            res = l % r;
+            break;
+        default: break;
+    }
+    if (overflow || res > INT_MAX || res < INT_MIN) {
+        raiseError("Compile-time integer overflow", "E0012.1");
+    }
+    return (int)res;
+}
 
 Token* peek(const Token* t, const int* c) {
     return (Token*)&t[*c];
@@ -21,23 +54,7 @@ ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns) {
         ASTNode* right = parse_primary(t, c, ns);
 
         if (left->type == NODE_LITERAL && right->type == NODE_LITERAL) {
-            int val_left = atoi(left->data.literal.value);
-            int val_right = atoi(right->data.literal.value);
-            int res = 0;
-
-            if (op_token->type == TOKEN_STAR) {
-                res = val_left * val_right;
-            } else if (op_token->type == TOKEN_DIV) {
-                if (val_right == 0) {
-                    raiseError("Compile-time division by zero detected", "E0005");
-                }
-                res = val_left / val_right;
-            } else if (op_token->type == TOKEN_MODULO) {
-                if (val_right == 0) {
-                    raiseError("Compile-time modulo by zero detected", "E0005");
-                }
-                res = val_left % val_right;
-            }
+            int res = fold_literals(op_token->type, left->data.literal.value, right->data.literal.value);
 
             snprintf(left->data.literal.value, sizeof(left->data.literal.value), "%d", res);
 
@@ -67,15 +84,7 @@ ASTNode* parse_additive(const Token* t, int* c, const char* ns) {
         ASTNode* right = parse_multiplicative(t, c, ns);
 
         if (left->type == NODE_LITERAL && right->type == NODE_LITERAL) {
-            int val_left = atoi(left->data.literal.value);
-            int val_right = atoi(right->data.literal.value);
-            int res = 0;
-
-            if (op_token->type == TOKEN_ADD) {
-                res = val_left + val_right;
-            } else if (op_token->type == TOKEN_SUB) {
-                res = val_left - val_right;
-            }
+            int res = fold_literals(op_token->type, left->data.literal.value, right->data.literal.value);
 
             snprintf(left->data.literal.value, sizeof(left->data.literal.value), "%d", res);
 
@@ -108,6 +117,13 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
         node->type = NODE_LITERAL;
         Token* lit_token = advance(t, c);
         strcpy(node->data.literal.value, lit_token->value);
+        if (current->type == TOKEN_L_INT) {
+            errno = 0;
+            long long v = strtoll(lit_token->value, NULL, 10);
+            if (errno == ERANGE || v > INT_MAX) {
+                raiseError("Integer literal out of range", "E0012");
+            }
+        }
         return node;
     }
 
@@ -367,7 +383,14 @@ ASTNode* parse_repeat(const Token* t, int* c, const char* ns) {
     ASTNode* newNode = (ASTNode*)malloc(sizeof(ASTNode));
     if (!newNode) raiseError("Memory allocation failed", "E0004");
     newNode->type = NODE_REPEAT;
-    newNode->data.repeat_stmt.repeat_count = atoi(value_token->value);
+    // the body is unrolled repeat_count times at compile time, so an
+    // unchecked count would let a two-line program emit gigabytes of IR
+    errno = 0;
+    long long repeat_count = strtoll(value_token->value, NULL, 10);
+    if (errno == ERANGE || repeat_count > 1000000) {
+        raiseError("Repeat count too large (max 1000000)", "E0013");
+    }
+    newNode->data.repeat_stmt.repeat_count = (int)repeat_count;
 
     int rep_capacity = 10;
     newNode->data.repeat_stmt.count = 0;
