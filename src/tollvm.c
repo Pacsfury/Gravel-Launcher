@@ -118,23 +118,44 @@ static void emit_function_definition(FILE* outf, ASTNode* node) {
     register_emitted_function(node->data.fun_def.name, return_type);
     char arguments[256] = "";
     current_function_param_count = 0;
+
     if (node->data.fun_def.arguments) {
+        size_t max_params = sizeof(current_function_param_names) / sizeof(current_function_param_names[0]);
+
         for (int i = 0; i < 32; i++) {
             fun_args* arg = &node->data.fun_def.arguments[i];
             if (arg->name[0] == '\0') break;
-            const char* arg_type = llvm_type_for(arg->type);
-            if (arguments[0] != '\0') {
-                strncat(arguments, ", ", sizeof(arguments) - strlen(arguments) - 1);
-            }
-            strncat(arguments, arg_type, sizeof(arguments) - strlen(arguments) - 1);
-            strncat(arguments, " %", sizeof(arguments) - strlen(arguments) - 1);
-            strncat(arguments, arg->name, sizeof(arguments) - strlen(arguments) - 1);
 
-            strncpy(current_function_param_names[current_function_param_count], arg->name, sizeof(current_function_param_names[0]) - 1);
+            if (current_function_param_count >= max_params) {
+                break;
+            }
+
+            const char* arg_type = llvm_type_for(arg->type);
+
+            size_t current_len = strlen(arguments);
+            if (current_len < sizeof(arguments)) {
+                snprintf(arguments + current_len, 
+                        sizeof(arguments) - current_len, 
+                        "%s%s %%%s",
+                        (arguments[0] != '\0') ? ", " : "",
+                        arg_type,
+                        arg->name);
+            }
+
+            strncpy(current_function_param_names[current_function_param_count], 
+                    arg->name, 
+                    sizeof(current_function_param_names[0]) - 1);
             current_function_param_names[current_function_param_count][sizeof(current_function_param_names[0]) - 1] = '\0';
-            strncpy(current_function_param_types[current_function_param_count], arg->type, sizeof(current_function_param_types[0]) - 1);
+
+            strncpy(current_function_param_types[current_function_param_count], 
+                    arg->type, 
+                    sizeof(current_function_param_types[0]) - 1);
             current_function_param_types[current_function_param_count][sizeof(current_function_param_types[0]) - 1] = '\0';
-            snprintf(current_function_param_ptrs[current_function_param_count], sizeof(current_function_param_ptrs[0]), "%s.addr", arg->name);
+
+            snprintf(current_function_param_ptrs[current_function_param_count], 
+                    sizeof(current_function_param_ptrs[0]), 
+                    "%s.addr", arg->name);
+
             current_function_param_count++;
         }
     }
