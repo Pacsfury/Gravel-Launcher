@@ -10,6 +10,10 @@ jobs:
   audit:
     runs-on: ubuntu-latest
 
+    env:
+      ASAN_OPTIONS: halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1,print_stacktrace=1
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -20,8 +24,7 @@ jobs:
         python-version: '3.10'
 
     - name: Compile C Code with Sanitizers
-      run: gcc -g3 -fsanitize=address,undefined src/*.c -o gravel
+      run: gcc -std=c11 -g3 -Wall -Wextra -fsanitize=address,undefined -fno-sanitize-recover=all src/*.c -o gravel
 
     - name: Run test suite with Auditing
-
       run: python tests/tests.py
