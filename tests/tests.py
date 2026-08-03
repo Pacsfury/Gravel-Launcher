@@ -9,9 +9,15 @@ def execute(file):
         return 1
     else:
         print(file + " passed\n")
+        return 0
 
 files = [f.name for f in Path('./tests').iterdir() if f.is_file() and f.name.endswith(".grv")]
 
-for file in files:
-    execute(file)
+def test():
+    for file in files:
+        if execute(file) == 1:
+            return 1
+
+test()
+
 print("Test ended")
