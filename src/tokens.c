@@ -79,11 +79,14 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                     }
                     continue;
                 } else if (*(source + 1) == '*') {
-                    while (*source != '*' && *(++source) != '/') {
+                    source += 2; // skip "/*"
+                    while (*source != '\0' && !(*source == '*' && *(source + 1) == '/')) {
                         source++;
                     }
-                    source++;
-                    source++;
+                    if (*source == '\0') {
+                        raiseError("Unterminated block comment", "E0002.1");
+                    }
+                    source += 2; // skip "*/"
                     continue;
                 } else {
                     tokens[token_count].type = TOKEN_DIV;
