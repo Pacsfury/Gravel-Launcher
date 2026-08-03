@@ -46,6 +46,20 @@ Token* advance(const Token* t, int* c) {
     return (Token*)&t[(*c)-1];
 }
 
+// Copy `name` into dest, prefixed with the current namespace unless the name
+// is already qualified. Errors out rather than overflowing or truncating.
+static void qualify_name(char* dest, size_t dest_size, const char* ns, const char* name) {
+    int n;
+    if (ns != NULL && ns[0] != '\0' && strchr(name, '.') == NULL) {
+        n = snprintf(dest, dest_size, "%s.%s", ns, name);
+    } else {
+        n = snprintf(dest, dest_size, "%s", name);
+    }
+    if (n < 0 || (size_t)n >= dest_size) {
+        raiseError("Qualified name is too long", "E0011");
+    }
+}
+
 ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns) {
     ASTNode* left = parse_primary(t, c, ns);
     
@@ -139,11 +153,7 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
             node->data.fun_call.returnType[0] = '\0';
             node->data.fun_call.arguments = NULL;
             node->data.fun_call.arg_count = 0;
-            if (ns != NULL && ns[0] != '\0' && strchr(var_token->value, '.') == NULL) {
-                sprintf(node->data.fun_call.name, "%s.%s", ns, var_token->value);
-            } else {
-                strcpy(node->data.fun_call.name, var_token->value);
-            }
+            qualify_name(node->data.fun_call.name, sizeof(node->data.fun_call.name), ns, var_token->value);
 
             if (peek(t, c)->type != TOKEN_RPAREN) {
                 int arg_capacity = 4;
@@ -178,11 +188,7 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
         }
 
         node->type = NODE_VARIABLE;
-        if (ns != NULL && ns[0] != '\0' && strchr(var_token->value, '.') == NULL) {
-            sprintf(node->data.literal.value, "%s.%s", ns, var_token->value);
-        } else {
-            strcpy(node->data.literal.value, var_token->value); 
-        }
+        qualify_name(node->data.literal.value, sizeof(node->data.literal.value), ns, var_token->value);
         return node;
         
     } else if (current->type == TOKEN_REPEAT) {
@@ -232,12 +238,8 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
         
         if (peek(t, c)->type == TOKEN_NAME) {
             Token* name_token = advance(t, c);
-            
-            if (ns != NULL && ns[0] != '\0') {
-                sprintf(result->data.var_decl.name, "%s.%s", ns, name_token->value);
-            } else {
-                strcpy(result->data.var_decl.name, name_token->value);
-            }
+
+            qualify_name(result->data.var_decl.name, sizeof(result->data.var_decl.name), ns, name_token->value);
         } else {
             raiseError("Missing variable name after 'val'", "E0005");
         }
@@ -259,12 +261,8 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
         
         if (peek(t, c)->type == TOKEN_NAME) {
             Token* name_token = advance(t, c);
-            
-            if (ns != NULL && ns[0] != '\0') {
-                sprintf(result->data.var_decl.name, "%s.%s", ns, name_token->value);
-            } else {
-                strcpy(result->data.var_decl.name, name_token->value);
-            }
+
+            qualify_name(result->data.var_decl.name, sizeof(result->data.var_decl.name), ns, name_token->value);
         } else {
             raiseError("Missing variable name after 'int'", "E0005");
         }
@@ -286,12 +284,8 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
         
         if (peek(t, c)->type == TOKEN_NAME) {
             Token* name_token = advance(t, c);
-            
-            if (ns != NULL && ns[0] != '\0') {
-                sprintf(result->data.var_decl.name, "%s.%s", ns, name_token->value);
-            } else {
-                strcpy(result->data.var_decl.name, name_token->value);
-            }
+
+            qualify_name(result->data.var_decl.name, sizeof(result->data.var_decl.name), ns, name_token->value);
         } else {
             raiseError("Missing variable name after 'const'", "E0005");
         }
@@ -325,12 +319,8 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
         result->type = NODE_REASSIGN;
         if (peek(t, c)->type == TOKEN_NAME) {
             Token* name_token = advance(t, c);
-            
-            if (ns != NULL && ns[0] != '\0') {
-                sprintf(result->data.reassign.name, "%s.%s", ns, name_token->value);
-            } else {
-                strcpy(result->data.reassign.name, name_token->value);
-            }
+
+            qualify_name(result->data.reassign.name, sizeof(result->data.reassign.name), ns, name_token->value);
             advance(t,c); //Consume =
             result->data.reassign.value = parse_expression(t, c, ns);
         }
@@ -426,9 +416,10 @@ ASTNode* parse_repeat(const Token* t, int* c, const char* ns) {
 ASTNode* parse(const Token* tokens, int count) {
     int current_token = 0;
     
-    char ns_stack[10][64]; 
+    char ns_stack[10][64];
     int ns_depth = 0;
-    char current_namespace[256] = "";
+    // worst case: 10 names of 63 chars, 9 dots, NUL
+    char current_namespace[10 * 64] = "";
     
     ASTNode* program_node = (ASTNode*)malloc(sizeof(ASTNode));
     if (!program_node) raiseError("Memory allocation failed", "E0004");
@@ -471,10 +462,7 @@ ASTNode* parse(const Token* tokens, int count) {
             Token* name_token = peek(tokens, &current_token);
             if (name_token->type != TOKEN_NAME) raiseError("Expected identifier after 'fun'", "E0009");
 
-            if (current_namespace != NULL && current_namespace[0] != '\0')
-                sprintf(funNode->data.fun_def.name, "%s.%s", current_namespace, name_token->value);
-            else
-                sprintf(funNode->data.fun_def.name, "%s", name_token->value);
+            qualify_name(funNode->data.fun_def.name, sizeof(funNode->data.fun_def.name), current_namespace, name_token->value);
 
             advance(tokens, &current_token); // consume name
 
