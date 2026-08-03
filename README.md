@@ -416,3 +416,6 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Add int arguments
 - Add tests
 - Add LLVM IR execution
+
+### 2026-08-02
+- Add basic EBNF grammar explanation
