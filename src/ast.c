@@ -6,6 +6,41 @@
 #include "../include/ast.h"
 #include "../include/tokens.h"
 
+static int add_overflow_long_long(long long a, long long b, long long *result) {
+    if ((b > 0 && a > LLONG_MAX - b) || (b < 0 && a < LLONG_MIN - b)) {
+        return 1;
+    }
+    *result = a + b;
+    return 0;
+}
+
+static int sub_overflow_long_long(long long a, long long b, long long *result) {
+    if ((b < 0 && a > LLONG_MAX + b) || (b > 0 && a < LLONG_MIN + b)) {
+        return 1;
+    }
+    *result = a - b;
+    return 0;
+}
+
+static int mul_overflow_long_long(long long a, long long b, long long *result) {
+    if (a == 0 || b == 0) {
+        *result = 0;
+        return 0;
+    }
+
+    if (a == -1 && b == LLONG_MIN) return 1;
+    if (b == -1 && a == LLONG_MIN) return 1;
+
+    long long abs_a = a < 0 ? -a : a;
+    long long abs_b = b < 0 ? -b : b;
+    if (abs_a > LLONG_MAX / abs_b) {
+        return 1;
+    }
+
+    *result = a * b;
+    return 0;
+}
+
 // Fold a binary op over two literal operands, erroring out instead of
 // overflowing. Operand strings may exceed the int range (float literals fold
 // through their integer prefix), so parse and compute in long long.
@@ -18,9 +53,9 @@ static int fold_literals(TokenType op, const char* left, const char* right) {
     long long res = 0;
     int overflow = 0;
     switch (op) {
-        case TOKEN_ADD: overflow = __builtin_add_overflow(l, r, &res); break;
-        case TOKEN_SUB: overflow = __builtin_sub_overflow(l, r, &res); break;
-        case TOKEN_STAR: overflow = __builtin_mul_overflow(l, r, &res); break;
+        case TOKEN_ADD: overflow = add_overflow_long_long(l, r, &res); break;
+        case TOKEN_SUB: overflow = sub_overflow_long_long(l, r, &res); break;
+        case TOKEN_STAR: overflow = mul_overflow_long_long(l, r, &res); break;
         case TOKEN_DIV:
             if (r == 0) raiseError("Compile-time division by zero detected", "E0005");
             res = l / r;
