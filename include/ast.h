@@ -19,9 +19,10 @@ typedef enum {
     NODE_REASSIGN
 } ASTNodeType;
 
+// identifier buffers hold a full Token value (64 bytes)
 typedef struct {
-    char name[32];
-    char type[32];
+    char name[64];
+    char type[64];
 } fun_args;
 
 typedef struct ASTNode {
@@ -78,13 +79,13 @@ typedef struct ASTNode {
         struct {
             char name[64];
             fun_args* arguments;
-            char returnType[32];
+            char returnType[64];
             struct ASTNode* body;
         } fun_def;
 
         struct {
             char name[64];
-            char returnType[32];
+            char returnType[64];
             struct ASTNode** arguments;
             int arg_count;
         } fun_call;
