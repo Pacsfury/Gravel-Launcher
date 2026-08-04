@@ -434,8 +434,8 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Improve Python LLVM executor
 - Use Python always to execute LLVM
 - Fix sanitizer warnings
-- Add `while` and `for` loops (classic `for int i=0; i<10; i++` and modern `for i in n`)
-- Add comparison operators (`<`, `>`, `<=`, `>=`, `!=`)
-- Add increment/decrement (`i++`, `i--`) and compound assignment (`+=`, `-=`, `*=`, `/=`, `%=`) operators
-- Fix tokenizer never emitting `,`, enabling multi-argument functions and calls
-- Update grammar documentation and add loop tests
+- Add `while` and `for` loops (classic `for int i=0; i<10; i++` and modern `for i in n`) (PR)
+- Add comparison operators (`<`, `>`, `<=`, `>=`, `!=`) (PR)
+- Add increment/decrement (`i++`, `i--`) and compound assignment (`+=`, `-=`, `*=`, `/=`, `%=`) operators (PR)
+- Fix tokenizer never emitting `,`, enabling multi-argument functions and calls (PR)
+- Update grammar documentation and add loop tests (PR)
