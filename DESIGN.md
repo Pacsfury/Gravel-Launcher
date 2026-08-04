@@ -177,7 +177,9 @@ typedef enum {
     NODE_CONSTANT,
     NODE_FUN_DEF,
     NODE_CALL,
-    NODE_IF
+    NODE_IF,
+    NODE_WHILE,
+    NODE_FOR
 } ASTNodeType;
 
 typedef struct ASTNode {
@@ -250,8 +252,12 @@ flowchart LR
     A[parse_expression] -->|calls| B[parse_equality]
     
     %% Equality Level
-    B -->|1. calls| C[parse_additive]
-    B -->|2. loops while TOKEN_EQUAL| C
+    B -->|1. calls| R[parse_relational]
+    B -->|2. loops while TOKEN_EQUAL / TOKEN_NE| R
+    
+    %% Relational Level
+    R -->|1. calls| C[parse_additive]
+    R -->|2. loops while TOKEN_LT / TOKEN_GT / TOKEN_LE / TOKEN_GE| C
     
     %% Additive Level
     C -->|1. calls| D[parse_multiplicative]
@@ -267,11 +273,15 @@ flowchart LR
         E -->|Variable / Call| G[NODE_VARIABLE / NODE_CALL]
         E -->|TOKEN_REPEAT| H[parse_repeat]
         E -->|TOKEN_IF / ELSE| I[parse_if]
+        E -->|TOKEN_WHILE| J[parse_while]
+        E -->|TOKEN_FOR| K[parse_for]
     end
 
     %% Recursion Backtrack
     H -.->|parses body statements| A
     I -.->|parses condition & statements| A
+    J -.->|parses condition & body| A
+    K -.->|parses header & body| A
 ```  
 
 This flow makes that operations are solved using the right precedence and that expressions and equality work as expected.
@@ -368,6 +378,49 @@ As before, I will now explain what every field does.
 As we have seen, there is no "elseif" node, because we handle `elseif` on another way:
 
 When doing so, a NodeIf is attached to the else_node, making a else if chain.
+
+### While and For
+Loops share a simple design. While is just a condition plus a body, while `for` adds an init and an increment around the same structure:
+
+```c
+        struct {
+            struct ASTNode* condition;
+            struct ASTNode** statements;
+            int count;
+        } while_stmt;
+
+        struct {
+            struct ASTNode* init;
+            struct ASTNode* condition;
+            struct ASTNode* increment;
+            struct ASTNode** statements;
+            int count;
+        } for_stmt;
+```
+
+| **Name**    | **Function** |
+|-------------|--------------|
+| condition   | Expression evaluated before every iteration; the loop runs while it is truthy. |
+| statements / count | The loop body, as an array of AST nodes. |
+| init        | Only on `for`: executed once before the first check (e.g. `int i=0`). |
+| increment   | Only on `for`: executed after each iteration (e.g. `i++`). |
+
+The classic `for int i=0; i<10; i++` is stored as-is, while the modern
+`for i in n` is desugared at parse time into an init (`i := 0`), a condition
+(`i < n`) and an increment (`i++`), so both forms share the same codegen.
+
+At LLVM emission, every loop gets three fresh basic blocks:
+`loopcond<N>`, `loopbody<N>` and `loopend<N>`. The condition is compiled at
+the start of `loopcond<N>` and a `br` decides whether to enter the body or
+exit. The body ends with a `br` back to `loopcond<N>`, and (for `for`) the
+increment is emitted just before that back-edge.
+
+If the body ends in a `return`, the back-edge (and the `for` increment) is
+skipped, since the `return` already exits the function.
+
+Because every variable is stored as a global, loop variables are globals
+too: declaring the same variable in nested loops (e.g. two `for i ...`
+loops) reuses the same global and overwrites the outer counter.
 
 ### Namespaces
 Namespaces are way simpler that they may seem: they don't even have  a struct!
