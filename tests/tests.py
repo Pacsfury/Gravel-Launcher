@@ -1,23 +1,46 @@
 import subprocess
+import sys
 from pathlib import Path
 
 def execute(file):
-    subprocess.run(['./gravel', 'run', "./tests/" + file], check=True)
+    output_path = Path("output.ll")
+    if output_path.exists():
+        output_path.unlink()
 
-    if Path("./tests/" + file.replace(".grv", ".txt")).read_text(encoding="utf-8").strip() != Path("output.ll").read_text(encoding="utf-8").strip():
-        print("file " + file + " is not passing the tests\n")
+    try:
+        subprocess.run(['./gravel', 'run', f"./tests/{file}"], check=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Compiler failed with file: {file}")
+        print(e.stderr.decode().strip())
         return 1
-    else:
-        print(file + " passed\n")
-        return 0
 
-files = [f.name for f in Path('./tests').iterdir() if f.is_file() and f.name.endswith(".grv")]
+    if not output_path.exists():
+        print(f"Error: {file} did not generate output.ll")
+        return 1
+
+    expected_path = Path(f"./tests/{file.replace('.grv', '.txt')}")
+    if not expected_path.exists():
+        print(f"Warning: Expected verification file {expected_path.name} does not exist")
+        return 1
+
+    if expected_path.read_text(encoding="utf-8").strip() != output_path.read_text(encoding="utf-8").strip():
+        print(f"File {file} failed verification.")
+        return 1
+    
+    print(f"{file} passed successfully.")
+    return 0
 
 def test():
+    files = [f.name for f in Path('./tests').iterdir() if f.is_file() and f.name.endswith(".grv")]
     for file in files:
         if execute(file) == 1:
             return 1
+    return 0
 
-test()
-
-print("Test ended")
+if __name__ == "__main__":
+    if test() == 1:
+        print("\nError detected during testing.")
+        sys.exit(1)
+    else:
+        print("\nAll tests completed successfully.")
+        sys.exit(0)

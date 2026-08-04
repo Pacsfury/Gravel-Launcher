@@ -417,5 +417,14 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Add tests
 - Add LLVM IR execution
 
-### 2026-08-02
+### 2026-08-03
 - Add basic EBNF grammar explanation
+- Implemented some commits from [skeeto's fork](https://github.com/skeeto/Gravel-Launcher):
+  - **`b283d3c`**: Fix integer overflow when folding literals
+  - **`a055ec6`**: Fix buffer overflow when names too long
+  - **`a0b2132`**: Fix unclosed /* comments
+  - **`4b1fc85`**: Fix null or empty dereference
+- Fix Python test
+- Bug fix
+- Add sanitizers.yml workflow
+- Fix possible memory error

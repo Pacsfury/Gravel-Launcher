@@ -1,9 +1,11 @@
-fun factorial(int n) int
-    if n==1 return 1 end
+fun std.out.print(int a)
+    int temp = a % 100
+    int var = a - temp
 
-    return n * factorial(n-1)
+    scho(var/100)
+    scho(temp)
+    scho('\n')
 end
 
-if factorial(5) == 120
-    scho('a')
-end
+
+std.out.print(6566)
