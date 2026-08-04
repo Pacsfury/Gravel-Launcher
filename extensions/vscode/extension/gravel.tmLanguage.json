@@ -60,11 +60,11 @@
         },
         {
           "name": "keyword.control.conditional.grv",
-          "match": "\\b(if|elseif|else|)\\b"
+          "match": "\\b(if|elseif|else)\\b"
         },
         {
           "name": "keyword.control.grv",
-          "match": "\\b(type|__USE__|extl|impl)\\b"
+          "match": "\\b(type|__USE__|extl|impl|__CONSTRUCT__)\\b"
         },
         {
           "name": "keyword.declaration.grv",
@@ -100,7 +100,7 @@
       "patterns": [
         {
           "name": "keyword.operator.grv",
-          "match": "==|!=|<=|>=|\\+|-|\\*|/|=|<|>|\\."
+          "match": "==|!=|<=|>=|\\+|-|\\*|/|=|<|>|\\.|:=|%"
         }
       ]
     },
@@ -108,7 +108,7 @@
       "patterns": [
         {
           "name": "punctuation.delimiter.grv",
-          "match": "[(),:;]"
+          "match": "[(),:;{}]"
         }
       ]
     },
