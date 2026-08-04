@@ -129,7 +129,7 @@ static void emit_function_definition(FILE* outf, ASTNode* node) {
     char arguments[256] = "";
 
     if (node->data.fun_def.arguments) {
-        size_t max_params = sizeof(current_function_param_names) / sizeof(current_function_param_names[0]);
+        int max_params = sizeof(current_function_param_names) / sizeof(current_function_param_names[0]);
 
         for (int i = 0; i < 32; i++) {
             fun_args* arg = &node->data.fun_def.arguments[i];
@@ -461,6 +461,9 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             fprintf(outf, "end%d:\n", end_label);
             return NULL;
         }
+
+        case NODE_FUN_DEF:
+            return NULL;
 
         case NODE_PROGRAM:
             return NULL;

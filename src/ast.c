@@ -450,6 +450,7 @@ ASTNode* parse_repeat(const Token* t, int* c, const char* ns) {
 }
 
 ASTNode* parse(const Token* tokens, int count) {
+    (void)count;
     int current_token = 0;
     
     char ns_stack[10][64];
