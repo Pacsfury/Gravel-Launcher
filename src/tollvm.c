@@ -85,6 +85,22 @@ static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
         return;
     }
 
+    if (stmt->type == NODE_WHILE) {
+        for (int i = 0; i < stmt->data.while_stmt.count; i++) {
+            emit_globals_for_statement(stmt->data.while_stmt.statements[i], outf);
+        }
+        return;
+    }
+
+    if (stmt->type == NODE_FOR) {
+        emit_globals_for_statement(stmt->data.for_stmt.init, outf);
+        for (int i = 0; i < stmt->data.for_stmt.count; i++) {
+            emit_globals_for_statement(stmt->data.for_stmt.statements[i], outf);
+        }
+        emit_globals_for_statement(stmt->data.for_stmt.increment, outf);
+        return;
+    }
+
     if (stmt->type == NODE_IF) {
         for (int i = 0; i < stmt->data.if_stmt.then_count; i++) {
             emit_globals_for_statement(stmt->data.if_stmt.then_statements[i], outf);
@@ -233,6 +249,7 @@ static char* safe_strdup(const char* s) {
 }
 
 static int label_counter = 0;
+static int loop_label_counter = 0;
 
 void llvm_scho(FILE* outf, const char* val_to_print) {
     fprintf(outf, "    call void @cprint(i32 %s)\n", val_to_print);
@@ -319,11 +336,21 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
                 case TOKEN_DIV:    op_str = "sdiv"; break;
                 case TOKEN_MODULO: op_str = "srem"; break;
                 case TOKEN_EQUAL:  op_str = "eq"; break;
+                case TOKEN_NE:     op_str = "ne"; break;
+                case TOKEN_LT:     op_str = "slt"; break;
+                case TOKEN_GT:     op_str = "sgt"; break;
+                case TOKEN_LE:     op_str = "sle"; break;
+                case TOKEN_GE:     op_str = "sge"; break;
                 default:           op_str = "add"; break;
             }
-            if (node->data.binary_op.op == TOKEN_EQUAL) {
+            if (node->data.binary_op.op == TOKEN_EQUAL ||
+                node->data.binary_op.op == TOKEN_NE ||
+                node->data.binary_op.op == TOKEN_LT ||
+                node->data.binary_op.op == TOKEN_GT ||
+                node->data.binary_op.op == TOKEN_LE ||
+                node->data.binary_op.op == TOKEN_GE) {
                 int cmp_reg = (*register_count)++;
-                fprintf(outf, "    %%%d = icmp eq i32 %s, %s\n", cmp_reg, left, right);
+                fprintf(outf, "    %%%d = icmp %s i32 %s, %s\n", cmp_reg, op_str, left, right);
                 int zext_reg = (*register_count)++;
                 fprintf(outf, "    %%%d = zext i1 %%%d to i32\n", zext_reg, cmp_reg);
 
@@ -464,6 +491,71 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
 
         case NODE_FUN_DEF:
             return NULL;
+
+        case NODE_WHILE: {
+            int my_id = loop_label_counter++;
+
+            fprintf(outf, "    br label %%loopcond%d\n", my_id);
+            fprintf(outf, "loopcond%d:\n", my_id);
+
+            char* cond = compile_value_node(outf, node->data.while_stmt.condition, register_count);
+            int cmp_reg = (*register_count)++;
+            fprintf(outf, "    %%%d = icmp ne i32 %s, 0\n", cmp_reg, cond);
+            free(cond);
+            fprintf(outf, "    br i1 %%%d, label %%loopbody%d, label %%loopend%d\n", cmp_reg, my_id, my_id);
+
+            fprintf(outf, "loopbody%d:\n", my_id);
+            int body_returned = 0;
+            for (int i = 0; i < node->data.while_stmt.count; i++) {
+                if (node->data.while_stmt.statements[i]->type == NODE_RETURN) body_returned = 1;
+                char* leftover = compile_node(outf, node->data.while_stmt.statements[i], register_count);
+                if (leftover) free(leftover);
+                if (body_returned) break;
+            }
+            if (!body_returned) {
+                fprintf(outf, "    br label %%loopcond%d\n", my_id);
+            }
+
+            fprintf(outf, "loopend%d:\n", my_id);
+            return NULL;
+        }
+
+        case NODE_FOR: {
+            int my_id = loop_label_counter++;
+
+            if (node->data.for_stmt.init) {
+                char* leftover = compile_node(outf, node->data.for_stmt.init, register_count);
+                if (leftover) free(leftover);
+            }
+
+            fprintf(outf, "    br label %%loopcond%d\n", my_id);
+            fprintf(outf, "loopcond%d:\n", my_id);
+
+            char* cond = compile_value_node(outf, node->data.for_stmt.condition, register_count);
+            int cmp_reg = (*register_count)++;
+            fprintf(outf, "    %%%d = icmp ne i32 %s, 0\n", cmp_reg, cond);
+            free(cond);
+            fprintf(outf, "    br i1 %%%d, label %%loopbody%d, label %%loopend%d\n", cmp_reg, my_id, my_id);
+
+            fprintf(outf, "loopbody%d:\n", my_id);
+            int body_returned = 0;
+            for (int i = 0; i < node->data.for_stmt.count; i++) {
+                if (node->data.for_stmt.statements[i]->type == NODE_RETURN) body_returned = 1;
+                char* leftover = compile_node(outf, node->data.for_stmt.statements[i], register_count);
+                if (leftover) free(leftover);
+                if (body_returned) break;
+            }
+            if (!body_returned) {
+                if (node->data.for_stmt.increment) {
+                    char* leftover = compile_node(outf, node->data.for_stmt.increment, register_count);
+                    if (leftover) free(leftover);
+                }
+                fprintf(outf, "    br label %%loopcond%d\n", my_id);
+            }
+
+            fprintf(outf, "loopend%d:\n", my_id);
+            return NULL;
+        }
 
         case NODE_PROGRAM:
             return NULL;
