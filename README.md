@@ -1,7 +1,11 @@
 <img src="img/logo.png">
 
 # Gravel, A Programming Language
+<<<<<<< HEAD
 <sub>Alpha 0.0.6</sub>
+=======
+<sub>Version 0.1.0</sub>
+>>>>>>> c62ad2800d83e6c3ffad2c3a777be814631f646a
 ## Table of Contents
 
 - [Approach](#approach)
@@ -428,3 +432,7 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Bug fix
 - Add sanitizers.yml workflow
 - Fix possible memory error
+
+### 2026-08-04
+- Improve Python LLVM executor
+- Use Python always to execute LLVM

@@ -38,11 +38,8 @@ int main(int argc, char *argv[]) {
 
     printf("| %f s | %d tokens |\n", time_taken, token_count);
 
-    #ifdef _WIN32
-        system(".\\llvm\\llvm.exe");
-    #else
-        system("python ./llvm/llvm.py");
-    #endif
+
+    system("python ./llvm/llvm.py");
 
     end_time = clock();
     time_taken = (double)(end_time - start_time) / CLOCKS_PER_SEC;
