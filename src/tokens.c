@@ -59,18 +59,37 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
 
         switch (*source) {
             case '+':
-                tokens[token_count].type = TOKEN_ADD;
+                if (*(source + 1) == '+') {
+                    tokens[token_count].type = TOKEN_INC;
+                    source++;
+                } else if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_ADD_ASSIGN;
+                    source++;
+                } else {
+                    tokens[token_count].type = TOKEN_ADD;
+                }
                 break;
             case '-':
                 if (*(source+1) == '>') {
                     tokens[token_count].type = TOKEN_ARROW;
+                    source++;
+                } else if (*(source + 1) == '-') {
+                    tokens[token_count].type = TOKEN_DEC;
+                    source++;
+                } else if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_SUB_ASSIGN;
                     source++;
                 } else { 
                     tokens[token_count].type = TOKEN_SUB;
                 }
                 break;
             case '*':
-                tokens[token_count].type = TOKEN_STAR;
+                if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_STAR_ASSIGN;
+                    source++;
+                } else {
+                    tokens[token_count].type = TOKEN_STAR;
+                }
                 break;
             case '/':
                 if (*(source + 1) == '/') {
@@ -88,15 +107,51 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                     }
                     source += 2; // skip "*/"
                     continue;
+                } else if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_DIV_ASSIGN;
+                    source++;
                 } else {
                     tokens[token_count].type = TOKEN_DIV;
                 }
                 break;
             case '%':
-                tokens[token_count].type = TOKEN_MODULO;
+                if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_MOD_ASSIGN;
+                    source++;
+                } else {
+                    tokens[token_count].type = TOKEN_MODULO;
+                }
+                break;
+            case '<':
+                if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_LE;
+                    source++;
+                } else {
+                    tokens[token_count].type = TOKEN_LT;
+                }
+                break;
+            case '>':
+                if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_GE;
+                    source++;
+                } else {
+                    tokens[token_count].type = TOKEN_GT;
+                }
+                break;
+            case '!':
+                if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_NE;
+                    source++;
+                } else {
+                    raiseError("Unexpected token '!'", "E0001");
+                }
+                break;
+            case ';':
+                tokens[token_count].type = TOKEN_SEMICOLON;
                 break;
             case ',':
                 tokens[token_count].type = TOKEN_COMMA;
+                break;
             case '=':
                 if (*(source + 1) == '=') {
                     tokens[token_count].type = TOKEN_EQUAL;
@@ -196,6 +251,12 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                         tokens[token_count].type = TOKEN_EXTL;
                     } else if (strcmp(buffer, "repeat") == 0) {
                         tokens[token_count].type = TOKEN_REPEAT;
+                    } else if (strcmp(buffer, "while") == 0) {
+                        tokens[token_count].type = TOKEN_WHILE;
+                    } else if (strcmp(buffer, "for") == 0) {
+                        tokens[token_count].type = TOKEN_FOR;
+                    } else if (strcmp(buffer, "in") == 0) {
+                        tokens[token_count].type = TOKEN_IN;
                     } else if (strcmp(buffer, "const") == 0) {
                         tokens[token_count].type = TOKEN_CONST;
                     } else if (strcmp(buffer, "return") == 0) {

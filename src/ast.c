@@ -81,6 +81,100 @@ Token* advance(const Token* t, int* c) {
     return (Token*)&t[(*c)-1];
 }
 
+static ASTNode* make_literal(const char* value) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!node) raiseError("Memory allocation failed", "E0004");
+    node->type = NODE_LITERAL;
+    snprintf(node->data.literal.value, sizeof(node->data.literal.value), "%s", value);
+    return node;
+}
+
+static ASTNode* make_variable(const char* name) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!node) raiseError("Memory allocation failed", "E0004");
+    node->type = NODE_VARIABLE;
+    snprintf(node->data.literal.value, sizeof(node->data.literal.value), "%s", name);
+    return node;
+}
+
+static ASTNode* make_binary(TokenType op, ASTNode* left, ASTNode* right) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!node) raiseError("Memory allocation failed", "E0004");
+    node->type = NODE_BINARY_OP;
+    node->data.binary_op.op = op;
+    node->data.binary_op.left = left;
+    node->data.binary_op.right = right;
+    return node;
+}
+
+static ASTNode* make_reassign(const char* name, ASTNode* value) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!node) raiseError("Memory allocation failed", "E0004");
+    node->type = NODE_REASSIGN;
+    snprintf(node->data.reassign.name, sizeof(node->data.reassign.name), "%s", name);
+    node->data.reassign.value = value;
+    return node;
+}
+
+static void qualify_name(char* dest, size_t dest_size, const char* ns, const char* name);
+
+// Parse an assignment-style statement: `name = expr`, `name += expr`,
+// `name++`, etc. All forms are desugared into a plain NODE_REASSIGN.
+static ASTNode* parse_update(const Token* t, int* c, const char* ns) {
+    Token* current = peek(t, c);
+    if (current->type != TOKEN_NAME) {
+        raiseError("Expected variable name in assignment", "E0025");
+        return NULL;
+    }
+
+    Token* name_token = advance(t, c);
+    char qualified[64];
+    qualify_name(qualified, sizeof(qualified), ns, name_token->value);
+
+    Token* op = peek(t, c);
+    ASTNode* value = NULL;
+    switch (op->type) {
+        case TOKEN_INC:
+            advance(t, c);
+            value = make_binary(TOKEN_ADD, make_variable(qualified), make_literal("1"));
+            break;
+        case TOKEN_DEC:
+            advance(t, c);
+            value = make_binary(TOKEN_SUB, make_variable(qualified), make_literal("1"));
+            break;
+        case TOKEN_ASSIGN:
+        case TOKEN_VAR_INFER:
+            advance(t, c);
+            value = parse_expression(t, c, ns);
+            break;
+        case TOKEN_ADD_ASSIGN:
+            advance(t, c);
+            value = make_binary(TOKEN_ADD, make_variable(qualified), parse_expression(t, c, ns));
+            break;
+        case TOKEN_SUB_ASSIGN:
+            advance(t, c);
+            value = make_binary(TOKEN_SUB, make_variable(qualified), parse_expression(t, c, ns));
+            break;
+        case TOKEN_STAR_ASSIGN:
+            advance(t, c);
+            value = make_binary(TOKEN_STAR, make_variable(qualified), parse_expression(t, c, ns));
+            break;
+        case TOKEN_DIV_ASSIGN:
+            advance(t, c);
+            value = make_binary(TOKEN_DIV, make_variable(qualified), parse_expression(t, c, ns));
+            break;
+        case TOKEN_MOD_ASSIGN:
+            advance(t, c);
+            value = make_binary(TOKEN_MODULO, make_variable(qualified), parse_expression(t, c, ns));
+            break;
+        default:
+            raiseError("Expected assignment operator after name", "E0025");
+            break;
+    }
+
+    return make_reassign(qualified, value);
+}
+
 // Copy `name` into dest, prefixed with the current namespace unless the name
 // is already qualified. Errors out rather than overflowing or truncating.
 static void qualify_name(char* dest, size_t dest_size, const char* ns, const char* name) {
@@ -230,6 +324,10 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
         return parse_repeat(t, c, ns);
     } else if (current->type == TOKEN_ELSE || current->type == TOKEN_IF || current->type == TOKEN_ELSEIF) {
         return parse_if(t,c,ns);
+    } else if (current->type == TOKEN_WHILE) {
+        return parse_while(t, c, ns);
+    } else if (current->type == TOKEN_FOR) {
+        return parse_for(t, c, ns);
     } else if (current->type == TOKEN_FUN) {
         raiseError("Unexpected token: function definitions must be parsed at the top level", "E0009");
         return NULL;
@@ -243,11 +341,31 @@ ASTNode* parse_expression(const Token* t, int* c, const char* ns) {
     return parse_equality(t, c, ns);
 }
 
-ASTNode* parse_equality(const Token* t, int* c, const char* ns) {
+ASTNode* parse_relational(const Token* t, int* c, const char* ns) {
     ASTNode* left = parse_additive(t, c, ns);
-    while (peek(t, c)->type == TOKEN_EQUAL) {
+
+    while (peek(t, c)->type == TOKEN_LT || peek(t, c)->type == TOKEN_GT ||
+           peek(t, c)->type == TOKEN_LE || peek(t, c)->type == TOKEN_GE) {
         Token* op_token = advance(t, c);
         ASTNode* right = parse_additive(t, c, ns);
+
+        ASTNode* bin_node = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!bin_node) raiseError("Memory allocation failed", "E0004");
+        bin_node->type = NODE_BINARY_OP;
+        bin_node->data.binary_op.op = op_token->type;
+        bin_node->data.binary_op.left = left;
+        bin_node->data.binary_op.right = right;
+
+        left = bin_node;
+    }
+    return left;
+}
+
+ASTNode* parse_equality(const Token* t, int* c, const char* ns) {
+    ASTNode* left = parse_relational(t, c, ns);
+    while (peek(t, c)->type == TOKEN_EQUAL || peek(t, c)->type == TOKEN_NE) {
+        Token* op_token = advance(t, c);
+        ASTNode* right = parse_relational(t, c, ns);
 
         ASTNode* bin_node = (ASTNode*)malloc(sizeof(ASTNode));
         if (!bin_node) raiseError("Memory allocation failed", "E0004");
@@ -349,17 +467,12 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
 
     else if (current->type == TOKEN_NAME) {
         Token* next = (Token*)&t[*c + 1];
-        if (next->type == TOKEN_ASSIGN || next->type == TOKEN_VAR_INFER) {
-            ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
-            if (!result) raiseError("Memory allocation failed", "E0004");
-
-            result->type = NODE_REASSIGN;
-            Token* name_token = advance(t, c);
-
-            qualify_name(result->data.reassign.name, sizeof(result->data.reassign.name), ns, name_token->value);
-            advance(t, c); //Consume = or :=
-            result->data.reassign.value = parse_expression(t, c, ns);
-            return result;
+        if (next->type == TOKEN_ASSIGN || next->type == TOKEN_VAR_INFER ||
+            next->type == TOKEN_ADD_ASSIGN || next->type == TOKEN_SUB_ASSIGN ||
+            next->type == TOKEN_STAR_ASSIGN || next->type == TOKEN_DIV_ASSIGN ||
+            next->type == TOKEN_MOD_ASSIGN || next->type == TOKEN_INC ||
+            next->type == TOKEN_DEC) {
+            return parse_update(t, c, ns);
         }
 
         return parse_expression(t, c, ns);
@@ -394,6 +507,10 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns) {
         return parse_repeat(t, c, ns);
     } else if (current->type == TOKEN_IF) {
         return parse_if(t, c, ns);
+    } else if (current->type == TOKEN_WHILE) {
+        return parse_while(t, c, ns);
+    } else if (current->type == TOKEN_FOR) {
+        return parse_for(t, c, ns);
     } else {
         return parse_expression(t, c, ns);
     }
@@ -447,6 +564,155 @@ ASTNode* parse_repeat(const Token* t, int* c, const char* ns) {
     }
 
     return newNode;
+}
+
+// Collect statements until `end` (or EOF). On success the trailing `end`
+// has been consumed and the array is returned; `out_count` receives its size.
+static ASTNode** parse_block_statements(const Token* t, int* c, const char* ns, int* out_count, const char* error_msg) {
+    int cap = 8;
+    int count = 0;
+    ASTNode** statements = (ASTNode**)malloc(sizeof(ASTNode*) * cap);
+    if (!statements) raiseError("Memory allocation failed", "E0004");
+
+    while (peek(t, c)->type != TOKEN_END && peek(t, c)->type != TOKEN_EOF) {
+        ASTNode* inner = parse_statement(t, c, ns);
+        if (inner != NULL) {
+            if (count >= cap) {
+                cap *= 2;
+                ASTNode** tmp = (ASTNode**)realloc(statements, sizeof(ASTNode*) * cap);
+                if (!tmp) {
+                    free(statements);
+                    raiseError("Memory allocation failed while expanding block statements", "E0004");
+                }
+                statements = tmp;
+            }
+            statements[count++] = inner;
+        }
+    }
+
+    if (peek(t, c)->type == TOKEN_END) {
+        advance(t, c);
+    } else {
+        free(statements);
+        raiseError("Unexpected end of file: missing 'end' for block", (char*)error_msg);
+    }
+
+    *out_count = count;
+    return statements;
+}
+
+ASTNode* parse_while(const Token* t, int* c, const char* ns) {
+    advance(t, c); // consume 'while'
+
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!node) raiseError("Memory allocation failed", "E0004");
+    node->type = NODE_WHILE;
+    node->data.while_stmt.condition = NULL;
+
+    ASTNode* condition = NULL;
+    if (peek(t, c)->type == TOKEN_LPAREN) {
+        advance(t, c);
+        condition = parse_expression(t, c, ns);
+        if (peek(t, c)->type == TOKEN_RPAREN) {
+            advance(t, c);
+        } else {
+            raiseError("Missing ')' after while condition", "E0023.2");
+        }
+    } else {
+        condition = parse_expression(t, c, ns);
+    }
+    node->data.while_stmt.condition = condition;
+
+    node->data.while_stmt.statements = parse_block_statements(t, c, ns, &node->data.while_stmt.count, "E0010.2");
+
+    return node;
+}
+
+ASTNode* parse_for(const Token* t, int* c, const char* ns) {
+    advance(t, c); // consume 'for'
+
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!node) raiseError("Memory allocation failed", "E0004");
+    node->type = NODE_FOR;
+    node->data.for_stmt.init = NULL;
+    node->data.for_stmt.condition = NULL;
+    node->data.for_stmt.increment = NULL;
+
+    Token* current = peek(t, c);
+
+    // Modern for: `for entry in list` - iterates the loop variable from 0
+    // while it is smaller than the value of the given expression.
+    if (current->type == TOKEN_NAME && ((Token*)&t[*c + 1])->type == TOKEN_IN) {
+        Token* var_token = advance(t, c); // consume loop variable name
+        advance(t, c); // consume 'in'
+
+        char qualified[64];
+        qualify_name(qualified, sizeof(qualified), ns, var_token->value);
+
+        ASTNode* list_value = parse_expression(t, c, ns);
+
+        ASTNode* init = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!init) raiseError("Memory allocation failed", "E0004");
+        init->type = NODE_DECLARATION;
+        strcpy(init->data.var_decl.name, qualified);
+        init->data.var_decl.value = make_literal("0");
+
+        node->data.for_stmt.init = init;
+        node->data.for_stmt.condition = make_binary(TOKEN_LT, make_variable(qualified), list_value);
+        node->data.for_stmt.increment = make_reassign(qualified, make_binary(TOKEN_ADD, make_variable(qualified), make_literal("1")));
+    }
+    // Classic for: `for int i=0; i<10; i++` or `for i=0; i<10; i=i+1`
+    else if (current->type == TOKEN_INT || current->type == TOKEN_VAR_DEF ||
+             current->type == TOKEN_CONST || current->type == TOKEN_NAME) {
+        ASTNode* init = NULL;
+
+        if (current->type == TOKEN_INT) {
+            advance(t, c);
+            Token* name_token = peek(t, c);
+            if (name_token->type != TOKEN_NAME) raiseError("Missing variable name after 'int'", "E0005");
+            advance(t, c);
+            if (peek(t, c)->type != TOKEN_ASSIGN) raiseError("Missing '=' in for-loop init", "E0006");
+            advance(t, c);
+
+            init = (ASTNode*)malloc(sizeof(ASTNode));
+            if (!init) raiseError("Memory allocation failed", "E0004");
+            init->type = NODE_DECLARATION;
+            qualify_name(init->data.var_decl.name, sizeof(init->data.var_decl.name), ns, name_token->value);
+            init->data.var_decl.value = parse_expression(t, c, ns);
+        } else if (current->type == TOKEN_VAR_DEF || current->type == TOKEN_CONST) {
+            advance(t, c);
+            Token* name_token = peek(t, c);
+            if (name_token->type != TOKEN_NAME) raiseError("Missing variable name after 'val'", "E0005");
+            advance(t, c);
+            if (peek(t, c)->type != TOKEN_VAR_INFER) raiseError("Missing ':=' in for-loop init", "E0006");
+            advance(t, c);
+
+            init = (ASTNode*)malloc(sizeof(ASTNode));
+            if (!init) raiseError("Memory allocation failed", "E0004");
+            init->type = NODE_DECLARATION;
+            qualify_name(init->data.var_decl.name, sizeof(init->data.var_decl.name), ns, name_token->value);
+            init->data.var_decl.value = parse_expression(t, c, ns);
+        } else { // TOKEN_NAME
+            init = parse_update(t, c, ns);
+        }
+        node->data.for_stmt.init = init;
+
+        if (peek(t, c)->type != TOKEN_SEMICOLON) raiseError("Expected ';' after for-loop init", "E0026");
+        advance(t, c);
+
+        node->data.for_stmt.condition = parse_expression(t, c, ns);
+
+        if (peek(t, c)->type != TOKEN_SEMICOLON) raiseError("Expected ';' after for-loop condition", "E0026");
+        advance(t, c);
+
+        node->data.for_stmt.increment = parse_update(t, c, ns);
+    } else {
+        raiseError("Expected loop header after 'for'", "E0024");
+    }
+
+    node->data.for_stmt.statements = parse_block_statements(t, c, ns, &node->data.for_stmt.count, "E0010.3");
+
+    return node;
 }
 
 ASTNode* parse(const Token* tokens, int count) {

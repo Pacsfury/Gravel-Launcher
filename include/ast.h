@@ -15,6 +15,8 @@ typedef enum {
     NODE_FUN_DEF,
     NODE_CALL,
     NODE_IF,
+    NODE_WHILE,
+    NODE_FOR,
     NODE_RETURN,
     NODE_REASSIGN
 } ASTNodeType;
@@ -68,6 +70,20 @@ typedef struct ASTNode {
         } if_stmt;
 
         struct {
+            struct ASTNode* condition;
+            struct ASTNode** statements;
+            int count;
+        } while_stmt;
+
+        struct {
+            struct ASTNode* init;
+            struct ASTNode* condition;
+            struct ASTNode* increment;
+            struct ASTNode** statements;
+            int count;
+        } for_stmt;
+
+        struct {
             struct ASTNode* value;
         } return_stmt;
 
@@ -110,4 +126,6 @@ ASTNode* parse_expression(const Token* t, int* c, const char* ns);
 ASTNode* parse_statement(const Token* t, int* c, const char* ns);
 ASTNode* parse_repeat(const Token* t, int* c, const char* ns);
 ASTNode* parse_if(const Token* t, int* c, const char* ns);
+ASTNode* parse_while(const Token* t, int* c, const char* ns);
+ASTNode* parse_for(const Token* t, int* c, const char* ns);
 void print_ast(const ASTNode* node, int depth);
