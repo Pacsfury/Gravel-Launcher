@@ -95,6 +95,8 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
             case '%':
                 tokens[token_count].type = TOKEN_MODULO;
                 break;
+            case ',':
+                tokens[token_count].type = TOKEN_COMMA;
             case '=':
                 if (*(source + 1) == '=') {
                     tokens[token_count].type = TOKEN_EQUAL;
