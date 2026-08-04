@@ -25,6 +25,19 @@ typedef enum {
     TOKEN_COMMA,
     TOKEN_L_INT,
     TOKEN_L_FLOAT,
+    TOKEN_SEMICOLON,
+    TOKEN_LT, // <
+    TOKEN_GT, // >
+    TOKEN_LE, // <=
+    TOKEN_GE, // >=
+    TOKEN_NE, // !=
+    TOKEN_INC, // ++
+    TOKEN_DEC, // --
+    TOKEN_ADD_ASSIGN, // +=
+    TOKEN_SUB_ASSIGN, // -=
+    TOKEN_STAR_ASSIGN, // *=
+    TOKEN_DIV_ASSIGN, // /=
+    TOKEN_MOD_ASSIGN, // %=
 
     //Keywords
     TOKEN_SCHO,
@@ -40,6 +53,9 @@ typedef enum {
     TOKEN_EXTL,
     TOKEN_RETURN,
     TOKEN_REPEAT,
+    TOKEN_WHILE,
+    TOKEN_FOR,
+    TOKEN_IN,
     TOKEN_VAR_DEF, // val
     TOKEN_CONST
 

@@ -76,7 +76,7 @@ val rounded_math.e := 2
 ```
 
 ### If, while and for
-Use the `end` keyword, and use the following syntax: `whatever cond`. For `for`, use: `for i in list`, but classic syntax will also  be accepted `for int i=0; i<10; i++` or as wanted.
+Use the `end` keyword, and use the following syntax: `whatever cond`. For `for`, use: `for i in n`, which iterates `i` from `0` to `n-1`, but classic syntax will also be accepted `for int i=0; i<10; i++` or as wanted.
 
 Traditional for-loop:
 ```
@@ -87,8 +87,8 @@ end
 
 Modern for-loop:
 ```
-for entry in list
-    std.out.print(entry)
+for i in 5
+    std.out.print(i)
 end
 ```
 
@@ -203,7 +203,7 @@ Right now, this is the current development of every feature:
 |Parser   |Working|
 |LLVM converter |Working|
 |Variables, types and classes | 1/3 |
-|Functions, namespaces, if, while, repeat| 4/5 |
+|Functions, namespaces, if, while, for, repeat| 5/6 |
 |Packages, pointers, import and basic packages | NOT STARTED |
 
 To propose or vote on small syntax changes, please go to discussions.
@@ -256,6 +256,7 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - val namespace.gettheanother := 65
 - Line comments // and block comments /* */
 - If elseif else
+- While and for loops (with comparison, increment/decrement and compound-assignment operators)
 - Int args and int/void return functions
 - Reassing varibles
 
@@ -433,3 +434,8 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Improve Python LLVM executor
 - Use Python always to execute LLVM
 - Fix sanitizer warnings
+- Add `while` and `for` loops (classic `for int i=0; i<10; i++` and modern `for i in n`)
+- Add comparison operators (`<`, `>`, `<=`, `>=`, `!=`)
+- Add increment/decrement (`i++`, `i--`) and compound assignment (`+=`, `-=`, `*=`, `/=`, `%=`) operators
+- Fix tokenizer never emitting `,`, enabling multi-argument functions and calls
+- Update grammar documentation and add loop tests

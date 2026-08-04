@@ -1,0 +1,31 @@
+; ModuleID = 'output.ll'
+declare i32 @putchar(i32)
+
+@i = global i32 0, align 4
+
+define void @cprint(i32 %charasc) {
+entry:
+    %0 = call i32 @putchar(i32 %charasc)
+    ret void
+}
+
+
+define i32 @main() {
+entry:
+    store i32 0, ptr @i, align 4
+    br label %loopcond0
+loopcond0:
+    %1 = load i32, ptr @i, align 4
+    %2 = icmp slt i32 %1, 5
+    %3 = zext i1 %2 to i32
+    %4 = icmp ne i32 %3, 0
+    br i1 %4, label %loopbody0, label %loopend0
+loopbody0:
+    call void @cprint(i32 97)
+    %5 = load i32, ptr @i, align 4
+    %6 = add i32 %5, 1
+    store i32 %6, ptr @i, align 4
+    br label %loopcond0
+loopend0:
+    ret i32 0
+}
