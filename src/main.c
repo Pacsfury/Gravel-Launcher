@@ -41,8 +41,6 @@ int main(int argc, char *argv[]) {
 
     system("python llvm/llvm.py");
 
-
-
     end_time = clock();
     time_taken = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
