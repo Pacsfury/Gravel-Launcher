@@ -60,11 +60,7 @@
         },
         {
           "name": "keyword.control.conditional.grv",
-<<<<<<< HEAD
-          "match": "\\b(if|elseif|else|int|char|float)\\b"
-=======
           "match": "\\b(if|elseif|else|)\\b"
->>>>>>> c62ad2800d83e6c3ffad2c3a777be814631f646a
         },
         {
           "name": "keyword.control.grv",
@@ -72,11 +68,7 @@
         },
         {
           "name": "keyword.declaration.grv",
-<<<<<<< HEAD
-          "match": "\\b(fun|val|const|class|import|package: |namespace|end|while|for|repeat)\\b"
-=======
           "match": "\\b(fun|val|const|class|import|package|namespace|end|while|for|repeat)\\b"
->>>>>>> c62ad2800d83e6c3ffad2c3a777be814631f646a
         }
       ]
     },
@@ -97,13 +89,10 @@
         {
           "name": "entity.name.type.grv",
           "match": "\\b[A-Z][a-zA-Z0-9_]*\\b"
-<<<<<<< HEAD
-=======
         },
         {
           "name": "storage.type.grv",
           "match": "\\b(int|char|float)\\b"
->>>>>>> c62ad2800d83e6c3ffad2c3a777be814631f646a
         }
       ]
     },
