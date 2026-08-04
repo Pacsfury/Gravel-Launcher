@@ -19,13 +19,12 @@ int main(int argc, char *argv[]) {
         _launcherInit();
     }
 
-    if (hasArg(&ctx, "winll")) {
-        system(getArg(&ctx, "winll"));
+    if (hasArg(&ctx, "pyll")) {
+        char command[512];
+        snprintf(command, sizeof(command), "python %s", getArg(&ctx, "pyll"));
+        system(command);
     }
 
-    if (hasArg(&ctx, "pyll")) {
-        system(strcat("python ", getArg(&ctx, "pyll")));
-    }
 
     if(hasArg(&ctx, "run")) {
         tokenizeFile(getArg(&ctx, "run"), &ctx);

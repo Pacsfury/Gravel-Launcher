@@ -1,11 +1,7 @@
 <img src="img/logo.png">
 
 # Gravel, A Programming Language
-<<<<<<< HEAD
-<sub>Alpha 0.0.6</sub>
-=======
 <sub>Version 0.1.0</sub>
->>>>>>> c62ad2800d83e6c3ffad2c3a777be814631f646a
 ## Table of Contents
 
 - [Approach](#approach)
@@ -224,21 +220,16 @@ gravel run main.grv dependencies path space separated.
 
 ## Run the .ll
 To run the resulting `output.ll`, do the following:
-**IF WINDOWS**: you can use:
-```bash
-./argc winll llvm\llvm.exe
-```
-but it will run automatically, so you can use this for executing othre output.ll.
 
 **ELSE**: you can use: (_make sure to have llvmlite installed_)
 ```bash
 ./argc pyll llvm\llvm.py
 ```
-it also runs automatically, but you need to do `pip install llvmlite`.
+
+The llvm is executed **automatically**, but make sure to have Python and LLVMlite installed.
 
 ## Benchmarks
-**New version of the benchmark: it now repeats 30 times!**
-This repo includes a `bench.grv` file with 33576 tokens. You can execute it to test the speed. I got 0.379000 s, let's see what you get running `./main run main.grv -wE` (change `./main` for the actual executable).
+Running `./main run main.grv -wE` (change `./main` for the actual executable).
 
 > This time includes only:
 > * Detection of argument "run" and getting the path
@@ -436,3 +427,4 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 ### 2026-08-04
 - Improve Python LLVM executor
 - Use Python always to execute LLVM
+- Deleted `winll`
