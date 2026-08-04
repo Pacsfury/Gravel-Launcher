@@ -432,3 +432,4 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 ### 2026-08-04
 - Improve Python LLVM executor
 - Use Python always to execute LLVM
+- Fix sanitizer warnings
