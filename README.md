@@ -439,3 +439,7 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Add increment/decrement (`i++`, `i--`) and compound assignment (`+=`, `-=`, `*=`, `/=`, `%=`) operators (PR)
 - Fix tokenizer never emitting `,`, enabling multi-argument functions and calls (PR)
 - Update grammar documentation and add loop tests (PR)
+
+### 2026-08-05
+- Fix and improve tests
+- Test and implement PR's for and while loop
