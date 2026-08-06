@@ -1,13 +1,8 @@
-
 # Gravel's Internal Design
 
 In this document I propose myself to write down Gravel's internals to make it easier to understand, hence making it easier for contributors to do so.
 
-  
-
----
-
-  
+--- 
 
 ## Parts
 
@@ -169,6 +164,7 @@ To have an AST, first we need to have  some nodes defined, where we will say how
 typedef enum {
     NODE_LITERAL,
     NODE_BINARY_OP,
+    NODE_UNARY_OP,
     NODE_VARIABLE,
     NODE_DECLARATION,
     NODE_PROGRAM,
@@ -181,6 +177,12 @@ typedef enum {
     NODE_WHILE,
     NODE_FOR
 } ASTNodeType;
+
+typedef struct {
+    char name[64];
+    char type[64];
+} fun_args;
+
 
 typedef struct ASTNode {
     ASTNodeType type;
@@ -231,7 +233,7 @@ typedef struct ASTNode {
 
         struct {
             char name[64];
-            char args[64]; // implement later 
+            fun_args* arguments;
             char returnType[32]; // implement later
             struct ASTNode* body;
         } fun_def;
@@ -249,7 +251,11 @@ As we can see here, every type (function, program, definition...) has some value
 ```mermaid
 flowchart LR
     %% Main Entry Points
-    A[parse_expression] -->|calls| B[parse_equality]
+    A[parse_expression] -->|calls| BW[parse_bitwise]
+
+    %% Bitwise Level (|, &, ^)
+    BW -->|1. calls| B[parse_equality]
+    BW -->|2. loops while TOKEN_PIPE / TOKEN_AMP / TOKEN_CARET| B
     
     %% Equality Level
     B -->|1. calls| R[parse_relational]
@@ -264,8 +270,12 @@ flowchart LR
     C -->|2. loops while TOKEN_ADD / TOKEN_SUB| D
     
     %% Multiplicative Level
-    D -->|1. calls| E[parse_primary]
-    D -->|2. loops while TOKEN_STAR / TOKEN_DIV / TOKEN_MODULO| E
+    D -->|1. calls| U[parse_unary]
+    D -->|2. loops while TOKEN_STAR / TOKEN_DIV / TOKEN_MODULO| U
+
+    %% Unary Level (~)
+    U -->|1. check for TOKEN_TILDE / unary ops| U
+    U -->|2. fallback / base calls| E[parse_primary]
     
     %% Primary Level & Recursion
     subgraph Primary [parse_primary Leaf Nodes]
@@ -335,9 +345,15 @@ I will use this section to explain how Gravel handles more specific cases, like 
 ### Functions
 For defining functions, Gravel uses a simple struct as seen here:
 ```c
+typedef struct {
+    char name[64];
+    char type[64];
+} fun_args;
+
+...
         struct {
             char name[64];
-            char args[64]; // implement later 
+            fun_args* arguments;
             char returnType[32]; // implement later
             struct ASTNode* body;
         } fun_def;
@@ -351,7 +367,7 @@ Every field of the struct has a specific job:
 | **Name** | **Function** |
 |----------|--------------|
 | name     | Saves how the function will be called. |
-| args     | Will save the arguments passed, an array of a struct with type and name. |
+| args     | List of args, an array of a struct with type and name. |
 | returnType | Will save what type does it return, just as int, char or a custom type.
 | body | Body is a pointer to a ASTNode, which is a NodeProgram saving the code that the function has. |
 

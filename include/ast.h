@@ -6,6 +6,7 @@
 typedef enum {
     NODE_LITERAL,
     NODE_BINARY_OP,
+    NODE_UNARY_OP,
     NODE_VARIABLE,
     NODE_DECLARATION,
     NODE_PROGRAM,
@@ -40,6 +41,11 @@ typedef struct ASTNode {
             struct ASTNode* left;
             struct ASTNode* right;
         } binary_op;
+
+        struct {
+            TokenType op;
+            struct ASTNode* operand;
+        } unary_op;
 
         struct {
             char name[64];
@@ -119,6 +125,7 @@ Token* peek(const Token* t, const int* c);
 Token* advance(const Token* t, int* c);
 ASTNode* parse(const Token* tokens, int count);
 ASTNode* parse_primary(const Token* t, int* c, const char* ns);
+ASTNode* parse_unary(const Token* t, int* c, const char* ns);
 ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns);
 ASTNode* parse_additive(const Token* t, int* c, const char* ns);
 ASTNode* parse_equality(const Token* t, int* c, const char* ns);

@@ -1,11 +1,1 @@
-fun std.out.print(int a)
-    int temp = a % 100
-    int var = a - temp
-
-    scho(var/100)
-    scho(temp)
-    scho('\n')
-end
-
-
-std.out.print(6566)
+scho(3^3+65)

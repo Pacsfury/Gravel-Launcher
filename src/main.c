@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
     clock_t end_time = clock();
     double time_taken = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
-    printf("| %f s | %d tokens |\n", time_taken, token_count);
+    printf("| %f s | %d tokens | COMPILE\n", time_taken, token_count);
 
 
     system("python ./llvm/llvm.py");
@@ -44,6 +44,6 @@ int main(int argc, char *argv[]) {
     end_time = clock();
     time_taken = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
-    printf("| %f s | %d tokens |\n", time_taken, token_count);
+    printf("| %f s | %d tokens | TOTAL\n", time_taken, token_count);
     return 0;
 }
