@@ -41,6 +41,7 @@ jobs:
         #include <stdint.h>
         #include <stdlib.h>
         #include <setjmp.h>
+        #include <stdbool.h>
 
         typedef struct {
             int argc;
@@ -50,9 +51,19 @@ jobs:
         void tokenize(const char* file, ARGS_CONTEX* ctx);
 
         jmp_buf fuzz_env;
+        bool in_tokenize = false;
+
+        // El linker ens permet cridar a l'exit real així:
+        void __real_exit(int status);
 
         void __wrap_exit(int status) {
-            longjmp(fuzz_env, 1); 
+            if (in_tokenize) {
+                // Si som dins de Gravel, salvem la situació
+                longjmp(fuzz_env, 1); 
+            } else {
+                // Si és libFuzzer qui vol tancar, el deixem
+                __real_exit(status);
+            }
         }
 
         int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
@@ -68,15 +79,20 @@ jobs:
             ctx.argc = 0;
             ctx.argv = NULL;
 
+            in_tokenize = true; // Marquem que entrem a Gravel
             if (setjmp(fuzz_env) == 0) {
                 tokenize(safe_source, &ctx);
             }
+            in_tokenize = false; // Marquem que hem sortit sa i estalvis
 
             free(safe_source);
             return 0;
         }
         EOF
 
+        clang -fsanitize=fuzzer,address,undefined -Dmain=gravel_main -Wl,--wrap=exit src/*.c tests/fuzz_target.c -o fuzzer
+        
+        env ASAN_OPTIONS="detect_leaks=0" ./fuzzer -max_total_time=30 -close_fd_mask=3
         clang -fsanitize=fuzzer,address,undefined -Dmain=gravel_main -Wl,--wrap=exit src/*.c tests/fuzz_target.c -o fuzzer
         
         env ASAN_OPTIONS="detect_leaks=0" ./fuzzer -max_total_time=30 -close_fd_mask=3
