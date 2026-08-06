@@ -16,7 +16,11 @@ typedef enum {
     TOKEN_NAME,
     TOKEN_TYPEIS_LIST, //for char[][], int[], etc
     TOKEN_EQUAL,
-    TOKEN_AMPERSAND,
+    TOKEN_AMPERSAND, // &
+    TOKEN_PIPE, // |
+    TOKEN_CARET, // ^
+    TOKEN_EXC, // !
+    TOKEN_TILDE, // ~
     TOKEN_NEWLINE,
     TOKEN_RPAREN,
     TOKEN_LPAREN,

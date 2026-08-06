@@ -1,0 +1,10 @@
+val xor := 1 ^ 1
+xor = xor ^ 0
+
+val and := 0 & 1
+and = and & 1
+
+val or  := 0 | 0
+or = or | 1
+
+val bit_not := ~1
