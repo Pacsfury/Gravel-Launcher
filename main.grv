@@ -1,7 +1,6 @@
-const A := 65
-const B := 66
-const C := 67
-
-for val i := 54; i<68;i++
-    scho(i)
+for i in 6
+    for j in 6
+        scho("A")
+    end
+    scho("\n")
 end
