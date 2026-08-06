@@ -1,7 +1,7 @@
 <img src="img/logo.png">
 
 # Gravel, A Programming Language
-<sub>Version 0.1.0</sub>
+<sub>Version 0.2.0</sub>
 ## Table of Contents
 
 - [Approach](#approach)
@@ -450,3 +450,4 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 ### 2026-08-06
 - Update documentation
 - Add | & ^ and ~ (PR)
+- Add a fuzzer for tests
