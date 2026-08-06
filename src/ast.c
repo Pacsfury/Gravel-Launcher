@@ -189,12 +189,31 @@ static void qualify_name(char* dest, size_t dest_size, const char* ns, const cha
     }
 }
 
+ASTNode* parse_unary(const Token* t, int* c, const char* ns) {
+    if (peek(t, c)->type == TOKEN_TILDE) {
+        Token* op_token = advance(t,c);
+
+        ASTNode* operand = parse_unary(t, c, ns);
+
+        ASTNode* unary_node = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!unary_node) raiseError("Memory allocation failed", "E0004");
+
+        unary_node->type = NODE_UNARY_OP;
+        unary_node->data.unary_op.op = op_token->type;
+        unary_node->data.unary_op.operand = operand;
+
+        return unary_node;
+    }
+
+    return parse_primary(t, c, ns);
+}
+
 ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns) {
-    ASTNode* left = parse_primary(t, c, ns);
+    ASTNode* left = parse_unary(t, c, ns);
     
     while (peek(t, c)->type == TOKEN_STAR || peek(t, c)->type == TOKEN_DIV || peek(t, c)->type == TOKEN_MODULO) {
         Token* op_token = advance(t, c);
-        ASTNode* right = parse_primary(t, c, ns);
+        ASTNode* right = parse_unary(t, c, ns);
 
         if (left->type == NODE_LITERAL && right->type == NODE_LITERAL) {
             int res = fold_literals(op_token->type, left->data.literal.value, right->data.literal.value);
@@ -338,7 +357,23 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns) {
 }
 
 ASTNode* parse_expression(const Token* t, int* c, const char* ns) {
-    return parse_equality(t, c, ns);
+    ASTNode* left = parse_equality(t, c, ns);
+
+    while(peek(t, c)->type == TOKEN_AMPERSAND || peek(t,c)->type == TOKEN_PIPE ||
+            peek(t, c)->type == TOKEN_CARET){
+        Token* op_token = advance(t,c);
+        ASTNode* right = parse_equality(t, c, ns);
+
+        ASTNode* bin_node = (ASTNode*)malloc(sizeof(ASTNode));
+        if (!bin_node) raiseError("Memory allocation failed", "E0004");
+        bin_node->type = NODE_BINARY_OP;
+        bin_node->data.binary_op.op = op_token->type;
+        bin_node->data.binary_op.left = left;
+        bin_node->data.binary_op.right = right;
+
+        left = bin_node;
+    }
+    return left;
 }
 
 ASTNode* parse_relational(const Token* t, int* c, const char* ns) {

@@ -341,6 +341,9 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
                 case TOKEN_GT:     op_str = "sgt"; break;
                 case TOKEN_LE:     op_str = "sle"; break;
                 case TOKEN_GE:     op_str = "sge"; break;
+                case TOKEN_AMPERSAND:  op_str = "and"; break;
+                case TOKEN_PIPE:   op_str = "or"; break;
+                case TOKEN_CARET:  op_str = "xor"; break;
                 default:           op_str = "add"; break;
             }
             if (node->data.binary_op.op == TOKEN_EQUAL ||
@@ -370,6 +373,27 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
                 char buf[32];
                 snprintf(buf, sizeof(buf), "%%%d", reg);
                 return safe_strdup(buf);
+            }
+        }
+
+        case NODE_UNARY_OP: {
+            char* operand = compile_value_node(outf, node->data.unary_op.operand, register_count);
+            
+            const char* op_str = "";
+            switch(node->data.binary_op.op) {
+                case TOKEN_TILDE:    op_str = "add"; 
+                    int reg = (*register_count)++;
+                    fprintf(outf, "    %%%d = xor i32 %s, -1\n", reg, operand);
+                    free(operand);
+
+                    char buf[32];
+                    snprintf(buf, sizeof(buf), "%%%d", reg);
+                    return safe_strdup(buf);
+                    break;
+                default:
+                    raiseError("Unsupported unary operator", "E0033");
+                    free(operand);
+                    return NULL;
             }
         }
 

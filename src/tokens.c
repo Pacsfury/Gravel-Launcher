@@ -143,8 +143,18 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                     tokens[token_count].type = TOKEN_NE;
                     source++;
                 } else {
-                    raiseError("Unexpected token '!'", "E0001");
+                    // Not doing anything yet
+                    tokens[token_count].type = TOKEN_EXC;
                 }
+                break;
+            case '~':
+                tokens[token_count].type = TOKEN_TILDE;
+                break;
+            case '|':
+                tokens[token_count].type = TOKEN_PIPE;
+                break;
+            case '^':
+                tokens[token_count].type = TOKEN_CARET;
                 break;
             case ';':
                 tokens[token_count].type = TOKEN_SEMICOLON;
