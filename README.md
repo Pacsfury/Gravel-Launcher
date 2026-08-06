@@ -450,3 +450,4 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 ### 2026-08-06
 - Update documentation
 - Add | & ^ and ~ (PR)
+- Add a fuzzer for tests
