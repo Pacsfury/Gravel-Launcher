@@ -444,3 +444,6 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Fix and improve tests
 - Test and implement PR's for and while loop
 - Divide time in COMPILE and TOTAL with flag `-wE`
+
+### 2026-08-06
+- Update documentation
