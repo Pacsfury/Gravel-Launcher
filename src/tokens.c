@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define MAX_TOKEN_CAPACITY 1000000 
+
 // TOKENIZER
 
 void raiseError(char error[], char id[]) {
@@ -20,15 +22,32 @@ Token* tokens = NULL;
 int token_count = 0;
 int token_capacity = 0; 
 
-void reserveTokenSpace() {
+
+void reserveTokenSpace(void) {
     if (token_count >= token_capacity) {
-        token_capacity = (token_capacity == 0) ? 512 : token_capacity * 2;
-        Token* temp = realloc(tokens, token_capacity * sizeof(Token));
+        if (token_capacity >= MAX_TOKEN_CAPACITY) {
+            raiseError("Exceeded maximum token limit (potential infinite loop or massive file)", "E0000");
+            return;
+        }
+
+        size_t new_capacity = (token_capacity == 0) ? 512 : token_capacity * 2;
+        
+        if (new_capacity > MAX_TOKEN_CAPACITY) {
+            new_capacity = MAX_TOKEN_CAPACITY;
+        }
+
+        Token* temp = realloc(tokens, new_capacity * sizeof(Token));
         if (!temp) {
             free(tokens);
+            tokens = NULL;
+            token_capacity = 0;
+            token_count = 0;
             raiseError("Out of memory allocation for tokens", "E0000");
+            return;
         }
+
         tokens = temp;
+        token_capacity = new_capacity;
     }
 }
 
