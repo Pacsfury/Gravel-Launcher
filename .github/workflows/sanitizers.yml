@@ -34,7 +34,7 @@ jobs:
     - name: Run test suite with Auditing
       run: python tests/tests.py
 
-    - name: Run Fuzzer
+    - name: Run Fuzzing Blitz (Optional)
       run: |
         cat << 'EOF' > tests/fuzz_target.c
         #include <stddef.h>
@@ -70,8 +70,6 @@ jobs:
 
             if (setjmp(fuzz_env) == 0) {
                 tokenize(safe_source, &ctx);
-            } else {
-
             }
 
             free(safe_source);
@@ -80,6 +78,5 @@ jobs:
         EOF
 
         clang -fsanitize=fuzzer,address,undefined -Dmain=gravel_main -Wl,--wrap=exit src/*.c tests/fuzz_target.c -o fuzzer
-
-        env ASAN_OPTIONS="detect_leaks=0" ./fuzzer -max_total_time=30
-
+        
+        env ASAN_OPTIONS="detect_leaks=0" ./fuzzer -max_total_time=30 -close_fd_mask=3
