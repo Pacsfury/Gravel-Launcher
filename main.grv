@@ -1,6 +1,1 @@
-for i in 6
-    for j in 6
-        scho("A")
-    end
-    scho("\n")
-end
+scho(3^3+65)

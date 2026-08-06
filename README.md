@@ -259,6 +259,8 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - While and for loops (with comparison, increment/decrement and compound-assignment operators)
 - Int args and int/void return functions
 - Reassing varibles
+- | & ^ ~
+- == != < > <= >=, etc
 
 
 ## Changelog
@@ -447,3 +449,4 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 
 ### 2026-08-06
 - Update documentation
+- Add | & ^ and ~ (PR)
