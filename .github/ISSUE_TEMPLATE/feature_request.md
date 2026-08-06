@@ -1,6 +1,6 @@
 ---
 name: Feature Request / Good First Issue Proposal
-about: Suggest an idea, syntax or feature for Gravel
+about: Suggest an idea, syntax or feature for Gravel when it's accepted on the Discussion tab
 title: '[FEAT] '
 labels: enhancement
 assignees: ''
