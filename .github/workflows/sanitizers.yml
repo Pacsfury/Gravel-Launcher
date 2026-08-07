@@ -1,4 +1,4 @@
-name: Sanitizers Audit
+name: Sanitizers Audit and Fuzzer
 
 on:
   push:
@@ -90,9 +90,6 @@ jobs:
         }
         EOF
 
-        clang -fsanitize=fuzzer,address,undefined -Dmain=gravel_main -Wl,--wrap=exit src/*.c tests/fuzz_target.c -o fuzzer
-        
-        env ASAN_OPTIONS="detect_leaks=0" ./fuzzer -max_total_time=30 -close_fd_mask=3
         clang -fsanitize=fuzzer,address,undefined -Dmain=gravel_main -Wl,--wrap=exit src/*.c tests/fuzz_target.c -o fuzzer
         
         env ASAN_OPTIONS="detect_leaks=0" ./fuzzer -max_total_time=30 -close_fd_mask=3
