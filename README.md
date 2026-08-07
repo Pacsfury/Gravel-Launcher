@@ -241,6 +241,7 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 > * Opening the file and compiling it
 > * Write the `.ll` file
 
+_The benchmark has been deleted_
 ## Flags
 * `-wE`: Shows various information, as time and token count. (only time used compiling to LLVM, not the LLVM execution itself)
 
