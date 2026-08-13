@@ -445,3 +445,15 @@ it also runs automatically, but you need to do `pip install llvmlite`.
 
 ### 2026-08-07
 - Fix tests
+
+### 2026-08-13
+- Add a checker for:
+  - SCHO
+  - NAMESPACE
+  - IF-ELSEIF-ELSE
+  - WHILE
+  - FOR
+  - FUN
+
+TODO: Add checker to documentation
+
