@@ -232,15 +232,6 @@ but it will run automatically, so you can use this for executing othre output.ll
 ```
 it also runs automatically, but you need to do `pip install llvmlite`.
 
-## Benchmarks
-**New version of the benchmark: it now repeats 30 times!**
-This repo includes a `bench.grv` file with 33576 tokens. You can execute it to test the speed. I got 0.379000 s, let's see what you get running `./main run main.grv -wE` (change `./main` for the actual executable).
-
-> This time includes only:
-> * Detection of argument "run" and getting the path
-> * Opening the file and compiling it
-> * Write the `.ll` file
-
 ## Flags
 * `-wE`: Shows various information, as time and token count. (only time used compiling to LLVM, not the LLVM execution itself)
 
@@ -452,6 +443,9 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
 - Add | & ^ and ~ (PR)
 - Add a fuzzer for tests
 
+### 2026-08-07
+- Fix tests
+
 ### 2026-08-13
 - Add a checker for:
   - SCHO
@@ -461,5 +455,5 @@ This repo includes a `bench.grv` file with 33576 tokens. You can execute it to t
   - FOR
   - FUN
 
-
 TODO: Add checker to documentation
+
