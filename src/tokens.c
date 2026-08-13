@@ -2,6 +2,7 @@
 #include "../include/vector.h"
 #include "../include/argc.h"
 #include "../include/tollvm.h"
+#include "../include/checker.h"
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -333,8 +334,9 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
     reserveTokenSpace();
     tokens[token_count].type = TOKEN_EOF;
 
-    to_llvm_ir(tokens, token_count, ctx);
-    
+    if (checkGrammar(tokens, token_count)) {
+        to_llvm_ir(tokens, token_count, ctx);
+    }
 
 }
 
