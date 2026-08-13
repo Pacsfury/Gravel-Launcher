@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 
     clock_t start_time = clock();
 
-    ARGS_CONTEX ctx = { argc, argv };
+    ARGS_CONTEX ctx;
     args_init(&ctx, argc, argv);
 
     if(hasArg(&ctx, "init")) {
