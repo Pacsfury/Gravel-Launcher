@@ -454,9 +454,6 @@ it also runs automatically, but you need to do `pip install llvmlite`.
   - WHILE
   - FOR
   - FUN
-- Prevented empty else / end blocks (AI)
-- Fixed local variable resolution (AI)
-- TODO: 
-  - Add checker to documentation
-  - THE GREAT REWRITE: A full human rewrite for optimizing and cleaning the source code
+
+TODO: Add checker to documentation
 

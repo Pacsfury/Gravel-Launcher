@@ -17,11 +17,6 @@ static int current_function_param_count = 0;
 static char current_function_param_names[32][64];
 static char* current_function_param_ptrs[32];
 static char current_function_param_types[32][32];
-#define MAX_FUNCTION_LOCALS 128
-static char current_function_local_names[MAX_FUNCTION_LOCALS][64];
-static char current_function_local_types[MAX_FUNCTION_LOCALS][32];
-static char* current_function_local_ptrs[MAX_FUNCTION_LOCALS];
-static int current_function_local_count = 0;
 #define MAX_EMITTED_FUNCS 1024
 static char emitted_funcs[MAX_EMITTED_FUNCS][256];
 static char emitted_funcs_ret[MAX_EMITTED_FUNCS][32];
@@ -66,10 +61,6 @@ static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
             fprintf(outf, "@%s = global i32 0, align 4\n", stmt->data.var_decl.name);
             mark_emitted(stmt->data.var_decl.name);
         }
-        return;
-    }
-
-    if (stmt->type == NODE_FUN_DEF) {
         return;
     }
 
@@ -143,82 +134,10 @@ static void clear_current_function_param_ptrs(void) {
     }
 }
 
-static void clear_current_function_locals(void) {
-    for (int i = 0; i < current_function_local_count; i++) {
-        free(current_function_local_ptrs[i]);
-        current_function_local_ptrs[i] = NULL;
-    }
-    current_function_local_count = 0;
-}
-
-static const char* symbol_basename(const char* name) {
-    if (!name) return "";
-    const char* dot = strrchr(name, '.');
-    return dot ? dot + 1 : name;
-}
-
-static int symbol_name_matches(const char* left, const char* right) {
-    if (!left || !right) return 0;
-    if (strcmp(left, right) == 0) return 1;
-    return strcmp(symbol_basename(left), symbol_basename(right)) == 0;
-}
-
-static int lookup_function_slot(const char* name, const char** out_ptr, const char** out_type) {
-    for (int i = 0; i < current_function_param_count; i++) {
-        if (symbol_name_matches(name, current_function_param_names[i])) {
-            if (out_ptr) *out_ptr = current_function_param_ptrs[i];
-            if (out_type) *out_type = llvm_type_for(current_function_param_types[i]);
-            return 1;
-        }
-    }
-
-    for (int i = 0; i < current_function_local_count; i++) {
-        if (symbol_name_matches(name, current_function_local_names[i])) {
-            if (out_ptr) *out_ptr = current_function_local_ptrs[i];
-            if (out_type) *out_type = llvm_type_for(current_function_local_types[i]);
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
-static void declare_function_local(FILE* outf, const char* name, const char* type) {
-    if (lookup_function_slot(name, NULL, NULL)) {
-        return;
-    }
-
-    if (current_function_local_count >= MAX_FUNCTION_LOCALS) {
-        raiseError("Function local variable limit exceeded", "E0034");
-        return;
-    }
-
-    strncpy(current_function_local_names[current_function_local_count], name,
-            sizeof(current_function_local_names[0]) - 1);
-    current_function_local_names[current_function_local_count][sizeof(current_function_local_names[0]) - 1] = '\0';
-
-    strncpy(current_function_local_types[current_function_local_count], type,
-            sizeof(current_function_local_types[0]) - 1);
-    current_function_local_types[current_function_local_count][sizeof(current_function_local_types[0]) - 1] = '\0';
-
-    size_t name_len = strlen(name);
-    size_t ptr_name_len = name_len + strlen(".addr") + 1;
-    current_function_local_ptrs[current_function_local_count] = malloc(ptr_name_len);
-    if (!current_function_local_ptrs[current_function_local_count]) {
-        fprintf(stderr, "Memory allocation failed in LLVM generator\n");
-        exit(EXIT_FAILURE);
-    }
-    snprintf(current_function_local_ptrs[current_function_local_count], ptr_name_len, "%s.addr", name);
-
-    fprintf(outf, "    %%%s = alloca %s, align 4\n", current_function_local_ptrs[current_function_local_count], type);
-    current_function_local_count++;
-}
-
 static void emit_function_definition(FILE* outf, ASTNode* node) {
     if (!node || node->type != NODE_FUN_DEF) return;
 
     clear_current_function_param_ptrs();
-    clear_current_function_locals();
     current_function_param_count = 0;
 
     const char* return_type = llvm_type_for(node->data.fun_def.returnType);
@@ -357,10 +276,16 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
 
         case NODE_REASSIGN: {
             char* val = compile_value_node(outf, node->data.reassign.value, register_count);
-            const char* local_ptr = NULL;
-            const char* local_type = "i32";
-            if (lookup_function_slot(node->data.reassign.name, &local_ptr, &local_type)) {
-                fprintf(outf, "    store %s %s, ptr %%%s, align 4\n", local_type, val, local_ptr);
+            int arg_index = -1;
+            for (int i = 0; i < current_function_param_count; i++) {
+                if (strcmp(node->data.reassign.name, current_function_param_names[i]) == 0) {
+                    arg_index = i;
+                    break;
+                }
+            }
+            if (arg_index >= 0) {
+                const char* arg_type = llvm_type_for(current_function_param_types[arg_index]);
+                fprintf(outf, "    store %s %s, ptr %%%s, align 4\n", arg_type, val, current_function_param_ptrs[arg_index]);
             } else {
                 fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.reassign.name);
             }
@@ -370,14 +295,15 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
 
 
         case NODE_VARIABLE: {
-            const char* local_ptr = NULL;
-            const char* local_type = "i32";
-            if (lookup_function_slot(node->data.literal.value, &local_ptr, &local_type)) {
-                int reg = (*register_count)++;
-                fprintf(outf, "    %%%d = load %s, ptr %%%s, align 4\n", reg, local_type, local_ptr);
-                char buf[32];
-                snprintf(buf, sizeof(buf), "%%%d", reg);
-                return safe_strdup(buf);
+            for (int i = 0; i < current_function_param_count; i++) {
+                if (strcmp(node->data.literal.value, current_function_param_names[i]) == 0) {
+                    const char* arg_type = llvm_type_for(current_function_param_types[i]);
+                    int reg = (*register_count)++;
+                    fprintf(outf, "    %%%d = load %s, ptr %%%s, align 4\n", reg, arg_type, current_function_param_ptrs[i]);
+                    char buf[32];
+                    snprintf(buf, sizeof(buf), "%%%d", reg);
+                    return safe_strdup(buf);
+                }
             }
 
             int reg = (*register_count)++;
@@ -390,19 +316,9 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
 
         case NODE_CONSTANT:
         case NODE_DECLARATION: {
-            if (node->data.var_decl.name[0] != '\0' && !lookup_function_slot(node->data.var_decl.name, NULL, NULL)) {
-                declare_function_local(outf, node->data.var_decl.name, "i32");
-            }
-
             if (node->data.var_decl.value) {
                 char* val = compile_value_node(outf, node->data.var_decl.value, register_count);
-                const char* local_ptr = NULL;
-                const char* local_type = "i32";
-                if (lookup_function_slot(node->data.var_decl.name, &local_ptr, &local_type)) {
-                    fprintf(outf, "    store %s %s, ptr %%%s, align 4\n", local_type, val, local_ptr);
-                } else {
-                    fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.var_decl.name);
-                }
+                fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.var_decl.name);
                 free(val);
             }
             return NULL; 
@@ -558,19 +474,14 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             int then_label = my_id * 3 + 1;
             int else_label = my_id * 3 + 2;
             int end_label = my_id * 3 + 3;
-            int has_else = (node->data.if_stmt.else_node != NULL);
 
-            if (has_else) {
-                fprintf(outf, "    br i1 %%%d, label %%then%d, label %%else%d\n", cmp_reg, then_label, else_label);
-            } else {
-                fprintf(outf, "    br i1 %%%d, label %%then%d, label %%end%d\n", cmp_reg, then_label, end_label);
-            }
+            fprintf(outf, "    br i1 %%%d, label %%then%d, label %%else%d\n", cmp_reg, then_label, else_label);
 
             fprintf(outf, "then%d:\n", then_label);
             int then_returned = 0;
             for (int i = 0; i < node->data.if_stmt.then_count; i++) {
                 if (node->data.if_stmt.then_statements[i]->type == NODE_RETURN) then_returned = 1;
-
+                
                 char* leftover = compile_node(outf, node->data.if_stmt.then_statements[i], register_count);
                 if (leftover) free(leftover);
             }
@@ -578,30 +489,27 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
                 fprintf(outf, "    br label %%end%d\n", end_label);
             }
 
+            fprintf(outf, "else%d:\n", else_label);
             int else_returned = 0;
-            if (has_else) {
-                fprintf(outf, "else%d:\n", else_label);
+            if (node->data.if_stmt.else_node) {
                 if (node->data.if_stmt.else_node->type == NODE_IF) {
                     char* leftover = compile_node(outf, node->data.if_stmt.else_node, register_count);
                     if (leftover) free(leftover);
-                    else_returned = 1;
                 } else if (node->data.if_stmt.else_node->type == NODE_PROGRAM) {
                     for (int i = 0; i < node->data.if_stmt.else_node->data.program.count; i++) {
                         if (node->data.if_stmt.else_node->data.program.statements[i]->type == NODE_RETURN) else_returned = 1;
-
+                        
                         char* leftover = compile_node(outf, node->data.if_stmt.else_node->data.program.statements[i], register_count);
                         if (leftover) free(leftover);
                     }
                 }
-                if (!else_returned) {
-                    fprintf(outf, "    br label %%end%d\n", end_label);
-                }
+            }
+            if (!else_returned) {
+                fprintf(outf, "    br label %%end%d\n", end_label);
             }
 
-            const int should_emit_end_block = has_else ? !(then_returned && else_returned) : !then_returned;
-            if (should_emit_end_block) {
-                fprintf(outf, "end%d:\n", end_label);
-            }
+            // end
+            fprintf(outf, "end%d:\n", end_label);
             return NULL;
         }
 
