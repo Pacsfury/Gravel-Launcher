@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "../include/vector.h"
 
 Vector packages;
@@ -9,6 +10,4 @@ void _launcherInit() {
     vec_init(&packages);
 }
 
-void _launcherFree() {
-    vec_free(&packages);
-}
+void _launcherFree() { vec_free(&packages); }

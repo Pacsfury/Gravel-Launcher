@@ -1,6 +1,7 @@
 #pragma once
 #include <stdlib.h>
 #include <string.h>
+
 #include "tokens.h"
 
 typedef enum {
@@ -65,14 +66,14 @@ typedef struct ASTNode {
         } repeat_stmt;
 
         struct {
-            struct ASTNode* value; 
+            struct ASTNode* value;
         } scho_stmt;
 
         struct {
             struct ASTNode* condition;
             struct ASTNode** then_statements;
             int then_count;
-            struct ASTNode* else_node; // can be NODE_PROGRAM or NODE_IF or NULL
+            struct ASTNode* else_node;  // can be NODE_PROGRAM or NODE_IF or NULL
         } if_stmt;
 
         struct {
@@ -116,10 +117,9 @@ typedef struct ASTNode {
             char name[64];
             struct ASTNode* value;
         } reassign;
-        
+
     } data;
 } ASTNode;
-
 
 Token* peek(const Token* t, const int* c);
 Token* advance(const Token* t, int* c);

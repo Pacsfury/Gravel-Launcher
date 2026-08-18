@@ -1,8 +1,8 @@
-#include "../include/tokens.h"
 #include "../include/checker.h"
+#include "../include/tokens.h"
 
 int end_indent = 0;
-int if_indent  = 0;
+int if_indent = 0;
 bool on_if = false;
 
 bool checkGrammar(Token* tokens, int len) {
@@ -11,12 +11,14 @@ bool checkGrammar(Token* tokens, int len) {
         Token token = tokens[i];
         switch (token.type) {
             case TOKEN_SCHO:
-                if (i + 1 < len && tokens[i+1].type == TOKEN_LPAREN) {
+                if (i + 1 < len && tokens[i + 1].type == TOKEN_LPAREN) {
                     int j = i + 2;
                     int depth = 1;
                     while (j < len && depth > 0) {
-                        if (tokens[j].type == TOKEN_LPAREN) depth++;
-                        else if (tokens[j].type == TOKEN_RPAREN) depth--;
+                        if (tokens[j].type == TOKEN_LPAREN)
+                            depth++;
+                        else if (tokens[j].type == TOKEN_RPAREN)
+                            depth--;
                         j++;
                     }
                     if (depth != 0) {
@@ -32,7 +34,7 @@ bool checkGrammar(Token* tokens, int len) {
                 }
                 break;
             case TOKEN_NAMESPACE:
-                if (i + 1 < len && tokens[i+1].type == TOKEN_NAME) {
+                if (i + 1 < len && tokens[i + 1].type == TOKEN_NAME) {
                     end_indent++;
                     i += 2; /* namespace and its name */
                 } else {
@@ -70,13 +72,12 @@ bool checkGrammar(Token* tokens, int len) {
                 i++;
                 break;
             case TOKEN_FUN:
-                if (i + 2 < len && tokens[i+2].type == TOKEN_LPAREN) {
-
+                if (i + 2 < len && tokens[i + 2].type == TOKEN_LPAREN) {
                     int j = 0;
-                    while (i + j < len && tokens[i+j].type != TOKEN_RPAREN && tokens[i+j].type != TOKEN_EOF) {
+                    while (i + j < len && tokens[i + j].type != TOKEN_RPAREN && tokens[i + j].type != TOKEN_EOF) {
                         j++;
                     }
-                    if (i + j >= len || tokens[i+j].type != TOKEN_RPAREN) {
+                    if (i + j >= len || tokens[i + j].type != TOKEN_RPAREN) {
                         raiseError("Expected ')'. Found 'EOF' instead", "E9999");
                     }
                     i += j + 1;

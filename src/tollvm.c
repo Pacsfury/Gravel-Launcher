@@ -1,13 +1,14 @@
 #define MAX_EMITTED_GLOBALS 1024
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include "../include/tokens.h"
-#include "../include/ast.h"
-#include "../include/tollvm.h"
+
 #include "../include/argc.h"
+#include "../include/ast.h"
+#include "../include/tokens.h"
+#include "../include/tollvm.h"
 
 static char emitted_globals[MAX_EMITTED_GLOBALS][256];
 static int emitted_globals_count = 0;
@@ -33,7 +34,8 @@ static void register_emitted_function(const char* name, const char* ret) {
 
 static const char* lookup_emitted_function_return(const char* name) {
     for (int i = 0; i < emitted_funcs_count; i++) {
-        if (strcmp(emitted_funcs[i], name) == 0) return emitted_funcs_ret[i];
+        if (strcmp(emitted_funcs[i], name) == 0)
+            return emitted_funcs_ret[i];
     }
     return NULL;
 }
@@ -54,7 +56,8 @@ static void mark_emitted(const char* name) {
 }
 
 static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
-    if (!stmt) return;
+    if (!stmt)
+        return;
 
     if (stmt->type == NODE_DECLARATION || stmt->type == NODE_CONSTANT) {
         if (!already_emitted(stmt->data.var_decl.name)) {
@@ -64,8 +67,8 @@ static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
         return;
     }
 
-    if(stmt->type == NODE_REASSIGN){
-        if (!already_emitted(stmt->data.var_decl.name)){
+    if (stmt->type == NODE_REASSIGN) {
+        if (!already_emitted(stmt->data.var_decl.name)) {
             raiseError("An undeclared variable cannot be reassigned", "E0030");
         }
         return;
@@ -118,10 +121,14 @@ static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
 }
 
 static const char* llvm_type_for(const char* type_name) {
-    if (!type_name || type_name[0] == '\0') return "void";
-    if (strcmp(type_name, "int") == 0) return "i32";
-    if (strcmp(type_name, "float") == 0) return "float";
-    if (strcmp(type_name, "void") == 0) return "void";
+    if (!type_name || type_name[0] == '\0')
+        return "void";
+    if (strcmp(type_name, "int") == 0)
+        return "i32";
+    if (strcmp(type_name, "float") == 0)
+        return "float";
+    if (strcmp(type_name, "void") == 0)
+        return "void";
     return "i32";
 }
 
@@ -135,7 +142,8 @@ static void clear_current_function_param_ptrs(void) {
 }
 
 static void emit_function_definition(FILE* outf, ASTNode* node) {
-    if (!node || node->type != NODE_FUN_DEF) return;
+    if (!node || node->type != NODE_FUN_DEF)
+        return;
 
     clear_current_function_param_ptrs();
     current_function_param_count = 0;
@@ -149,7 +157,8 @@ static void emit_function_definition(FILE* outf, ASTNode* node) {
 
         for (int i = 0; i < 32; i++) {
             fun_args* arg = &node->data.fun_def.arguments[i];
-            if (arg->name[0] == '\0') break;
+            if (arg->name[0] == '\0')
+                break;
 
             if (current_function_param_count >= max_params) {
                 break;
@@ -159,23 +168,19 @@ static void emit_function_definition(FILE* outf, ASTNode* node) {
 
             size_t current_len = strlen(arguments);
             if (current_len < sizeof(arguments)) {
-                snprintf(arguments + current_len, 
-                        sizeof(arguments) - current_len, 
-                        "%s%s %%%s",
-                        (arguments[0] != '\0') ? ", " : "",
-                        arg_type,
-                        arg->name);
+                snprintf(arguments + current_len, sizeof(arguments) - current_len, "%s%s %%%s",
+                         (arguments[0] != '\0') ? ", " : "", arg_type, arg->name);
             }
 
-            strncpy(current_function_param_names[current_function_param_count], 
-                    arg->name, 
+            strncpy(current_function_param_names[current_function_param_count], arg->name,
                     sizeof(current_function_param_names[0]) - 1);
-            current_function_param_names[current_function_param_count][sizeof(current_function_param_names[0]) - 1] = '\0';
+            current_function_param_names[current_function_param_count][sizeof(current_function_param_names[0]) - 1] =
+                '\0';
 
-            strncpy(current_function_param_types[current_function_param_count], 
-                    arg->type, 
+            strncpy(current_function_param_types[current_function_param_count], arg->type,
                     sizeof(current_function_param_types[0]) - 1);
-            current_function_param_types[current_function_param_count][sizeof(current_function_param_types[0]) - 1] = '\0';
+            current_function_param_types[current_function_param_count][sizeof(current_function_param_types[0]) - 1] =
+                '\0';
 
             size_t name_len = strlen(arg->name);
             size_t ptr_name_len = name_len + strlen(".addr") + 1;
@@ -195,7 +200,8 @@ static void emit_function_definition(FILE* outf, ASTNode* node) {
     for (int i = 0; i < current_function_param_count; i++) {
         const char* arg_type = llvm_type_for(current_function_param_types[i]);
         fprintf(outf, "    %%%s = alloca %s, align 4\n", current_function_param_ptrs[i], arg_type);
-        fprintf(outf, "    store %s %%%s, ptr %%%s, align 4\n", arg_type, current_function_param_names[i], current_function_param_ptrs[i]);
+        fprintf(outf, "    store %s %%%s, ptr %%%s, align 4\n", arg_type, current_function_param_names[i],
+                current_function_param_ptrs[i]);
     }
 
     int function_register_count = 1;
@@ -206,7 +212,8 @@ static void emit_function_definition(FILE* outf, ASTNode* node) {
         for (int i = 0; i < node->data.fun_def.body->data.program.count; i++) {
             ASTNode* stmt = node->data.fun_def.body->data.program.statements[i];
             char* leftover = compile_node(outf, stmt, &function_register_count);
-            if (leftover) free(leftover);
+            if (leftover)
+                free(leftover);
         }
     }
 
@@ -251,12 +258,11 @@ static char* safe_strdup(const char* s) {
 static int label_counter = 0;
 static int loop_label_counter = 0;
 
-void llvm_scho(FILE* outf, const char* val_to_print) {
-    fprintf(outf, "    call void @cprint(i32 %s)\n", val_to_print);
-}
+void llvm_scho(FILE* outf, const char* val_to_print) { fprintf(outf, "    call void @cprint(i32 %s)\n", val_to_print); }
 
 static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
-    if (!node) return NULL;
+    if (!node)
+        return NULL;
 
     switch (node->type) {
         case NODE_LITERAL: {
@@ -285,7 +291,8 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             }
             if (arg_index >= 0) {
                 const char* arg_type = llvm_type_for(current_function_param_types[arg_index]);
-                fprintf(outf, "    store %s %s, ptr %%%s, align 4\n", arg_type, val, current_function_param_ptrs[arg_index]);
+                fprintf(outf, "    store %s %s, ptr %%%s, align 4\n", arg_type, val,
+                        current_function_param_ptrs[arg_index]);
             } else {
                 fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.reassign.name);
             }
@@ -293,13 +300,13 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             return NULL;
         }
 
-
         case NODE_VARIABLE: {
             for (int i = 0; i < current_function_param_count; i++) {
                 if (strcmp(node->data.literal.value, current_function_param_names[i]) == 0) {
                     const char* arg_type = llvm_type_for(current_function_param_types[i]);
                     int reg = (*register_count)++;
-                    fprintf(outf, "    %%%d = load %s, ptr %%%s, align 4\n", reg, arg_type, current_function_param_ptrs[i]);
+                    fprintf(outf, "    %%%d = load %s, ptr %%%s, align 4\n", reg, arg_type,
+                            current_function_param_ptrs[i]);
                     char buf[32];
                     snprintf(buf, sizeof(buf), "%%%d", reg);
                     return safe_strdup(buf);
@@ -308,7 +315,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
 
             int reg = (*register_count)++;
             fprintf(outf, "    %%%d = load i32, ptr @%s, align 4\n", reg, node->data.literal.value);
-            
+
             char buf[32];
             snprintf(buf, sizeof(buf), "%%%d", reg);
             return safe_strdup(buf);
@@ -321,37 +328,64 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
                 fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.var_decl.name);
                 free(val);
             }
-            return NULL; 
+            return NULL;
         }
 
         case NODE_BINARY_OP: {
             char* left = compile_value_node(outf, node->data.binary_op.left, register_count);
             char* right = compile_value_node(outf, node->data.binary_op.right, register_count);
-            
+
             const char* op_str = "";
-            switch(node->data.binary_op.op) {
-                case TOKEN_ADD:    op_str = "add"; break;
-                case TOKEN_SUB:    op_str = "sub"; break;
-                case TOKEN_STAR:   op_str = "mul"; break;
-                case TOKEN_DIV:    op_str = "sdiv"; break;
-                case TOKEN_MODULO: op_str = "srem"; break;
-                case TOKEN_EQUAL:  op_str = "eq"; break;
-                case TOKEN_NE:     op_str = "ne"; break;
-                case TOKEN_LT:     op_str = "slt"; break;
-                case TOKEN_GT:     op_str = "sgt"; break;
-                case TOKEN_LE:     op_str = "sle"; break;
-                case TOKEN_GE:     op_str = "sge"; break;
-                case TOKEN_AMPERSAND:  op_str = "and"; break;
-                case TOKEN_PIPE:   op_str = "or"; break;
-                case TOKEN_CARET:  op_str = "xor"; break;
-                default:           op_str = "add"; break;
+            switch (node->data.binary_op.op) {
+                case TOKEN_ADD:
+                    op_str = "add";
+                    break;
+                case TOKEN_SUB:
+                    op_str = "sub";
+                    break;
+                case TOKEN_STAR:
+                    op_str = "mul";
+                    break;
+                case TOKEN_DIV:
+                    op_str = "sdiv";
+                    break;
+                case TOKEN_MODULO:
+                    op_str = "srem";
+                    break;
+                case TOKEN_EQUAL:
+                    op_str = "eq";
+                    break;
+                case TOKEN_NE:
+                    op_str = "ne";
+                    break;
+                case TOKEN_LT:
+                    op_str = "slt";
+                    break;
+                case TOKEN_GT:
+                    op_str = "sgt";
+                    break;
+                case TOKEN_LE:
+                    op_str = "sle";
+                    break;
+                case TOKEN_GE:
+                    op_str = "sge";
+                    break;
+                case TOKEN_AMPERSAND:
+                    op_str = "and";
+                    break;
+                case TOKEN_PIPE:
+                    op_str = "or";
+                    break;
+                case TOKEN_CARET:
+                    op_str = "xor";
+                    break;
+                default:
+                    op_str = "add";
+                    break;
             }
-            if (node->data.binary_op.op == TOKEN_EQUAL ||
-                node->data.binary_op.op == TOKEN_NE ||
-                node->data.binary_op.op == TOKEN_LT ||
-                node->data.binary_op.op == TOKEN_GT ||
-                node->data.binary_op.op == TOKEN_LE ||
-                node->data.binary_op.op == TOKEN_GE) {
+            if (node->data.binary_op.op == TOKEN_EQUAL || node->data.binary_op.op == TOKEN_NE ||
+                node->data.binary_op.op == TOKEN_LT || node->data.binary_op.op == TOKEN_GT ||
+                node->data.binary_op.op == TOKEN_LE || node->data.binary_op.op == TOKEN_GE) {
                 int cmp_reg = (*register_count)++;
                 fprintf(outf, "    %%%d = icmp %s i32 %s, %s\n", cmp_reg, op_str, left, right);
                 int zext_reg = (*register_count)++;
@@ -378,10 +412,11 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
 
         case NODE_UNARY_OP: {
             char* operand = compile_value_node(outf, node->data.unary_op.operand, register_count);
-            
+
             const char* op_str = "";
-            switch(node->data.binary_op.op) {
-                case TOKEN_TILDE:    op_str = "add"; 
+            switch (node->data.binary_op.op) {
+                case TOKEN_TILDE:
+                    op_str = "add";
                     int reg = (*register_count)++;
                     fprintf(outf, "    %%%d = xor i32 %s, -1\n", reg, operand);
                     free(operand);
@@ -406,9 +441,12 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
 
         case NODE_CALL: {
             const char* rt = NULL;
-            if (node->data.fun_call.returnType[0]) rt = node->data.fun_call.returnType;
-            if (!rt) rt = lookup_emitted_function_return(node->data.fun_call.name);
-            if (!rt) rt = "void";
+            if (node->data.fun_call.returnType[0])
+                rt = node->data.fun_call.returnType;
+            if (!rt)
+                rt = lookup_emitted_function_return(node->data.fun_call.name);
+            if (!rt)
+                rt = "void";
 
             char args_buf[512] = "";
             if (node->data.fun_call.arguments && node->data.fun_call.arg_count > 0) {
@@ -462,7 +500,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             }
             return NULL;
         }
-        
+
         case NODE_IF: {
             int my_id = label_counter++;
 
@@ -480,10 +518,12 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             fprintf(outf, "then%d:\n", then_label);
             int then_returned = 0;
             for (int i = 0; i < node->data.if_stmt.then_count; i++) {
-                if (node->data.if_stmt.then_statements[i]->type == NODE_RETURN) then_returned = 1;
-                
+                if (node->data.if_stmt.then_statements[i]->type == NODE_RETURN)
+                    then_returned = 1;
+
                 char* leftover = compile_node(outf, node->data.if_stmt.then_statements[i], register_count);
-                if (leftover) free(leftover);
+                if (leftover)
+                    free(leftover);
             }
             if (!then_returned) {
                 fprintf(outf, "    br label %%end%d\n", end_label);
@@ -494,13 +534,17 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             if (node->data.if_stmt.else_node) {
                 if (node->data.if_stmt.else_node->type == NODE_IF) {
                     char* leftover = compile_node(outf, node->data.if_stmt.else_node, register_count);
-                    if (leftover) free(leftover);
+                    if (leftover)
+                        free(leftover);
                 } else if (node->data.if_stmt.else_node->type == NODE_PROGRAM) {
                     for (int i = 0; i < node->data.if_stmt.else_node->data.program.count; i++) {
-                        if (node->data.if_stmt.else_node->data.program.statements[i]->type == NODE_RETURN) else_returned = 1;
-                        
-                        char* leftover = compile_node(outf, node->data.if_stmt.else_node->data.program.statements[i], register_count);
-                        if (leftover) free(leftover);
+                        if (node->data.if_stmt.else_node->data.program.statements[i]->type == NODE_RETURN)
+                            else_returned = 1;
+
+                        char* leftover = compile_node(outf, node->data.if_stmt.else_node->data.program.statements[i],
+                                                      register_count);
+                        if (leftover)
+                            free(leftover);
                     }
                 }
             }
@@ -531,10 +575,13 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             fprintf(outf, "loopbody%d:\n", my_id);
             int body_returned = 0;
             for (int i = 0; i < node->data.while_stmt.count; i++) {
-                if (node->data.while_stmt.statements[i]->type == NODE_RETURN) body_returned = 1;
+                if (node->data.while_stmt.statements[i]->type == NODE_RETURN)
+                    body_returned = 1;
                 char* leftover = compile_node(outf, node->data.while_stmt.statements[i], register_count);
-                if (leftover) free(leftover);
-                if (body_returned) break;
+                if (leftover)
+                    free(leftover);
+                if (body_returned)
+                    break;
             }
             if (!body_returned) {
                 fprintf(outf, "    br label %%loopcond%d\n", my_id);
@@ -549,7 +596,8 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
 
             if (node->data.for_stmt.init) {
                 char* leftover = compile_node(outf, node->data.for_stmt.init, register_count);
-                if (leftover) free(leftover);
+                if (leftover)
+                    free(leftover);
             }
 
             fprintf(outf, "    br label %%loopcond%d\n", my_id);
@@ -564,15 +612,19 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             fprintf(outf, "loopbody%d:\n", my_id);
             int body_returned = 0;
             for (int i = 0; i < node->data.for_stmt.count; i++) {
-                if (node->data.for_stmt.statements[i]->type == NODE_RETURN) body_returned = 1;
+                if (node->data.for_stmt.statements[i]->type == NODE_RETURN)
+                    body_returned = 1;
                 char* leftover = compile_node(outf, node->data.for_stmt.statements[i], register_count);
-                if (leftover) free(leftover);
-                if (body_returned) break;
+                if (leftover)
+                    free(leftover);
+                if (body_returned)
+                    break;
             }
             if (!body_returned) {
                 if (node->data.for_stmt.increment) {
                     char* leftover = compile_node(outf, node->data.for_stmt.increment, register_count);
-                    if (leftover) free(leftover);
+                    if (leftover)
+                        free(leftover);
                 }
                 fprintf(outf, "    br label %%loopcond%d\n", my_id);
             }
@@ -588,23 +640,24 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             for (int r = 0; r < node->data.repeat_stmt.repeat_count; r++) {
                 for (int s = 0; s < node->data.repeat_stmt.count; s++) {
                     char* leftover = compile_node(outf, node->data.repeat_stmt.statements[s], register_count);
-                    if (leftover) free(leftover);
+                    if (leftover)
+                        free(leftover);
                 }
             }
             return NULL;
         }
     }
-    
+
     return NULL;
 }
 
 int to_llvm_ir(const Token* tokens, int token_count, ARGS_CONTEX* ctx) {
-    FILE *outf = fopen("output.ll", "w");
+    FILE* outf = fopen("output.ll", "w");
     if (outf == NULL) {
         printf("Error: Could not open or create output.ll file.\n");
-        return 1; 
+        return 1;
     }
-    
+
     ASTNode* ast_root = parse(tokens, token_count);
 
     if (!ast_root || ast_root->type != NODE_PROGRAM) {
@@ -650,7 +703,8 @@ int to_llvm_ir(const Token* tokens, int token_count, ARGS_CONTEX* ctx) {
         ASTNode* stmt = ast_root->data.program.statements[i];
         if (stmt->type != NODE_FUN_DEF) {
             char* leftover = compile_node(outf, stmt, &register_count);
-            if (leftover) free(leftover);
+            if (leftover)
+                free(leftover);
         }
     }
 

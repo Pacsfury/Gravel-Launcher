@@ -8,19 +8,19 @@ typedef enum {
     TOKEN_FLOAT,
     TOKEN_ADD,
     TOKEN_SUB,
-    TOKEN_STAR, //Can be either pointer dereference or multiplication
+    TOKEN_STAR,  //Can be either pointer dereference or multiplication
     TOKEN_DIV,
     TOKEN_MODULO,
-    TOKEN_VAR_INFER, // :=
-    TOKEN_ASSIGN, // =
+    TOKEN_VAR_INFER,  // :=
+    TOKEN_ASSIGN,     // =
     TOKEN_NAME,
-    TOKEN_TYPEIS_LIST, //for char[][], int[], etc
+    TOKEN_TYPEIS_LIST,  //for char[][], int[], etc
     TOKEN_EQUAL,
-    TOKEN_AMPERSAND, // &
-    TOKEN_PIPE, // |
-    TOKEN_CARET, // ^
-    TOKEN_EXC, // !
-    TOKEN_TILDE, // ~
+    TOKEN_AMPERSAND,  // &
+    TOKEN_PIPE,       // |
+    TOKEN_CARET,      // ^
+    TOKEN_EXC,        // !
+    TOKEN_TILDE,      // ~
     TOKEN_NEWLINE,
     TOKEN_RPAREN,
     TOKEN_LPAREN,
@@ -30,18 +30,18 @@ typedef enum {
     TOKEN_L_INT,
     TOKEN_L_FLOAT,
     TOKEN_SEMICOLON,
-    TOKEN_LT, // <
-    TOKEN_GT, // >
-    TOKEN_LE, // <=
-    TOKEN_GE, // >=
-    TOKEN_NE, // !=
-    TOKEN_INC, // ++
-    TOKEN_DEC, // --
-    TOKEN_ADD_ASSIGN, // +=
-    TOKEN_SUB_ASSIGN, // -=
-    TOKEN_STAR_ASSIGN, // *=
-    TOKEN_DIV_ASSIGN, // /=
-    TOKEN_MOD_ASSIGN, // %=
+    TOKEN_LT,           // <
+    TOKEN_GT,           // >
+    TOKEN_LE,           // <=
+    TOKEN_GE,           // >=
+    TOKEN_NE,           // !=
+    TOKEN_INC,          // ++
+    TOKEN_DEC,          // --
+    TOKEN_ADD_ASSIGN,   // +=
+    TOKEN_SUB_ASSIGN,   // -=
+    TOKEN_STAR_ASSIGN,  // *=
+    TOKEN_DIV_ASSIGN,   // /=
+    TOKEN_MOD_ASSIGN,   // %=
 
     //Keywords
     TOKEN_SCHO,
@@ -60,21 +60,17 @@ typedef enum {
     TOKEN_WHILE,
     TOKEN_FOR,
     TOKEN_IN,
-    TOKEN_VAR_DEF, // val
+    TOKEN_VAR_DEF,  // val
     TOKEN_CONST
 
 } TokenType;
-
 
 typedef struct {
     TokenType type;
     char value[64];
 } Token;
 
-typedef enum {
-    NODE_NUMBER,
-    NODE_BINARY_OP2
-} NodeType;
+typedef enum { NODE_NUMBER, NODE_BINARY_OP2 } NodeType;
 
 void raiseError(char error[], char id[]);
 

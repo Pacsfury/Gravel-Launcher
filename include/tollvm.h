@@ -1,9 +1,10 @@
 #pragma once
 
 #include <stdio.h>
-#include "tokens.h"
-#include "ast.h"
+
 #include "argc.h"
+#include "ast.h"
+#include "tokens.h"
 
 void llvm_scho(FILE* outf, const char* val_to_print);
 
