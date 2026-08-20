@@ -5,3 +5,7 @@
 void _launcherInit();
 
 void _launcherFree();
+
+void addPackage(char* name, char* path);
+
+char* getPackagePath(char* name);
