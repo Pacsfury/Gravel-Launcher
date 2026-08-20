@@ -123,16 +123,16 @@ typedef struct ASTNode {
 
 Token* peek(const Token* t, const int* c);
 Token* advance(const Token* t, int* c);
-ASTNode* parse(const Token* tokens, int count);
-ASTNode* parse_primary(const Token* t, int* c, const char* ns);
-ASTNode* parse_unary(const Token* t, int* c, const char* ns);
-ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns);
-ASTNode* parse_additive(const Token* t, int* c, const char* ns);
-ASTNode* parse_equality(const Token* t, int* c, const char* ns);
-ASTNode* parse_expression(const Token* t, int* c, const char* ns);
-ASTNode* parse_statement(const Token* t, int* c, const char* ns);
-ASTNode* parse_repeat(const Token* t, int* c, const char* ns);
-ASTNode* parse_if(const Token* t, int* c, const char* ns);
-ASTNode* parse_while(const Token* t, int* c, const char* ns);
-ASTNode* parse_for(const Token* t, int* c, const char* ns);
+ASTNode* parse(const Token* tokens, int count, ARGS_CONTEX* ctx);
+ASTNode* parse_primary(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx);
+ASTNode* parse_unary(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx);
+ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx);
+ASTNode* parse_additive(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx);
+ASTNode* parse_equality(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx);
+ASTNode* parse_expression(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx);
+ASTNode* parse_statement(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx);
+ASTNode* parse_repeat(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx);
+ASTNode* parse_if(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx);
+ASTNode* parse_while(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx);
+ASTNode* parse_for(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx);
 void print_ast(const ASTNode* node, int depth);

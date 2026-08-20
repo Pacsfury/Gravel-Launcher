@@ -1,25 +1,5 @@
-fun pow(int a, int b) int
-    val r := 1
-    for i in b
-        r = r * a
-    end
-    return r
+import "math"
+
+if factorial(5) == 120
+    scho('Y')
 end
-
-fun factorial(int n) int
-    if n <= 1 return 1 end
-    return n * factorial(n - 1)
-end
-
-fun sumative(int n) int
-    if n <= 1 return 1 end
-    return n + sumative(n - 1)
-end
-
-
-
-if factorial(3) == 6
-    scho('A')
-end
-
-

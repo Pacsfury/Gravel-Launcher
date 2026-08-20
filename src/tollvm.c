@@ -414,7 +414,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             char* operand = compile_value_node(outf, node->data.unary_op.operand, register_count);
 
             const char* op_str = "";
-            switch (node->data.binary_op.op) {
+            switch (node->data.unary_op.op) {
                 case TOKEN_TILDE:
                     op_str = "add";
                     int reg = (*register_count)++;
@@ -425,6 +425,17 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
                     snprintf(buf, sizeof(buf), "%%%d", reg);
                     return safe_strdup(buf);
                     break;
+                case TOKEN_SUB: {
+                    int reg = (*register_count)++;
+                    fprintf(outf, "    %%%d = sub i32 0, %s\n", reg, operand);
+                    free(operand);
+
+                    char buf[32];
+                    snprintf(buf, sizeof(buf), "%%%d", reg);
+                    return safe_strdup(buf);
+                }
+                case TOKEN_ADD:
+                    return operand;
                 default:
                     raiseError("Unsupported unary operator", "E0033");
                     free(operand);
@@ -490,7 +501,9 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
                     /* function declared void but return has value: still emit ret i32 by default */
                     fprintf(outf, "    ret i32 %s\n", val);
                 } else if (strcmp(current_function_return_type, "float") == 0) {
-                    fprintf(outf, "    ret float %s\n", val);
+                    int float_reg = (*register_count)++;
+                    fprintf(outf, "    %%%d = sitofp i32 %s to float\n", float_reg, val);
+                    fprintf(outf, "    ret float %%%d\n", float_reg);
                 } else {
                     fprintf(outf, "    ret %s %s\n", current_function_return_type, val);
                 }
@@ -658,7 +671,7 @@ int to_llvm_ir(const Token* tokens, int token_count, ARGS_CONTEX* ctx) {
         return 1;
     }
 
-    ASTNode* ast_root = parse(tokens, token_count);
+    ASTNode* ast_root = parse(tokens, token_count, ctx);
 
     if (!ast_root || ast_root->type != NODE_PROGRAM) {
         fprintf(stderr, "Error: Invalid AST Root.\n");

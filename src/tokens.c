@@ -5,6 +5,7 @@
 
 #include "../include/argc.h"
 #include "../include/checker.h"
+#include "../include/launcher.h"
 #include "../include/tokens.h"
 #include "../include/tollvm.h"
 #include "../include/vector.h"
@@ -23,6 +24,7 @@ void raiseError(char error[], char id[]) {
 Token* tokens = NULL;
 int token_count = 0;
 int token_capacity = 0;
+int suppress_llvm_generation = 0;
 
 void reserveTokenSpace(void) {
     if (token_count >= token_capacity) {
@@ -66,7 +68,7 @@ void showTokens() {
     }
 }
 
-void tokenize(const char* file, ARGS_CONTEX* ctx) {
+TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
     const char* source = file;
     while (*source != '\0') {
         skipBlank(&source);
@@ -194,6 +196,9 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                 if (*(source + 1) == '=') {
                     tokens[token_count].type = TOKEN_VAR_INFER;
                     source++;
+                } else if (token_count > 0 && tokens[token_count - 1].type == TOKEN_PACKAGE) {
+                    source++;
+                    continue;
                 } else {
                     raiseError("Unexpected token", "E0001");
                 }
@@ -275,6 +280,8 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                         tokens[token_count].type = TOKEN_NAMESPACE;
                     } else if (strcmp(buffer, "import") == 0) {
                         tokens[token_count].type = TOKEN_IMPORT;
+                    } else if (strcmp(buffer, "package") == 0) {
+                        tokens[token_count].type = TOKEN_PACKAGE;
                     } else if (strcmp(buffer, "class") == 0) {
                         tokens[token_count].type = TOKEN_CLASS;
                     } else if (strcmp(buffer, "fun") == 0) {
@@ -295,7 +302,11 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                         tokens[token_count].type = TOKEN_CONST;
                     } else if (strcmp(buffer, "return") == 0) {
                         tokens[token_count].type = TOKEN_RETURN;
-
+                    } else if (strcmp(buffer, "import") == 0) {
+                        tokens[token_count].type = TOKEN_IMPORT;
+                    } else if (strcmp(buffer, "package:") == 0) {
+                        tokens[token_count].type = TOKEN_PACKAGE;
+                        strcpy(tokens[token_count].value, from);
                     } else {
                         tokens[token_count].type = TOKEN_NAME;
                         strcpy(tokens[token_count].value, buffer);
@@ -338,9 +349,19 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
     reserveTokenSpace();
     tokens[token_count].type = TOKEN_EOF;
 
-    if (checkGrammar(tokens, token_count)) {
+    for (int i = 0; i < token_count; i++) {
+        if (tokens[i].type == TOKEN_PACKAGE && i + 1 < token_count && tokens[i + 1].type == TOKEN_NAME) {
+            addPackage(tokens[i + 1].value, from ? from : "");
+        }
+    }
+
+    if (!suppress_llvm_generation && checkGrammar(tokens, token_count)) {
         to_llvm_ir(tokens, token_count, ctx);
     }
+    TokenS tokenRes;
+    tokenRes.content = tokens;
+    tokenRes.count = token_count;
+    return tokenRes;
 }
 
 void tokenizeFile(char* file, ARGS_CONTEX* ctx) {
@@ -380,7 +401,7 @@ void tokenizeFile(char* file, ARGS_CONTEX* ctx) {
         buffer_len += line_len;
     }
 
-    tokenize(buffer, ctx);
+    tokenize(buffer, ctx, file);
 
     fclose(input);
     free(buffer);

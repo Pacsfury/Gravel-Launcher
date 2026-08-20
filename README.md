@@ -455,5 +455,8 @@ it also runs automatically, but you need to do `pip install llvmlite`.
   - FOR
   - FUN
 
-TODO: Add checker to documentation
+### 2026-08-20
+- Add `float` type
+- Add packages and import
 
+TODO: Add checker, imports and packages to documentation
