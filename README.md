@@ -252,7 +252,8 @@ it also runs automatically, but you need to do `pip install llvmlite`.
 - Reassing varibles
 - | & ^ ~
 - == != < > <= >=, etc
-
+- Import and packages
+- Float type
 
 ## Changelog
 <sub>The changelog idea is from [BeknYTprogamador](https://github.com/BeknYTprogamador)</sub>
