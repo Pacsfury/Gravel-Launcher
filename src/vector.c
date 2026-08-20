@@ -1,3 +1,5 @@
+#include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,15 +7,36 @@
 #include "../include/vector.h"
 
 void vec_init(Vector* v) {
+    if (!v)
+        return;
+
     v->size = 0;
     v->capacity = 4;
     v->data = (char**)malloc(v->capacity * sizeof(char*));
+    if (!v->data)
+        v->capacity = 0;
 }
 
 void vec_push(Vector* v, char* value) {
-    if (v->size == v->capacity) {
-        v->capacity *= 2;
-        v->data = (char**)realloc(v->data, v->capacity * sizeof(char*));
+    if (!v)
+        return;
+
+    if (v->size < 0 || v->capacity < 0 || v->size > v->capacity)
+        return;
+
+    if (v->size == v->capacity || v->data == NULL) {
+        if (v->capacity > INT_MAX / 2)
+            return;
+        int new_capacity = v->capacity > 0 ? v->capacity * 2 : 4;
+        if (new_capacity < v->capacity || (size_t)new_capacity > SIZE_MAX / sizeof(char*))
+            return;
+
+        char** new_data = (char**)realloc(v->data, (size_t)new_capacity * sizeof(char*));
+        if (!new_data)
+            return;
+
+        v->data = new_data;
+        v->capacity = new_capacity;
     }
     v->data[v->size++] = value;
 }

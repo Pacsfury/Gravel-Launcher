@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,15 +10,45 @@
 #include "../include/tokens.h"
 #include "../include/tollvm.h"
 
+static void register_package_from_file(const char* file_path) {
+    FILE* file = fopen(file_path, "r");
+    if (!file)
+        return;
+
+    char line[256];
+    while (fgets(line, sizeof(line), file)) {
+        char* p = strstr(line, "package");
+        if (!p)
+            continue;
+
+        p += 7;
+        while (*p == ' ' || *p == '\t') p++;
+        if (*p != ':')
+            continue;
+        p++;
+        while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') p++;
+
+        char name[64] = {0};
+        int i = 0;
+        while (*p && (*p == '_' || *p == '.' || isalnum((unsigned char)*p)) && i < 63) {
+            name[i++] = *p++;
+        }
+        if (i > 0) {
+            addPackage(name, (char*)file_path);
+            break;
+        }
+    }
+
+    fclose(file);
+}
+
 int main(int argc, char* argv[]) {
     clock_t start_time = clock();
 
+    _launcherInit();
+
     ARGS_CONTEX ctx;
     args_init(&ctx, argc, argv);
-
-    if (hasArg(&ctx, "init")) {
-        _launcherInit();
-    }
 
     if (hasArg(&ctx, "winll")) {
         system(getArg(&ctx, "winll"));
@@ -28,7 +59,23 @@ int main(int argc, char* argv[]) {
     }
 
     if (hasArg(&ctx, "run")) {
-        tokenizeFile(getArg(&ctx, "run"), &ctx);
+        for (int i = 1; i < ctx.argc; i++) {
+            if (strcmp(ctx.argv[i], "run") != 0)
+                continue;
+
+            for (int j = i + 1; j < ctx.argc; j++) {
+                if (ctx.argv[j] == NULL || strncmp(ctx.argv[j], "-", 1) == 0)
+                    continue;
+                register_package_from_file(ctx.argv[j]);
+            }
+
+            for (int j = i + 1; j < ctx.argc; j++) {
+                if (ctx.argv[j] == NULL || strncmp(ctx.argv[j], "-", 1) == 0)
+                    continue;
+                tokenizeFile(ctx.argv[j], &ctx);
+            }
+            break;
+        }
     }
 
     _launcherFree();

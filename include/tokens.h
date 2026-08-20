@@ -51,6 +51,7 @@ typedef enum {
     TOKEN_ELSE,
     TOKEN_NAMESPACE,
     TOKEN_IMPORT,
+    TOKEN_PACKAGE,
     TOKEN_CLASS,
     TOKEN_FUN,
     TOKEN_IMPL,
@@ -70,16 +71,22 @@ typedef struct {
     char value[64];
 } Token;
 
-typedef enum { NODE_NUMBER, NODE_BINARY_OP2 } NodeType;
+typedef struct {
+    Token* content;
+    int count;
+} TokenS;
 
 void raiseError(char error[], char id[]);
 
 void skipBlank(const char** current);
 
-void tokenize(const char* file, ARGS_CONTEX* ctx);
+TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from);
 
 void showTokens();
 
 void tokenizeFile(char* file, ARGS_CONTEX* ctx);
 
 extern int token_count;
+extern int token_capacity;
+extern Token* tokens;
+extern int suppress_llvm_generation;

@@ -1,0 +1,32 @@
+package: math
+
+fun factorial(int n) int
+    if n <= 1 return 1 end
+
+    return n * factorial(n - 1)
+end
+
+fun sumative(int n) int
+    if n <= 1 return 1 end
+
+    return n + sumative(n - 1)
+end
+
+fun power(int a, int b) float
+    if b == 0 return 1 end
+    if b == 1 return a end
+
+    float base = a
+    int exp = b
+
+    if exp < 0
+        base = 1 / base
+        exp = -exp
+    end
+
+    float res = 1
+    for i in exp
+        res *= base
+    end
+    return res
+end
