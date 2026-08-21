@@ -207,5 +207,6 @@
 - Make `Cargo.grvdep` work
 - Move changelog to a separated file
 - Cargo.grvdep can have libraries hosted in the web
+- Update extension to show icons at `.grvdep` files
 
 TODO: Add checker, imports and packages to documentation

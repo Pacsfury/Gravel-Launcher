@@ -1,4 +1,5 @@
 #define MAX_EMITTED_GLOBALS 1024
+#define MAX_EMITTED_FUNCS 1024
 
 #include <ctype.h>
 #include <stdio.h>
@@ -10,15 +11,14 @@
 #include "../include/tokens.h"
 #include "../include/tollvm.h"
 
+static const char* current_function_return_type = "void";
 static char emitted_globals[MAX_EMITTED_GLOBALS][256];
 static int emitted_globals_count = 0;
-static const char* current_function_return_type = "void";
 static int current_function_has_return = 0;
 static int current_function_param_count = 0;
 static char current_function_param_names[32][64];
 static char* current_function_param_ptrs[32];
 static char current_function_param_types[32][32];
-#define MAX_EMITTED_FUNCS 1024
 static char emitted_funcs[MAX_EMITTED_FUNCS][256];
 static char emitted_funcs_ret[MAX_EMITTED_FUNCS][32];
 static int emitted_funcs_count = 0;
@@ -131,8 +131,6 @@ static const char* llvm_type_for(const char* type_name) {
         return "void";
     return "i32";
 }
-
-static char* compile_node(FILE* outf, ASTNode* node, int* register_count);
 
 static void clear_current_function_param_ptrs(void) {
     for (int i = 0; i < current_function_param_count; i++) {

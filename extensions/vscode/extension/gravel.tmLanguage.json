@@ -60,7 +60,7 @@
         },
         {
           "name": "keyword.control.conditional.grv",
-          "match": "\\b(if|elseif|else|)\\b"
+          "match": "\\b(if|elseif|else)\\b"
         },
         {
           "name": "keyword.control.grv",
