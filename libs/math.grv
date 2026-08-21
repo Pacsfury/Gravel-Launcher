@@ -1,18 +1,18 @@
 package: math
 
-fun factorial(int n) int
+fun math.factorial(int n) int
     if n <= 1 return 1 end
 
-    return n * factorial(n - 1)
+    return n * math.factorial(n - 1)
 end
 
-fun sumative(int n) int
+fun math.sumative(int n) int
     if n <= 1 return 1 end
 
-    return n + sumative(n - 1)
+    return n + math.sumative(n - 1)
 end
 
-fun power(int a, int b) float
+fun math.power(int a, int b) float
     if b == 0 return 1 end
     if b == 1 return a end
 
