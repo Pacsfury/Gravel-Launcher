@@ -59,6 +59,16 @@ int main(int argc, char* argv[]) {
     }
 
     if (hasArg(&ctx, "run")) {
+        FILE* cargo = fopen("Cargo.grvdep", "r");
+        if (cargo != NULL) {
+            char buffer[256];
+
+            while (fgets(buffer, sizeof(buffer), cargo) != NULL) {
+                register_package_from_file(buffer);
+            }
+            fclose(cargo);
+        }
+        
         for (int i = 1; i < ctx.argc; i++) {
             if (strcmp(ctx.argv[i], "run") != 0)
                 continue;
