@@ -10,6 +10,14 @@
 #include "../include/tokens.h"
 #include "../include/tollvm.h"
 
+#ifdef _WIN32
+    #define POPEN _popen
+    #define PCLOSE _pclose
+#else
+    #define POPEN popen
+    #define PCLOSE pclose
+#endif
+
 static void register_package_from_file(const char* file_path) {
     FILE* file = fopen(file_path, "r");
     if (!file)
@@ -42,6 +50,61 @@ static void register_package_from_file(const char* file_path) {
     fclose(file);
 }
 
+static void register_package_from_url(const char* url) {
+    char temp_cache[256] = "gravel_cache_temp.tmp";
+    char command[512];
+    
+    snprintf(command, sizeof(command), "curl -s \"%s\" -o %s", url, temp_cache);
+    int ret = system(command);
+    if (ret != 0) {
+        remove(temp_cache);
+        return;
+    }
+
+    FILE* file = fopen(temp_cache, "r");
+    if (!file) {
+        remove(temp_cache);
+        return;
+    }
+
+    char name[64] = {0};
+    char line[256];
+    while (fgets(line, sizeof(line), file)) {
+        char* p = strstr(line, "package");
+        if (!p)
+            continue;
+
+        p += 7;
+        while (*p == ' ' || *p == '\t') p++;
+        if (*p != ':')
+            continue;
+        p++;
+        while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') p++;
+
+        int i = 0;
+        while (*p && (*p == '_' || *p == '.' || isalnum((unsigned char)*p)) && i < 63) {
+            name[i++] = *p++;
+        }
+        if (i > 0) {
+            break;
+        }
+    }
+    fclose(file);
+
+    if (name[0] != '\0') {
+        char final_cache_path[256];
+        snprintf(final_cache_path, sizeof(final_cache_path), "gravel_cache_%s.grv", name);
+
+        remove(final_cache_path);
+        rename(temp_cache, final_cache_path);
+
+        register_package_from_file(final_cache_path);
+        
+    } else {
+        remove(temp_cache);
+    }
+}
+
 int main(int argc, char* argv[]) {
     clock_t start_time = clock();
 
@@ -64,11 +127,20 @@ int main(int argc, char* argv[]) {
             char buffer[256];
 
             while (fgets(buffer, sizeof(buffer), cargo) != NULL) {
-                register_package_from_file(buffer);
+                buffer[strcspn(buffer, "\r\n")] = '\0';
+
+                if (buffer[0] == '\0')
+                    continue;
+
+                if (!strncmp(buffer, "web:", 4)) {
+                    register_package_from_url(buffer + 4);
+                } else {
+                    register_package_from_file(buffer);
+                }
             }
             fclose(cargo);
         }
-        
+
         for (int i = 1; i < ctx.argc; i++) {
             if (strcmp(ctx.argv[i], "run") != 0)
                 continue;
