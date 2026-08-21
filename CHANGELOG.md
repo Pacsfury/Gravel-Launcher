@@ -205,5 +205,7 @@
 
 ### 1016-08-21
 - Make `Cargo.grvdep` work
+- Move changelog to a separated file
+- Cargo.grvdep can have libraries hosted in the web
 
 TODO: Add checker, imports and packages to documentation

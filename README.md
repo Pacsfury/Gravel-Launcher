@@ -203,7 +203,12 @@ Create a file called `Cargo.grvdep` and put, line by line, every path your progr
 ```bash
 gravel run main.grv
 ```
-The system will detect the file and do all the work for you
+The system will detect the file and do all the work for you.
+
+You can use webs as library like this:
+```
+web:https://raw.githubusercontent.com/Pacsfury/Gravel-Launcher/refs/heads/main/libs/math.grv
+```
 
 2. Directly in the terminal
 You can also do it like this:
