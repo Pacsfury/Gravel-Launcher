@@ -20,6 +20,15 @@
           "dark": "./icons/logo.png"
         },
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "gravel.dependencies",
+        "extensions": [".grvdep"],
+        "aliases": ["Gravel.dependencies", "gravel.dependencies"],
+        "icon": {
+          "light": "./icons/cargo.png",
+          "dark": "./icons/cargo.png"
+        }
       }
     ],
     "grammars": [
