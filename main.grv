@@ -1,0 +1,7 @@
+fun sum(int a, int b)
+    scho('g')
+end
+
+if sum(8, 8) == 0
+    scho('a')
+end

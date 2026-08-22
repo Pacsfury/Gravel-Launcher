@@ -9,10 +9,10 @@ entry:
 }
 
 
-define void @voidFun() {
+define i32 @voidFun() {
 entry:
     call void @cprint(i32 0)
-    ret void
+    ret i32 0
 }
 
 define i32 @intFun() {

@@ -213,3 +213,4 @@
 - Continue float type. Missing: overload symbols for `float`
 
 TODO: Add checker, imports and packages to documentation
+KNOWN BUGS: void functions return 0
