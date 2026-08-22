@@ -51,6 +51,7 @@ typedef struct ASTNode {
         struct {
             char name[64];
             struct ASTNode* value;
+            char type[64];
         } var_decl;
 
         struct {

@@ -513,18 +513,35 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns, ARGS_CONTEX* ct
 
         if (peek(t, c)->type == TOKEN_VAR_INFER) {
             advance(t, c);
-        } else {
-            raiseError("Missing ':='  in variable declaration", "E0006");
-        }
+            result->data.var_decl.value = parse_expression(t, c, ns, ctx);
 
-        result->data.var_decl.value = parse_expression(t, c, ns, ctx);
-        return result;
+            if (result->data.var_decl.value && result->data.var_decl.value->type == NODE_LITERAL &&
+                strchr(result->data.var_decl.value->data.literal.value, '.') != NULL) {
+                strcpy(result->data.var_decl.type, "float");
+            } else {
+                strcpy(result->data.var_decl.type, "int");
+            }
+        } else {
+            raiseError("Missing ':=' in variable declaration", "E0006");
+        }
+        
+        if (result->data.var_decl.value)
+            return result;
+
+        return NULL;
     } else if (current->type == TOKEN_INT || current->type == TOKEN_FLOAT || current->type == TOKEN_CHAR) {
         ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
         if (!result)
             raiseError("Memory allocation failed", "E0004");
 
         result->type = NODE_DECLARATION;
+
+        if (current->type == TOKEN_INT) {
+            strcpy(result->data.var_decl.type, "int");
+        } else if (current->type == TOKEN_FLOAT) {
+            strcpy(result->data.var_decl.type, "float");
+        }
+
         advance(t, c);
 
         if (peek(t, c)->type == TOKEN_NAME) {

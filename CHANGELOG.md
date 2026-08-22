@@ -203,10 +203,14 @@
 - Add `float` type
 - Add packages and import
 
-### 1016-08-21
+### 2026-08-21
 - Make `Cargo.grvdep` work
 - Move changelog to a separated file
 - Cargo.grvdep can have libraries hosted in the web
 - Update extension to show icons at `.grvdep` files
 
+### 2026-08-22
+- Continue float type. Missing: overload symbols for `float`
+
 TODO: Add checker, imports and packages to documentation
+KNOWN BUGS: void functions return 0

@@ -25,6 +25,8 @@ def execute(file):
 
     if expected_path.read_text(encoding="utf-8").strip() != output_path.read_text(encoding="utf-8").strip():
         print(f"File {file} failed verification.")
+
+        print(f'\n\n{expected_path.read_text(encoding="utf-8").strip()}\n\n{output_path.read_text(encoding="utf-8").strip()}\n\n')
         return 1
     
     print(f"{file} passed successfully.")

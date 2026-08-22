@@ -20,6 +20,7 @@ static char current_function_param_names[32][64];
 static char* current_function_param_ptrs[32];
 static char current_function_param_types[32][32];
 static char emitted_funcs[MAX_EMITTED_FUNCS][256];
+static char emitted_globals_types[MAX_EMITTED_GLOBALS][32];
 static char emitted_funcs_ret[MAX_EMITTED_FUNCS][32];
 static int emitted_funcs_count = 0;
 
@@ -49,10 +50,21 @@ static int already_emitted(const char* name) {
     return 0;
 }
 
-static void mark_emitted(const char* name) {
+static void mark_emitted(const char* name, const char* type) {
     if (emitted_globals_count < MAX_EMITTED_GLOBALS) {
-        strcpy(emitted_globals[emitted_globals_count++], name);
+        strcpy(emitted_globals[emitted_globals_count], name);
+        strcpy(emitted_globals_types[emitted_globals_count], type); // Save the type
+        emitted_globals_count++;
     }
+}
+
+static const char* lookup_global_type(const char* name) {
+    for (int i = 0; i < emitted_globals_count; i++) {
+        if (strcmp(emitted_globals[i], name) == 0) {
+            return emitted_globals_types[i];
+        }
+    }
+    return "i32"; // Fallback
 }
 
 static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
@@ -61,8 +73,9 @@ static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
 
     if (stmt->type == NODE_DECLARATION || stmt->type == NODE_CONSTANT) {
         if (!already_emitted(stmt->data.var_decl.name)) {
-            fprintf(outf, "@%s = global i32 0, align 4\n", stmt->data.var_decl.name);
-            mark_emitted(stmt->data.var_decl.name);
+            const char* type_str = llvm_type_for(stmt->data.var_decl.type);
+            fprintf(outf, "@%s = global %s %s, align 4\n", stmt->data.var_decl.name, type_str, strcmp(type_str, "float") == 0 ? "0.0" : "0");
+            mark_emitted(stmt->data.var_decl.name, type_str);
         }
         return;
     }
@@ -70,9 +83,9 @@ static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
     if (stmt->type == NODE_REASSIGN) {
         if (!already_emitted(stmt->data.var_decl.name)) {
             raiseError("An undeclared variable cannot be reassigned", "E0030");
-        }
+        } 
         return;
-    }
+    } 
 
     if (stmt->type == NODE_FUN_DEF && stmt->data.fun_def.body && stmt->data.fun_def.body->type == NODE_PROGRAM) {
         for (int i = 0; i < stmt->data.fun_def.body->data.program.count; i++) {
@@ -122,7 +135,7 @@ static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
 
 static const char* llvm_type_for(const char* type_name) {
     if (!type_name || type_name[0] == '\0')
-        return "void";
+        return "i32";
     if (strcmp(type_name, "int") == 0)
         return "i32";
     if (strcmp(type_name, "float") == 0)
@@ -275,6 +288,21 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
                 snprintf(buf, sizeof(buf), "%d", (int)(unsigned char)v[0]);
                 return safe_strdup(buf);
             }
+
+            // If the literal is a float (contains a decimal), convert to LLVM's exact hex format
+            if (strchr(v, '.') && (isdigit((unsigned char)v[0]) || v[0] == '-')) {
+                float f = (float)atof(v);
+                double d = (double)f; 
+                unsigned long long hex = 0;
+                
+                // Copy the exact bits of the double into an integer
+                memcpy(&hex, &d, sizeof(double)); 
+                
+                char buf[32];
+                snprintf(buf, sizeof(buf), "0x%llX", hex);
+                return safe_strdup(buf);
+            }
+
             return safe_strdup(v);
         }
 
@@ -312,7 +340,8 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             }
 
             int reg = (*register_count)++;
-            fprintf(outf, "    %%%d = load i32, ptr @%s, align 4\n", reg, node->data.literal.value);
+
+            fprintf(outf, "    %%%d = load %s, ptr @%s, align 4\n", reg, lookup_global_type(node->data.literal.value), node->data.literal.value);
 
             char buf[32];
             snprintf(buf, sizeof(buf), "%%%d", reg);
@@ -323,7 +352,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
         case NODE_DECLARATION: {
             if (node->data.var_decl.value) {
                 char* val = compile_value_node(outf, node->data.var_decl.value, register_count);
-                fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.var_decl.name);
+                fprintf(outf, "    store %s %s, ptr @%s, align 4\n", llvm_type_for(node->data.var_decl.type), val, node->data.var_decl.name);
                 free(val);
             }
             return NULL;
@@ -614,11 +643,16 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             fprintf(outf, "    br label %%loopcond%d\n", my_id);
             fprintf(outf, "loopcond%d:\n", my_id);
 
-            char* cond = compile_value_node(outf, node->data.for_stmt.condition, register_count);
-            int cmp_reg = (*register_count)++;
-            fprintf(outf, "    %%%d = icmp ne i32 %s, 0\n", cmp_reg, cond);
-            free(cond);
-            fprintf(outf, "    br i1 %%%d, label %%loopbody%d, label %%loopend%d\n", cmp_reg, my_id, my_id);
+            // Handle missing condition (infinite loop)
+            if (node->data.for_stmt.condition) {
+                char* cond = compile_value_node(outf, node->data.for_stmt.condition, register_count);
+                int cmp_reg = (*register_count)++;
+                fprintf(outf, "    %%%d = icmp ne i32 %s, 0\n", cmp_reg, cond);
+                free(cond);
+                fprintf(outf, "    br i1 %%%d, label %%loopbody%d, label %%loopend%d\n", cmp_reg, my_id, my_id);
+            } else {
+                fprintf(outf, "    br label %%loopbody%d\n", my_id);
+            }
 
             fprintf(outf, "loopbody%d:\n", my_id);
             int body_returned = 0;
