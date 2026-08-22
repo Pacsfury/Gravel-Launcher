@@ -61,7 +61,7 @@ static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
 
     if (stmt->type == NODE_DECLARATION || stmt->type == NODE_CONSTANT) {
         if (!already_emitted(stmt->data.var_decl.name)) {
-            fprintf(outf, "@%s = global i32 0, align 4\n", stmt->data.var_decl.name);
+            fprintf(outf, "@%s = global %s %s, align 4\n", stmt->data.var_decl.name, llvm_type_for(stmt->data.var_decl.type), strcmp(llvm_type_for(stmt->data.var_decl.type), "float") == 0 ? "0.0" : "0");
             mark_emitted(stmt->data.var_decl.name);
         }
         return;
@@ -275,6 +275,21 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
                 snprintf(buf, sizeof(buf), "%d", (int)(unsigned char)v[0]);
                 return safe_strdup(buf);
             }
+
+            // If the literal is a float (contains a decimal), convert to LLVM's exact hex format
+            if (strchr(v, '.') && (isdigit((unsigned char)v[0]) || v[0] == '-')) {
+                float f = (float)atof(v);
+                double d = (double)f; 
+                unsigned long long hex = 0;
+                
+                // Copy the exact bits of the double into an integer
+                memcpy(&hex, &d, sizeof(double)); 
+                
+                char buf[32];
+                snprintf(buf, sizeof(buf), "0x%llX", hex);
+                return safe_strdup(buf);
+            }
+
             return safe_strdup(v);
         }
 
@@ -312,7 +327,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             }
 
             int reg = (*register_count)++;
-            fprintf(outf, "    %%%d = load i32, ptr @%s, align 4\n", reg, node->data.literal.value);
+            fprintf(outf, "    %%%d = load %s, ptr @%s, align 4\n", reg, node->data.literal.value, llvm_type_for(node->data.var_decl.type));
 
             char buf[32];
             snprintf(buf, sizeof(buf), "%%%d", reg);
@@ -323,7 +338,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
         case NODE_DECLARATION: {
             if (node->data.var_decl.value) {
                 char* val = compile_value_node(outf, node->data.var_decl.value, register_count);
-                fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.var_decl.name);
+                fprintf(outf, "    store %s %s, ptr @%s, align 4\n", llvm_type_for(node->data.var_decl.type), val, node->data.var_decl.name);
                 free(val);
             }
             return NULL;

@@ -1,5 +1,0 @@
-import "math" // Cargo.grvdep handles the path for me
-
-if math.factorial(5) == 120
-    scho('a')
-end
