@@ -210,6 +210,6 @@
 - Update extension to show icons at `.grvdep` files
 
 ### 2026-08-22
-- COntinue float type. Missing: overload symbols for `float`
+- Continue float type. Missing: overload symbols for `float`
 
 TODO: Add checker, imports and packages to documentation
