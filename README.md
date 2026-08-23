@@ -216,6 +216,26 @@ You can also do it like this:
 gravel run main.grv depen1.grv depen2.grv
 ```
 
+## Compile
+**With your default compiler**
+
+Compile `src/*.c`.
+
+**With AutoPy**
+
+_Cl_:
+```bash
+autopy cl
+```
+_gcc_:
+```bash
+autopy gcc
+```
+_run Python tests_:
+```bash
+autopy test
+```
+
 ## Status
 Right now, this is the current development of every feature:
  
