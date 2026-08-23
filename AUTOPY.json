@@ -1,0 +1,32 @@
+{
+    "jobs": [
+        {
+            "compiler": "cl",
+            "id": "cl",
+            "flags": [],
+            "input": "src/*.c",
+            "output": "gravel",
+            "outputSymbol": "/Fe:"
+        },
+        {
+            "compiler": "gcc",
+            "id": "gcc",
+            "flags": [
+                "-Wall"
+            ],
+            "input": "src/*.c",
+            "output": "gravel",
+            "outputSymbol": "-o "  
+        },
+        {
+            "compiler": "python",
+            "id": "test",
+            "flags": [
+                "-u"
+            ],
+            "input": "tests/tests.py",
+            "output": "",
+            "outputSymbol": ""  
+        }
+    ]
+}
