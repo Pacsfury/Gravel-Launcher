@@ -14,8 +14,8 @@ currently being supported with security updates.
 
 ## Reporting a Vulnerability
 
-For reporting a vulnerability, please open an issue marked as BUG.
+**Please do not open public issues or pull requests for security vulnerabilities.**
 
-After opening the issue fullfilling the form, if you want to help solving the issue, please open a PR for fixing it, or mark it as "I don't want to fix this issue".
+To report a security bug, please use the **Private Vulnerability Reporting** feature enabled on this repository. This ensures the issue can be fixed safely before it becomes public.
 
-Also, for faster fix, we recommend you to do a private vulnerability reporting.
+If you would like to help fix the issue, please mention it in your private report, and we will coordinate a secure way to collaborate on the patch.
