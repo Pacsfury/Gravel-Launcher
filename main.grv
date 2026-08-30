@@ -1,7 +1,28 @@
-fun sum(int a, int b)
-    scho('g')
+import "math"
+
+int fact_res = math.factorial(5)
+if fact_res != 120
+    return 1
 end
 
-if sum(8, 8) == 0
-    scho('a')
+int fact_zero = math.factorial(0)
+if fact_zero != 1
+    return 1
 end
+
+int sum_res = math.sumative(10)
+if sum_res != 55
+    return 1
+end
+
+int pow_pos = math.power(2, 3)
+if pow_pos != 8
+    return 1
+end
+
+int pow_zero = math.power(5, 0)
+if pow_zero != 1
+    return 1
+end
+
+return 0
