@@ -2,18 +2,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "../include/argc.h"
 #include "../include/checker.h"
 #include "../include/launcher.h"
 #include "../include/tokens.h"
 #include "../include/tollvm.h"
 #include "../include/vector.h"
-
 #define MAX_TOKEN_CAPACITY 1000000
 
 // TOKENIZER
-
 void raiseError(char error[], char id[]) {
     printf("--- ERROR! ---\n");
     printf("%s\n", error);
@@ -32,13 +29,10 @@ void reserveTokenSpace(void) {
             raiseError("Exceeded maximum token limit (potential infinite loop or massive file)", "E0000");
             return;
         }
-
         size_t new_capacity = (token_capacity == 0) ? 512 : token_capacity * 2;
-
         if (new_capacity > MAX_TOKEN_CAPACITY) {
             new_capacity = MAX_TOKEN_CAPACITY;
         }
-
         Token* temp = realloc(tokens, new_capacity * sizeof(Token));
         if (!temp) {
             free(tokens);
@@ -48,7 +42,6 @@ void reserveTokenSpace(void) {
             raiseError("Out of memory allocation for tokens", "E0000");
             return;
         }
-
         tokens = temp;
         token_capacity = new_capacity;
     }
@@ -68,17 +61,70 @@ void showTokens() {
     }
 }
 
+/*
+ * OPTIMIZATION #1: Binary Search for Keyword Lookup
+ * CRITICAL: Keep KEYWORDS array sorted alphabetically!
+ * If you add a new keyword, insert it in alphabetical order.
+ * Violating this will cause binary search to miss keywords!
+ */
+static const struct {
+    const char *kw;
+    TokenType type;
+} KEYWORDS[] = {
+    {"char",      TOKEN_CHAR},
+    {"class",     TOKEN_CLASS},
+    {"const",     TOKEN_CONST},
+    {"else",      TOKEN_ELSE},
+    {"elseif",    TOKEN_ELSEIF},
+    {"end",       TOKEN_END},
+    {"extl",      TOKEN_EXTL},
+    {"float",     TOKEN_FLOAT},
+    {"for",       TOKEN_FOR},
+    {"fun",       TOKEN_FUN},
+    {"if",        TOKEN_IF},
+    {"impl",      TOKEN_IMPL},
+    {"import",    TOKEN_IMPORT},
+    {"in",        TOKEN_IN},
+    {"int",       TOKEN_INT},
+    {"namespace", TOKEN_NAMESPACE},
+    {"package",   TOKEN_PACKAGE},
+    {"repeat",    TOKEN_REPEAT},
+    {"return",    TOKEN_RETURN},
+    {"scho",      TOKEN_SCHO},
+    {"val",       TOKEN_VAR_DEF},
+    {"while",     TOKEN_WHILE},
+};
+#define NUM_KEYWORDS (sizeof(KEYWORDS) / sizeof(KEYWORDS[0]))
+
+/*-- OPTIMIZED: Binary search for keyword lookup O(log n) instead of O(n) --*/
+static inline TokenType lookup_keyword(const char *buffer) {
+    int left = 0;
+    int right = NUM_KEYWORDS - 1;
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        int cmp = strcmp(buffer, KEYWORDS[mid].kw);
+
+        if (cmp == 0) {
+            return KEYWORDS[mid].type;  // Found exact match
+        } else if (cmp < 0) {
+            right = mid - 1;             // Search left half
+        } else {
+            left = mid + 1;              // Search right half
+        }
+    }
+
+    return TOKEN_NAME;  // Not a keyword, treat as identifier
+}
+
 TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
     const char* source = file;
     while (*source != '\0') {
         skipBlank(&source);
-
         if (*source == '\0') {
             break;
         }
-
         reserveTokenSpace();
-
         switch (*source) {
             case '+':
                 if (*(source + 1) == '+') {
@@ -246,7 +292,6 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
                 if (isalpha(*source)) {
                     int len = 0;
                     char buffer[64];
-
                     while ((isalnum(*source) || *source == '.' || *source == '_') && len < 63) {
                         if (*source == '\\' && *(++source) == 'n') {
                             buffer[len++] = '\n';
@@ -258,62 +303,13 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
                     buffer[len] = '\0';
                     strcpy(tokens[token_count].value, buffer);
 
-                    if (strcmp(buffer, "val") == 0) {
-                        tokens[token_count].type = TOKEN_VAR_DEF;
-                    } else if (strcmp(buffer, "if") == 0) {
-                        tokens[token_count].type = TOKEN_IF;
-                    } else if (strcmp(buffer, "elseif") == 0) {
-                        tokens[token_count].type = TOKEN_ELSEIF;
-                    } else if (strcmp(buffer, "else") == 0) {
-                        tokens[token_count].type = TOKEN_ELSE;
-                    } else if (strcmp(buffer, "int") == 0) {
-                        tokens[token_count].type = TOKEN_INT;
-                    } else if (strcmp(buffer, "float") == 0) {
-                        tokens[token_count].type = TOKEN_FLOAT;
-                    } else if (strcmp(buffer, "char") == 0) {
-                        tokens[token_count].type = TOKEN_CHAR;
-                    } else if (strcmp(buffer, "scho") == 0) {
-                        tokens[token_count].type = TOKEN_SCHO;
-                    } else if (strcmp(buffer, "end") == 0) {
-                        tokens[token_count].type = TOKEN_END;
-                    } else if (strcmp(buffer, "namespace") == 0) {
-                        tokens[token_count].type = TOKEN_NAMESPACE;
-                    } else if (strcmp(buffer, "import") == 0) {
-                        tokens[token_count].type = TOKEN_IMPORT;
-                    } else if (strcmp(buffer, "package") == 0) {
-                        tokens[token_count].type = TOKEN_PACKAGE;
-                    } else if (strcmp(buffer, "class") == 0) {
-                        tokens[token_count].type = TOKEN_CLASS;
-                    } else if (strcmp(buffer, "fun") == 0) {
-                        tokens[token_count].type = TOKEN_FUN;
-                    } else if (strcmp(buffer, "impl") == 0) {
-                        tokens[token_count].type = TOKEN_IMPL;
-                    } else if (strcmp(buffer, "extl") == 0) {
-                        tokens[token_count].type = TOKEN_EXTL;
-                    } else if (strcmp(buffer, "repeat") == 0) {
-                        tokens[token_count].type = TOKEN_REPEAT;
-                    } else if (strcmp(buffer, "while") == 0) {
-                        tokens[token_count].type = TOKEN_WHILE;
-                    } else if (strcmp(buffer, "for") == 0) {
-                        tokens[token_count].type = TOKEN_FOR;
-                    } else if (strcmp(buffer, "in") == 0) {
-                        tokens[token_count].type = TOKEN_IN;
-                    } else if (strcmp(buffer, "const") == 0) {
-                        tokens[token_count].type = TOKEN_CONST;
-                    } else if (strcmp(buffer, "return") == 0) {
-                        tokens[token_count].type = TOKEN_RETURN;
-                    } else if (strcmp(buffer, "import") == 0) {
-                        tokens[token_count].type = TOKEN_IMPORT;
-                    } else if (strcmp(buffer, "package:") == 0) {
-                        tokens[token_count].type = TOKEN_PACKAGE;
-                        strcpy(tokens[token_count].value, from);
-                    } else {
-                        tokens[token_count].type = TOKEN_NAME;
-                        strcpy(tokens[token_count].value, buffer);
-                    }
+                    /*-- USE OPTIMIZED BINARY SEARCH for keyword lookup --*/
+                    tokens[token_count].type = lookup_keyword(buffer);
+
                     token_count++;
                     continue;
                 } else if (isdigit(*source)) {
+                    /*-- Number parsing section --*/
                     int n_len = 0;
                     char n_buffer[64];
                     int is_float = 0;
@@ -326,14 +322,12 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
                         source++;
                     }
                     n_buffer[n_len] = '\0';
-
                     if (is_float) {
                         tokens[token_count].type = TOKEN_L_FLOAT;
                     } else {
                         tokens[token_count].type = TOKEN_L_INT;
                     }
                     strcpy(tokens[token_count].value, n_buffer);
-
                     token_count++;
                     continue;
                 } else {
@@ -358,6 +352,7 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
     if (!suppress_llvm_generation && checkGrammar(tokens, token_count)) {
         to_llvm_ir(tokens, token_count, ctx);
     }
+
     TokenS tokenRes;
     tokenRes.content = tokens;
     tokenRes.count = token_count;
@@ -382,10 +377,8 @@ void tokenizeFile(char* file, ARGS_CONTEX* ctx) {
     }
 
     buffer[0] = '\0';
-
     while (fgets(line, sizeof(line), input) != NULL) {
         size_t line_len = strlen(line);
-
         while (buffer_len + line_len >= buffer_capacity) {
             buffer_capacity *= 2;
             char* temp = realloc(buffer, buffer_capacity);
@@ -396,13 +389,11 @@ void tokenizeFile(char* file, ARGS_CONTEX* ctx) {
             }
             buffer = temp;
         }
-
         memcpy(buffer + buffer_len, line, line_len + 1);
         buffer_len += line_len;
     }
 
     tokenize(buffer, ctx, file);
-
     fclose(input);
     free(buffer);
     free(tokens);
