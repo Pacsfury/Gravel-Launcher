@@ -8,7 +8,6 @@
 #include "../include/tokens.h"
 #include "../include/tollvm.h"
 #include "../include/vector.h"
-
 #define MAX_TOKEN_CAPACITY 1000000
 
 // TOKENIZER
@@ -54,7 +53,7 @@ void skipBlank(const char** current) {
     }
 }
 
-void showTokens(void) {
+void showTokens() {
     int i = 0;
     while (tokens[i].type != TOKEN_EOF) {
         printf("%s", tokens[i].value);
@@ -62,6 +61,12 @@ void showTokens(void) {
     }
 }
 
+/*
+ * OPTIMIZATION #1: Binary Search for Keyword Lookup
+ * CRITICAL: Keep KEYWORDS array sorted alphabetically!
+ * If you add a new keyword, insert it in alphabetical order.
+ * Violating this will cause binary search to miss keywords!
+ */
 static const struct {
     const char *kw;
     TokenType type;
@@ -89,9 +94,9 @@ static const struct {
     {"val",       TOKEN_VAR_DEF},
     {"while",     TOKEN_WHILE},
 };
-
 #define NUM_KEYWORDS (sizeof(KEYWORDS) / sizeof(KEYWORDS[0]))
 
+/*-- OPTIMIZED: Binary search for keyword lookup O(log n) instead of O(n) --*/
 static inline TokenType lookup_keyword(const char *buffer) {
     int left = 0;
     int right = NUM_KEYWORDS - 1;
@@ -101,72 +106,238 @@ static inline TokenType lookup_keyword(const char *buffer) {
         int cmp = strcmp(buffer, KEYWORDS[mid].kw);
 
         if (cmp == 0) {
-            return KEYWORDS[mid].type;
+            return KEYWORDS[mid].type;  // Found exact match
         } else if (cmp < 0) {
-            right = mid - 1;
+            right = mid - 1;             // Search left half
         } else {
-            left = mid + 1;
+            left = mid + 1;              // Search right half
         }
     }
 
-    return TOKEN_NAME;
+    return TOKEN_NAME;  // Not a keyword, treat as identifier
 }
 
 TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
-    (void)ctx;
-    (void)from;
-
     const char* source = file;
-    token_count = 0;
-
     while (*source != '\0') {
         skipBlank(&source);
-        if (*source == '\0') break;
-
+        if (*source == '\0') {
+            break;
+        }
         reserveTokenSpace();
-
-        if (isalpha(*source) || *source == '_') {
-            int len = 0;
-            char buffer[64];
-            while ((isalnum(*source) || *source == '.' || *source == '_') && len < 63) {
-                if (*source == '\\' && *(source + 1) == 'n') {
-                    buffer[len++] = '\n';
-                    source += 2;
+        switch (*source) {
+            case '+':
+                if (*(source + 1) == '+') {
+                    tokens[token_count].type = TOKEN_INC;
+                    source++;
+                } else if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_ADD_ASSIGN;
+                    source++;
                 } else {
-                    buffer[len++] = *source;
+                    tokens[token_count].type = TOKEN_ADD;
+                }
+                break;
+            case '-':
+                if (*(source + 1) == '>') {
+                    tokens[token_count].type = TOKEN_ARROW;
+                    source++;
+                } else if (*(source + 1) == '-') {
+                    tokens[token_count].type = TOKEN_DEC;
+                    source++;
+                } else if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_SUB_ASSIGN;
+                    source++;
+                } else {
+                    tokens[token_count].type = TOKEN_SUB;
+                }
+                break;
+            case '*':
+                if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_STAR_ASSIGN;
+                    source++;
+                } else {
+                    tokens[token_count].type = TOKEN_STAR;
+                }
+                break;
+            case '/':
+                if (*(source + 1) == '/') {
+                    while (*source != '\n' && *source != '\0') {
+                        source++;
+                    }
+                    continue;
+                } else if (*(source + 1) == '*') {
+                    source += 2;  // skip "/*"
+                    while (*source != '\0' && !(*source == '*' && *(source + 1) == '/')) {
+                        source++;
+                    }
+                    if (*source == '\0') {
+                        raiseError("Unterminated block comment", "E0002.1");
+                    }
+                    source += 2;  // skip "*/"
+                    continue;
+                } else if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_DIV_ASSIGN;
+                    source++;
+                } else {
+                    tokens[token_count].type = TOKEN_DIV;
+                }
+                break;
+            case '%':
+                if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_MOD_ASSIGN;
+                    source++;
+                } else {
+                    tokens[token_count].type = TOKEN_MODULO;
+                }
+                break;
+            case '<':
+                if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_LE;
+                    source++;
+                } else {
+                    tokens[token_count].type = TOKEN_LT;
+                }
+                break;
+            case '>':
+                if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_GE;
+                    source++;
+                } else {
+                    tokens[token_count].type = TOKEN_GT;
+                }
+                break;
+            case '!':
+                if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_NE;
+                    source++;
+                } else {
+                    // Not doing anything yet
+                    tokens[token_count].type = TOKEN_EXC;
+                }
+                break;
+            case '~':
+                tokens[token_count].type = TOKEN_TILDE;
+                break;
+            case '|':
+                tokens[token_count].type = TOKEN_PIPE;
+                break;
+            case '^':
+                tokens[token_count].type = TOKEN_CARET;
+                break;
+            case ';':
+                tokens[token_count].type = TOKEN_SEMICOLON;
+                break;
+            case ',':
+                tokens[token_count].type = TOKEN_COMMA;
+                break;
+            case '=':
+                if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_EQUAL;
+                    source++;
+                } else {
+                    tokens[token_count].type = TOKEN_ASSIGN;
+                }
+                break;
+            case ':':
+                if (*(source + 1) == '=') {
+                    tokens[token_count].type = TOKEN_VAR_INFER;
+                    source++;
+                } else if (token_count > 0 && tokens[token_count - 1].type == TOKEN_PACKAGE) {
+                    source++;
+                    continue;
+                } else {
+                    raiseError("Unexpected token", "E0001");
+                }
+                break;
+            case '\n':
+                tokens[token_count].type = TOKEN_NEWLINE;
+                tokens[token_count].value[0] = '\0';
+                break;
+            case '(':
+                tokens[token_count].type = TOKEN_LPAREN;
+                break;
+            case ')':
+                tokens[token_count].type = TOKEN_RPAREN;
+                break;
+            case '"':
+                tokens[token_count].type = TOKEN_QUOTE;
+                source++;
+                int s_len = 0;
+                while (*source != '"' && *source != '\0') {
+                    tokens[token_count].value[s_len++] = *source;
                     source++;
                 }
-            }
-            buffer[len] = '\0';
-            strcpy(tokens[token_count].value, buffer);
-            tokens[token_count].type = lookup_keyword(buffer);
-            token_count++;
-            continue;
-        } else if (isdigit(*source)) {
-            int n_len = 0;
-            char n_buffer[64];
-            int is_float = 0;
-
-            while ((isdigit(*source) || *source == '.') && n_len < 63) {
-                if (*source == '.') {
-                    is_float = 1;
+                tokens[token_count].value[s_len] = '\0';
+                if (*source == '\0') {
+                    raiseError("Unterminated string", "E0002");
                 }
-                n_buffer[n_len++] = *source;
+                break;
+            case '\'':
+                tokens[token_count].type = TOKEN_QUOTE;
                 source++;
-            }
-            n_buffer[n_len] = '\0';
-            if (is_float) {
-                tokens[token_count].type = TOKEN_L_FLOAT;
-            } else {
-                tokens[token_count].type = TOKEN_L_INT;
-            }
-            strcpy(tokens[token_count].value, n_buffer);
-            token_count++;
-            continue;
-        } else {
-            source++;
-            continue;
+                int t_len = 0;
+                while (*source != '\'' && *source != '\0') {
+                    tokens[token_count].value[t_len++] = *source;
+                    source++;
+                }
+                tokens[token_count].value[t_len] = '\0';
+                if (*source == '\0') {
+                    raiseError("Unterminated string", "E0002");
+                }
+                break;
+            case '&':
+                tokens[token_count].type = TOKEN_AMPERSAND;
+                break;
+            default:
+                if (isalpha(*source)) {
+                    int len = 0;
+                    char buffer[64];
+                    while ((isalnum(*source) || *source == '.' || *source == '_') && len < 63) {
+                        if (*source == '\\' && *(++source) == 'n') {
+                            buffer[len++] = '\n';
+                        } else {
+                            buffer[len++] = *source;
+                            source++;
+                        }
+                    }
+                    buffer[len] = '\0';
+                    strcpy(tokens[token_count].value, buffer);
+
+                    /*-- USE OPTIMIZED BINARY SEARCH for keyword lookup --*/
+                    tokens[token_count].type = lookup_keyword(buffer);
+
+                    token_count++;
+                    continue;
+                } else if (isdigit(*source)) {
+                    /*-- Number parsing section --*/
+                    int n_len = 0;
+                    char n_buffer[64];
+                    int is_float = 0;
+
+                    while ((isdigit(*source) || *source == '.') && n_len < 63) {
+                        if (*source == '.') {
+                            is_float = 1;
+                        }
+                        n_buffer[n_len++] = *source;
+                        source++;
+                    }
+                    n_buffer[n_len] = '\0';
+                    if (is_float) {
+                        tokens[token_count].type = TOKEN_L_FLOAT;
+                    } else {
+                        tokens[token_count].type = TOKEN_L_INT;
+                    }
+                    strcpy(tokens[token_count].value, n_buffer);
+                    token_count++;
+                    continue;
+                } else {
+                    raiseError("Unknown character", "E0003");
+                    source++;
+                    continue;
+                }
         }
+        source++;
+        token_count++;
     }
 
     reserveTokenSpace();
