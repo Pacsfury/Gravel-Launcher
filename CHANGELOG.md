@@ -212,12 +212,13 @@
 ### 2026-08-22
 - Continue float type. Missing: overload symbols for `float`
 
+### 2026-08-23
+- Add compilation and testing available with AutoPy
+
 ### 2026-08-30
 - Add codeQL and other security improvements
 - Add SECURITY.md
-
-### 2026-08-23
-- Add compilation and testing available with AutoPy
+- Optimize lookup with binary search (PR)
 
 TODO: Add checker, imports and packages to documentation
 KNOWN BUGS: void functions return 0
