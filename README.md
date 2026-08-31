@@ -216,6 +216,38 @@ You can also do it like this:
 gravel run main.grv depen1.grv depen2.grv
 ```
 
+## Custom opeations
+
+Inside a type class, you can define custom operations like this:
+```gravel
+class List: type
+    op #
+        return self.len //This is a placeholder for getting length
+    end
+
+    op {x}
+        return self[x]
+    end
+end
+```
+
+Then, just do:
+```gravel
+List list = new List
+list.append(12) // Placeholder method
+list# => 1
+list{0} => 12
+```
+
+## Null and exception safety
+You can declare a type nullable with `?`.
+
+You can declare a type may be exception with `!`.
+
+So, `int!?` could be an int, a null, or an exception.
+
+Exceptions are thrown at the end of the scope.
+
 ## Compile
 **With your default compiler**
 
@@ -248,6 +280,7 @@ Right now, this is the current development of every feature:
 |Variables, types and classes | 1/3 |
 |Functions, namespaces, if, while, for, repeat| Working |
 |Packages, pointers, import and basic packages | 2/3 |
+|Custom operations, null safety, exception safety | Not started |
 
 To propose or vote on small syntax changes, please go to discussions.
 
