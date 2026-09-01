@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (hasArg(&ctx, "run")) {
-        FILE* cargo = fopen("Cargo.grvdep", "r");
+        FILE* cargo = fopen("Libs.grvdep", "r");
         if (cargo != NULL) {
             char buffer[256];
 
