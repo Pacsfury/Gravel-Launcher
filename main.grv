@@ -25,4 +25,6 @@ if pow_zero != 1
     return 1
 end
 
+scho('A')
+
 return 0
