@@ -198,8 +198,8 @@ Gravel has a little special way of how imports work.
 
 Instead of relying on paths, every file defines how it wants to be called:
 `package: name`. Then, for using the library, just do `import "name"`. For making it work, you have two options:
-1. Cargo.grvdep
-Create a file called `Cargo.grvdep` and put, line by line, every path your program needs. Then, execute the main file:
+1. Libs.grvdep
+Create a file called `Libs.grvdep` and put, line by line, every path your program needs. Then, execute the main file:
 ```bash
 gravel run main.grv
 ```
@@ -284,15 +284,6 @@ Right now, this is the current development of every feature:
 
 To propose or vote on small syntax changes, please go to discussions.
 
-## Launcher
-This is the Gravel _launcher_. This launcher goal is to provide basic CLI tools to run your Gravel code.
-
-Use the following pipeline for executing a file.
-
-```powershell
-gravel run main.grv dependencies path space separated.
-```
-(Maybe we will add a file for tracking dependencies, like Cargo.toml but for Gravel)
 
 ## Run the .ll
 To run the resulting `output.ll`, do the following:
@@ -330,4 +321,4 @@ it also runs automatically, but you need to do `pip install llvmlite`.
 - == != < > <= >=, etc
 - Import and packages
 - Float type
-- `Cargo.grvdep`
+- `Libs.grvdep`
