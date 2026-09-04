@@ -1,0 +1,8 @@
+fun print(char a) char
+    scho(a)
+    return a
+end
+
+if print('A') == 'A'
+    scho('B')
+end

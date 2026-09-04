@@ -223,5 +223,8 @@
 ## 2026-09-01
 - Change Cargo.grvdep to Libs.grvdep as Gravel doesn't use Cargo
 
+## 2026-09-04
+- Add a `char` type
+
 TODO: Add checker, imports and packages to documentation
 KNOWN BUGS: void functions return 0
