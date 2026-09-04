@@ -1,0 +1,36 @@
+; ModuleID = 'output.ll'
+declare i32 @putchar(i32)
+
+
+define void @cprint(i32 %charasc) {
+entry:
+    %0 = call i32 @putchar(i32 %charasc)
+    ret void
+}
+
+
+define i32 @print(i32 %a) {
+entry:
+    %a.addr = alloca i32, align 4
+    store i32 %a, ptr %a.addr, align 4
+    %1 = load i32, ptr %a.addr, align 4
+    call void @cprint(i32 %1)
+    %2 = load i32, ptr %a.addr, align 4
+    ret i32 %2
+}
+
+define i32 @main() {
+entry:
+    %1 = call i32 @print(i32 65)
+    %2 = icmp eq i32 %1, 65
+    %3 = zext i1 %2 to i32
+    %4 = icmp ne i32 %3, 0
+    br i1 %4, label %then1, label %else2
+then1:
+    call void @cprint(i32 66)
+    br label %end3
+else2:
+    br label %end3
+end3:
+    ret i32 0
+}

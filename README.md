@@ -277,7 +277,7 @@ Right now, this is the current development of every feature:
 |AST      |Working|
 |Parser   |Working|
 |LLVM converter |Working|
-|Variables, types and classes | 1/3 |
+|Variables, types and classes | 2/3 |
 |Functions, namespaces, if, while, for, repeat| Working |
 |Packages, pointers, import and basic packages | 2/3 |
 |Custom operations, null safety, exception safety | Not started |
@@ -308,7 +308,7 @@ it also runs automatically, but you need to do `pip install llvmlite`.
 
 ## Update
 **Currently available contents**
-- scho('A') / scho(intvar)
+- scho('A') / scho(var)
 - int intvar = 65 / val intvar := 65
 - namespace name ... end / name.getthis
 - val namespace.gettheanother := 65
@@ -322,3 +322,4 @@ it also runs automatically, but you need to do `pip install llvmlite`.
 - Import and packages
 - Float type
 - `Libs.grvdep`
+- Char type (`i32` under the hood, interoperable with `int`)
