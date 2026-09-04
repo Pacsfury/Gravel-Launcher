@@ -536,7 +536,7 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns, ARGS_CONTEX* ct
 
         result->type = NODE_DECLARATION;
 
-        if (current->type == TOKEN_INT) {
+        if (current->type == TOKEN_INT || current->type == TOKEN_CHAR) {
             strcpy(result->data.var_decl.type, "int");
         } else if (current->type == TOKEN_FLOAT) {
             strcpy(result->data.var_decl.type, "float");
@@ -991,7 +991,7 @@ ASTNode* parse(const Token* tokens, int count, ARGS_CONTEX* ctx) {
                 peek(tokens, &current_token)->type == TOKEN_L_FLOAT) {
                 Token* rt = advance(tokens, &current_token);
                 strcpy(funNode->data.fun_def.returnType, rt->value);
-            } else if (peek(tokens, &current_token)->type == TOKEN_INT) {
+            } else if (peek(tokens, &current_token)->type == TOKEN_INT || peek(tokens, &current_token)->type == TOKEN_CHAR) {
                 advance(tokens, &current_token);
                 strcpy(funNode->data.fun_def.returnType, "int");
             } else if (peek(tokens, &current_token)->type == TOKEN_FLOAT) {
