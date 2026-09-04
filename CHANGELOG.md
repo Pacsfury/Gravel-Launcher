@@ -225,6 +225,7 @@
 
 ## 2026-09-04
 - Add a `char` type
+- Start a Github wiki
 
 TODO: Add checker, imports and packages to documentation
 KNOWN BUGS: void functions return 0
