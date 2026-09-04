@@ -1,8 +1,5 @@
-fun print(char a) char
-    scho(a)
-    return a
-end
+char a = 'A'
+int  b = 65
 
-if print('A') == 'A'
-    scho('B')
-end
+scho(a)
+scho(b)
