@@ -465,7 +465,7 @@ Instead, the AST generator detects when a namespace starts and ends and prependi
 
 So, this code:
 
-```grv
+```gravel
 namespace numbers
     int one = 1
     int two = 2

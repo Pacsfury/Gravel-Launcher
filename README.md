@@ -33,7 +33,7 @@ As the project is still in its early stages, features and syntax may evolve over
 
 For using files as libraries, use packages, so you will need to use the package name instead of the path.
 
-```grv
+```gravel
 package: string
 ```
 
@@ -43,13 +43,13 @@ _If no package defined, couldn't be used for libraries. Naming the package isn't
 
 To import packages, use a tuple or a single string for importing them.
 
-```grv
+```gravel
 import "string"
 ```
 
 or
 
-```grv
+```gravel
 import ("string", "stdio", "math", "rand")
 ```
 
@@ -59,13 +59,13 @@ There are two ways of defining variables: explicitly and inferenced.
 
 Explicit:
 
-```grv
+```gravel
 int name = value //or any other type (builtin: int, char, float)
 ```
 
 Inferred:
 
-```grv
+```gravel
 val name := value
 ```
 
@@ -79,7 +79,7 @@ Create namespaces using `namespace name` and use the `end` keyword. (separation:
 
 Instead of defining a lot of small namespaces like this:
 
-```grv
+```gravel
 namespace rounded_math
     val pi := 3
     val e := 2
@@ -88,7 +88,7 @@ end
 
 You can write, getting the exact same effect:
 
-```grv
+```gravel
 val rounded_math.pi := 3
 val rounded_math.e := 2
 ```
@@ -99,7 +99,7 @@ Use the `end` keyword, and use the following syntax: `whatever cond`. For `for`,
 
 Traditional for-loop:
 
-```grv
+```gravel
 for int i=0; i<10; i++
     std.out.print("hello, but tenfold!")
 end
@@ -107,7 +107,7 @@ end
 
 Modern for-loop:
 
-```grv
+```gravel
 for i in 5
     std.out.print(i)
 end
@@ -115,7 +115,7 @@ end
 
 While loops:
 
-```grv
+```gravel
 val qux := 10
 
 while qux < 10
@@ -139,7 +139,7 @@ end
 
 Use this syntax:
 
-```grv
+```gravel
 repeat 10
     scho('a')
 end
@@ -155,7 +155,7 @@ aaaaaaaaaa
 
 Use the `end` keyword, and use the reserved word `fun`. Define return type after args (optional).
 
-```grv
+```gravel
 fun Main() char
 ```
 
@@ -165,7 +165,7 @@ As everywhere, use `end` to declare when the class ends. if you put `type` at th
 
 With type:
 
-```grv
+```gravel
 class string: type
     extl char[] text
     impl int len
@@ -248,7 +248,7 @@ Instead of relying on paths, every file defines how it wants to be called:
 
     You can use webs as library like this:
 
-    ```grvdep
+    ```graveldep
     web:https://raw.githubusercontent.com/Pacsfury/Gravel-Launcher/refs/heads/main/libs/math.grv
     ```
 
@@ -264,7 +264,7 @@ Instead of relying on paths, every file defines how it wants to be called:
 
 Inside a type class, you can define custom operations like this:
 
-```grv
+```gravel
 class List: type
     op #
         return self.len //This is a placeholder for getting length
@@ -278,7 +278,7 @@ end
 
 Then, just do:
 
-```grv
+```gravel
 List list = new List
 list.append(12) // Placeholder method
 list# => 1
