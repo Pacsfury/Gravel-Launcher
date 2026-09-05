@@ -2,7 +2,7 @@
 
 In this document I propose myself to write down Gravel's internals to make it easier to understand, hence making it easier for contributors to do so.
 
---- 
+---
 
 ## Parts
 
@@ -16,39 +16,36 @@ Source --> Tokenizer --> AST --> CodeGen
 
 We will now go through every stage before actually diving on how Gravel actually works.
 
-  
-
 ### Source
 
 Source is referred to the code that we want to compile. At this stage, the code is still the raw user input, usually saved on a file whose extension is from the language itself.
-
-  
 
 ### Tokenizer
 
 The tokenizer's job is to split the source into individual parts (called _tokens_) and revise that these are correct. Tokenizer is made by the lexer and the parser.
 
-  
-
 For example, if we have this line of our custom language:
 
-```
+```text
 var age is 32
 ```
 
 The tokenizer would generate something like:
 
-```
+```text
 token_decl
 token_name = "age"
 token_is
 token_number = 32
 ```
+
 ### AST
+
 Then, the AST (_Abstract Syntax Tree_) generates a tree made out of custom nodes just as program or variable declaration.
 
 So, following the last example, the AST would generate something like:
-```
+
+```text
 NODE_PROGRAM {
   body=NODE_VARDECL {
     name="age"
@@ -59,23 +56,28 @@ NODE_PROGRAM {
 ```
 
 ### CodeGen
+
 The code generator (also _backend_ or _code generator_) goes through the AST and generates the final code.
 
 For example, for the last example, if the backend language was C, it would generate something like:
+
 ```c
 int main(void) {
-	int age = 32;
-	return 0;
+    int age = 32;
+    return 0;
 }
 ```
 
 ## How Gravel Does These
+
 After reviewing the basis of programming languages, I will explain how Gravel works in every of these stages, including real code and examples.
 
-### Tokenizer
+### Gravel's Tokenizer
+
 First, we need to define some tokens:
 
 `Gravel-Launcher/include/tokens.h`
+
 ```c
 typedef enum {
     TOKEN_EOF,
@@ -85,14 +87,16 @@ typedef enum {
     TOKEN_ADD,
     TOKEN_SUB,
     TOKEN_STAR, //Can be either pointer dereference or multiplication
-	... //more tokens here
+    ... //more tokens here
 } TokenType;
 ```
-And after we have defined all the tokens, we need a way from going to source to a token array. 
+
+And after we have defined all the tokens, we need a way from going to source to a token array.
 
 For these, we use a function to loop through the code to find symbols as `+` or `:=`.
 
 `Gravel-Launcher/src/tokens.c`
+
 ```c
 void tokenize(const char* file, ARGS_CONTEX* ctx) {
     const char* source = file;
@@ -121,8 +125,9 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
                 tokens[token_count].type = TOKEN_STAR;
                 break;
 ```
- 
+
  But for detecting bigger tokens, like words, we use a buffer at the same function:
+
  ```c
            default:
                 if (isalpha(*source)) {
@@ -157,9 +162,12 @@ void tokenize(const char* file, ARGS_CONTEX* ctx) {
 
 So after doing this, we successfully have an array of tokens with the correspondent value in case it isn't a keyword.
 
-### AST
+### Gravel's AST
+
 To have an AST, first we need to have  some nodes defined, where we will say how every type of node is saved.
+
 `Gravel-Launcher/include/ast.h`
+
 ```c
 typedef enum {
     NODE_LITERAL,
@@ -299,6 +307,7 @@ This flow makes that operations are solved using the right precedence and that e
 The actual code for this is too long to be put here, but you can find it at [`Gravel-Launcher/src/ast.c`](https://github.com/Pacsfury/Gravel-Launcher/blob/main/src/ast.c).
 
 ### CodeGen
+
 After the AST is created, we need to generate the final code.
 
 Gravel uses LLVM IR to do this, writing a plain `.ll` file.
@@ -306,6 +315,7 @@ Gravel uses LLVM IR to do this, writing a plain `.ll` file.
 What Gravel does is to crawl through the AST and execute some functions to generate the correct LLVM code.
 
 `Gravel-Launcher/src/tollvm.c`
+
 ```c
 static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
     if (!node) return NULL;
@@ -335,15 +345,19 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             return safe_strdup(buf);
         }
 ```
-Here we can see a chunk of the function to compile nodes. Other nodes call this to generate inner LLVM, like functions. 
+
+Here we can see a chunk of the function to compile nodes. Other nodes call this to generate inner LLVM, like functions.
 
 Gravel writes the file directly instead of saving the data in a buffer to then do a single `fprintf`, which can sometimes affect performance.
 
-## How Does Gravel Handle...
+## How Does Gravel Handle...?
+
 I will use this section to explain how Gravel handles more specific cases, like functions or declarations.
 
 ### Functions
+
 For defining functions, Gravel uses a simple struct as seen here:
+
 ```c
 typedef struct {
     char name[64];
@@ -364,14 +378,16 @@ Later, the AST generator fills the gaps.
 Right now, functions can't have args nor return types, so I have marked them as "implement later".
 
 Every field of the struct has a specific job:
+
 | **Name** | **Function** |
-|----------|--------------|
-| name     | Saves how the function will be called. |
-| args     | List of args, an array of a struct with type and name. |
-| returnType | Will save what type does it return, just as int, char or a custom type.
+| ------------ | -------------- |
+| name | Saves how the function will be called. |
+| args | List of args, an array of a struct with type and name. |
+| returnType | Will save what type does it return, just as int, char or a custom type. |
 | body | Body is a pointer to a ASTNode, which is a NodeProgram saving the code that the function has. |
 
 ### If, elseif, else
+
 For control flow we use this simple struct:
 ```c
         struct {
@@ -383,19 +399,22 @@ For control flow we use this simple struct:
 ```
 
 As before, I will now explain what every field does.
+
 | **Name** | **Function** |
-|----------|--------------|
-| condition     | Points to a Node that saves the condition, so it can have function calls, operations and more inside. |
+| ---------- | -------------- |
+| condition | Points to a Node that saves the condition, so it can have function calls, operations and more inside. |
 | then_statements | Double pointer to what need to be executed if the expression is true. It is a NodeProgram. |
-| then_count | Stores how many AST nodes are stored inside `then_statements` so they know how many iterations to perform when evaluating or emitting code for that `if` branch.
-| else_node| This can store both null (no else), a program to execute if false or a NodeIf saving what to do if the condition is not true. |
+| then_count | Stores how many AST nodes are stored inside `then_statements` so they know how many iterations to perform when evaluating or emitting code for that `if` branch. |
+| else_node | This can store both null (no else), a program to execute if false or a NodeIf saving what to do if the condition is not true. |
 
 #### Elseif
+
 As we have seen, there is no "elseif" node, because we handle `elseif` on another way:
 
 When doing so, a NodeIf is attached to the else_node, making a else if chain.
 
 ### While and For
+
 Loops share a simple design. While is just a condition plus a body, while `for` adds an init and an increment around the same structure:
 
 ```c
@@ -439,21 +458,23 @@ too: declaring the same variable in nested loops (e.g. two `for i ...`
 loops) reuses the same global and overwrites the outer counter.
 
 ### Namespaces
+
 Namespaces are way simpler that they may seem: they don't even have  a struct!
 
 Instead, the AST generator detects when a namespace starts and ends and prepending the name separating with a `.`.
 
 So, this code:
-```
+
+```gravel
 namespace numbers
-	int one = 1
-	int two = 2
+    int one = 1
+    int two = 2
 end
 ```
 
 will be saved internally at the AST something as:
 
-```
+```text
 numbers.one = 1
 numbers.two = 2
 ```
@@ -463,9 +484,11 @@ This decition (_namespace flattening_) is what natively allows _virtual namespac
 ## Optimizations
 
 Right now, Gravel triggers two optimizations during the AST generation to make the final code faster and smaller.
+
 * **Literal Folding**: while this is not still available for constant variables, arithmetical operations are resolved on compile time to reduce the quantity of "add" or "div" at the final LLVM code.
 
 It works like this:
+
 1. There is a binary_op.
 2. We check that both sides are literals.
 3. We do the operation and replace the old node for the new int_literal
