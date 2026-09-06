@@ -1,5 +1,2 @@
-char a = 'A'
-int  b = 65
-
-scho(a)
-scho(b)
+char HELLO= "H"
+scho(HELLO)
