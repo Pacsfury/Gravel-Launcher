@@ -1,0 +1,28 @@
+package: ternary
+
+namespace std
+	class ternary: type
+		extl int ivalue
+		impl char[] bvalue
+		
+		fun __USE__()
+			ivalue = extl
+			if ivalue == -1
+				bvalue = "no"
+            elseif ivalue == 0
+                bvalue = "maybe"
+			else
+				bvalue = "yes"
+			end
+		end
+
+		fun getPair() (char[], int)
+			return (bvalue, ivalue)
+		end
+
+	end
+end
+
+const ternary YES  = 1
+const ternary MAYBE = 0
+const ternary NO = -1

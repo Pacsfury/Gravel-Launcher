@@ -49,9 +49,8 @@ namespace std
 				bvalue = "true"
 			end
 		end
-
-	namespace bool
-		const boolean TRUE  = 1
-		const boolean FALSE = 0
 	end
 end
+
+const boolean TRUE  = 1
+const boolean FALSE = 0
