@@ -1,10 +1,7 @@
-<<<<<<< HEAD
+char HELLO = "H"
 char a = 'A'
-int  b = 65
+int b = 65
 
+scho(HELLO)
 scho(a)
 scho(b)
-=======
-char HELLO= "H"
-scho(HELLO)
->>>>>>> 2d1acc8 (Add a new library: ternary)

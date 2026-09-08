@@ -16,12 +16,9 @@ fun math.power(int a, int b) int
     if b == 0 return 1 end
     if b == 1 return a end
 
-    int base = a
-    int exp = b
-
     int res = 1
-    for i in exp
-        res *= base
+    for i in b
+        res *= a
     end
     return res
 end
