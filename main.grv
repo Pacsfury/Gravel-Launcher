@@ -2,6 +2,13 @@ char HELLO = "H"
 char a = 'A'
 int b = 65
 
+<<<<<<< HEAD
 scho(HELLO)
 scho(a)
 scho(b)
+=======
+if math.is_even(4) == 1
+    scho('O')
+    scho('K')
+end
+>>>>>>> 619709c (Improve math lib)
