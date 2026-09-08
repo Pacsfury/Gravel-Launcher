@@ -1,6 +1,6 @@
 import "math"
 
-if math.factorial(5) == 120
+if math.is_even(4) == 1
     scho('O')
     scho('K')
 end
