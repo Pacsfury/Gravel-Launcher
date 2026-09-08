@@ -1,2 +1,6 @@
-char HELLO= "H"
-scho(HELLO)
+import "math"
+
+if math.factorial(5) == 120
+    scho('O')
+    scho('K')
+end
