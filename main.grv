@@ -1,5 +1,6 @@
-char a = 'A'
-int  b = 65
+import "math"
 
-scho(a)
-scho(b)
+if math.is_even(4) == 1
+    scho('O')
+    scho('K')
+end

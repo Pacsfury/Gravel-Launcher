@@ -16,12 +16,156 @@ fun math.power(int a, int b) int
     if b == 0 return 1 end
     if b == 1 return a end
 
-    int base = a
-    int exp = b
-
     int res = 1
+    for i in b
+        res *= a
+    end
+    return res
+end
+
+fun math.abs(int n) int
+    if n < 0 return -n end
+    return n
+end
+
+fun math.gcd(int a, int b) int
+    if b == 0 return a end
+    return math.gcd(b, a % b)
+end
+
+fun math.lcm(int a, int b) int
+    return a * b / math.gcd(a, b)
+end
+
+fun math.is_odd(int n) int // Bools still not available
+    return n%2
+end
+
+fun math.is_even(int n) int // Bools still not available
+    if n%2 == 0  // '!' still not implemented
+        return 1 
+    else 
+        return 0 
+    end
+    return 0 // Keeps the compiler from crashing
+end
+
+fun math.clamp(int value, int min, int max) int
+    if value < min return min end
+    if value > max return max end
+    return value
+end
+
+fun math.max(int a, int b) int
+    if a > b return a end
+    return b
+end
+
+fun math.min(int a, int b) int
+    if a < b return a end
+    return b
+end
+
+fun math.is_prime(int n) int
+    if n <= 1 return 0 end
+    if n == 2 return 1 end
+    if n % 2 == 0 return 0 end
+    
+    // Sqrt simulator
+    for i in n
+        if i > 2
+            if i * i > n 
+                return 1
+            end
+            if n % i == 0 
+                return 0 
+            end
+        end
+    end
+    return 1
+end
+
+fun math.is_perfect(int n) int
+    if n <= 1 return 0 end
+    int sum = 1
+    
+    for i in n
+        if i > 1
+            if i * i > n 
+                if sum == n return 1 else return 0 end
+            end
+            if n % i == 0
+                sum += i
+                int comp = n / i
+                if comp != i
+                    sum += comp
+                end
+            end
+        end
+    end
+    if sum == n return 1 else return 0 end
+    return 0 // Keeps compiler from crashing
+end
+
+fun math.permutation(int n, int r) int
+    if r > n return 0 end
+    return math.factorial(n) / math.factorial(n - r)
+end
+
+fun math.combination(int n, int r) int
+    if r > n return 0 end
+    int temp = math.factorial(r) * math.factorial(n - r)
+    return math.factorial(n) / temp
+end
+
+fun math.fibonacci(int n) int
+    if n <= 0 return 0 end
+    if n == 1 return 1 end
+    
+    int a = 0
+    int b = 1
+    int c = 0
+    
+    for i in n
+        if i > 1
+            c = a + b
+            a = b
+            b = c
+        end
+    end
+    return b
+end
+
+fun math.sign(int n) int
+    if n < 0 return -1 end
+    if n > 0 return 1 end
+    return 0
+end
+
+fun math.sqrt_floor(int n) int
+    if n < 0 return -1 end // Error por número negativo
+    if n == 0 return 0 end
+    if n == 1 return 1 end
+    
+    int res = 1
+    for i in n
+        if i > 0
+            if i * i > n
+                return i - 1
+            end
+        end
+    end
+    return res
+end
+
+fun math.mod_pow(int base, int exp, int mod) int
+    int base = base // Another strange fix for compiler crashes
+    if mod == 0 return 0 end
+    int res = 1
+    base = base % mod
+    
     for i in exp
-        res *= base
+        res = res * base % mod
     end
     return res
 end
