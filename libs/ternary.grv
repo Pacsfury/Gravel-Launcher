@@ -20,6 +20,10 @@ namespace std
 			return (bvalue, ivalue)
 		end
 
+		fun toString() char[]
+			return bvalue
+		end
+
 	end
 end
 
