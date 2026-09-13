@@ -49,3 +49,5 @@ namespace std
 	end
 end
 				
+std.string name = "String Library"
+std.string package_name = "string"

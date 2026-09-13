@@ -52,5 +52,5 @@ namespace std
 	end
 end
 
-const boolean TRUE  = 1
-const boolean FALSE = 0
+const std.boolean TRUE  = 1
+const std.boolean FALSE = 0

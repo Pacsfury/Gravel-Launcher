@@ -27,6 +27,6 @@ namespace std
 	end
 end
 
-const ternary YES  = 1
-const ternary MAYBE = 0
-const ternary NO = -1
+const std.ternary YES  = 1
+const std.ternary MAYBE = 0
+const std.ternary NO = -1
