@@ -1,6 +1,0 @@
-import "math"
-
-if math.is_even(4) == 1
-    scho('O')
-    scho('K')
-end

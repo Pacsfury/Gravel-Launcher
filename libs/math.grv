@@ -143,7 +143,7 @@ fun math.sign(int n) int
 end
 
 fun math.sqrt_floor(int n) int
-    if n < 0 return -1 end // Error por número negativo
+    if n < 0 return -1 end // Error for negative int
     if n == 0 return 0 end
     if n == 1 return 1 end
     
