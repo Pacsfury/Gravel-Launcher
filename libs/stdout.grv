@@ -1,0 +1,31 @@
+package: stdout
+
+namespace std.out
+    fun print(char[] t) // Replace with pure LLVM implementation for performance
+        for i in t
+            scho(i)
+        end
+    end
+
+    fun println(char[] t) // Replace with pure LLVM implementation for performance
+        for i in t
+            scho(i)
+        end
+        scho('\n')
+    end
+
+    fun write(char[] t) char[] // Replace with pure LLVM implementation for performance
+        for i in t
+            scho(i)
+        end
+        return t
+    end
+
+    fun writeln(char[] t) char[] // Replace with pure LLVM implementation for performance
+        for i in t
+            scho(i)
+        end
+        scho('\n')
+        return t + '\n'
+    end
+end

@@ -10,5 +10,6 @@ Here you can find all basic libs I write in Gravel.
 3. Random
 4. Math
 5. Ternary
+6. Stdout
 
 Only the **Math** lib is working currently
