@@ -1,5 +1,0 @@
-char a = 'A'
-int  b = 65
-
-scho(a)
-scho(b)
