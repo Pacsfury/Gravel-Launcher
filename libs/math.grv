@@ -169,3 +169,11 @@ fun math.mod_pow(int base, int exp, int mod) int
     end
     return res
 end
+
+fun math.square(int n) int
+    return n * n
+end
+
+fun math.cube(int n) int
+    return n * n * n
+end

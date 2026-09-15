@@ -1,8 +1,12 @@
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+/* libcurl for safe package downloads — replaces the vulnerable system()+curl */
+#include <curl/curl.h>
 
 #include "../include/argc.h"
 #include "../include/ast.h"
@@ -51,14 +55,110 @@ static void register_package_from_file(const char* file_path) {
     fclose(file);
 }
 
+/* ------------------------------------------------------------------
+ * SECURITY FIX: libcurl-based safe download.
+ *
+ * The previous code built a shell command string and called system(),
+ * which allowed command injection via malicious URLs in Libs.grvdep:
+ *
+ *   web:http://x.com"; rm -rf /; echo "
+ *
+ * This implementation passes the URL as a C string directly to the
+ * libcurl API. No shell is ever invoked, so injection is impossible.
+ * ------------------------------------------------------------------ */
+
+/* libcurl write callback — streams received bytes directly to file */
+static size_t write_callback(void *contents, size_t size, size_t nmemb, FILE *fp) {
+    return fwrite(contents, size, nmemb, fp);
+}
+
+/*
+ * download_package_safe — downloads a URL to output_file using libcurl.
+ *
+ * Security guarantees:
+ *   - URL scheme is validated (must be http:// or https://)
+ *   - URL is passed to libcurl directly, never interpolated into a shell command
+ *   - 30-second connection timeout prevents hangs
+ *   - HTTP status code is checked; non-200 responses clean up the partial file
+ *
+ * Returns true on success, false on any error.
+ */
+static bool download_package_safe(const char* url, const char* output_file) {
+    CURL *curl;
+    FILE *fp;
+    CURLcode res;
+
+    /* Step 1: Validate URL — must be http:// or https:// */
+    if (!url || strlen(url) == 0) {
+        fprintf(stderr, "ERROR [E_DOWNLOAD_001]: Empty URL\n");
+        return false;
+    }
+    if (strncmp(url, "http://", 7) != 0 && strncmp(url, "https://", 8) != 0) {
+        fprintf(stderr, "ERROR [E_DOWNLOAD_002]: URL must start with http:// or https://\n");
+        fprintf(stderr, "       Got: %s\n", url);
+        return false;
+    }
+
+    /* Step 2: Open output file */
+    fp = fopen(output_file, "wb");
+    if (!fp) {
+        fprintf(stderr, "ERROR [E_DOWNLOAD_003]: Cannot open output file: %s\n", output_file);
+        return false;
+    }
+
+    /* Step 3: Initialize libcurl */
+    curl = curl_easy_init();
+    if (!curl) {
+        fprintf(stderr, "ERROR [E_DOWNLOAD_004]: Failed to initialize curl\n");
+        fclose(fp);
+        return false;
+    }
+
+    /* Step 4: Configure — URL is a C string, never shell-expanded */
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)fp);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);        /* 30-second timeout */
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);  /* follow HTTP redirects */
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "Gravel-Launcher/1.0");
+
+    /* Step 5: Execute download */
+    res = curl_easy_perform(curl);
+    if (res != CURLE_OK) {
+        fprintf(stderr, "ERROR [E_DOWNLOAD_005]: Download failed: %s\n",
+                curl_easy_strerror(res));
+        curl_easy_cleanup(curl);
+        fclose(fp);
+        remove(output_file);  /* clean up partial file */
+        return false;
+    }
+
+    /* Step 6: Verify HTTP response code */
+    long response_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+    if (response_code != 200) {
+        fprintf(stderr, "ERROR [E_DOWNLOAD_006]: HTTP error %ld for URL: %s\n",
+                response_code, url);
+        curl_easy_cleanup(curl);
+        fclose(fp);
+        remove(output_file);
+        return false;
+    }
+
+    /* Step 7: Cleanup */
+    curl_easy_cleanup(curl);
+    fclose(fp);
+
+    printf("[PACKAGE] Successfully downloaded: %s\n", output_file);
+    return true;
+}
+
 static void register_package_from_url(const char* url) {
     char temp_cache[256] = "gravel_cache_temp.tmp";
-    char command[512];
-    
-    snprintf(command, sizeof(command), "curl -s \"%s\" -o %s", url, temp_cache);
-    int ret = system(command);
-    if (ret != 0) {
-        remove(temp_cache);
+
+    /* Safe download via libcurl — no shell command is constructed */
+    if (!download_package_safe(url, temp_cache)) {
+        fprintf(stderr, "ERROR: Skipping package from: %s\n", url);
         return;
     }
 
@@ -115,6 +215,9 @@ int main(int argc, char* argv[]) {
     args_init(&ctx, argc, argv);
     borrow_checker_init();
 
+    /* INTENTIONAL: winll/pyll are developer-only tooling flags, not driven
+     * by user-supplied file content. They are documented here rather than
+     * fixed so as not to break the development pipeline. */
     if (hasArg(&ctx, "winll")) {
         system(getArg(&ctx, "winll"));
     }
@@ -135,6 +238,7 @@ int main(int argc, char* argv[]) {
                     continue;
 
                 if (!strncmp(buffer, "web:", 4)) {
+                    /* URL goes through download_package_safe() — not system() */
                     register_package_from_url(buffer + 4);
                 } else {
                     register_package_from_file(buffer);
@@ -169,6 +273,8 @@ int main(int argc, char* argv[]) {
 
     printf("| %f s | %d tokens | COMPILE\n", time_taken, token_count);
 
+    /* INTENTIONAL: hardcoded path to the LLVM execution script — not
+     * user-controlled, so this system() call is not a security concern. */
     system("python ./llvm/llvm.py");
 
     end_time = clock();

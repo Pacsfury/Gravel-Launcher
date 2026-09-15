@@ -78,6 +78,10 @@ ASTNode* create_ast_node(ASTNodeType type);
 ASTNode* create_dereference_node(ASTNode* operand);
 ASTNode* create_address_of_node(ASTNode* operand);
 
+// Package helpers
+ASTNode* getPackage(char* name, ARGS_CONTEX* ctx);
+ASTNode* getPackageAs(char* name, const char* alias, ARGS_CONTEX* ctx);
+
 // Parser Prototypes
 Token* peek(const Token* t, const int* c);
 Token* advance(const Token* t, int* c);

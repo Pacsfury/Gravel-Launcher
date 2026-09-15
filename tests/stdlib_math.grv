@@ -1,0 +1,21 @@
+import "math"
+
+// Test math.abs
+val abs_neg := math.abs(0 - 42)
+scho(abs_neg)
+
+// Test math.square: 9^2 = 81, ASCII 81 = 'Q'
+val sq := math.square(9)
+scho(sq)
+
+// Test math.cube: 4^3 = 64, ASCII 64 = '@'
+val cu := math.cube(4)
+scho(cu)
+
+// Test math.max: max(70, 65) = 70 = 'F'
+val mx := math.max(70, 65)
+scho(mx)
+
+// Test math.min: min(70, 65) = 65 = 'A'
+val mn := math.min(70, 65)
+scho(mn)
