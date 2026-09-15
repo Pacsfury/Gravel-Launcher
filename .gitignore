@@ -6,4 +6,4 @@
 *.pbd
 *.pdb
 *.ll
-!llvm.exe
+!llvm.exegravel
