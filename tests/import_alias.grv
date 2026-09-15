@@ -1,3 +1,0 @@
-import math as m
-val x := m.abs(0 - 65)
-scho(x)
