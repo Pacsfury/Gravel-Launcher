@@ -21,6 +21,8 @@ static char* current_function_param_ptrs[32];
 static char current_function_param_types[32][32];
 static char emitted_funcs[MAX_EMITTED_FUNCS][256];
 static char emitted_globals_types[MAX_EMITTED_GLOBALS][32];
+static int emitted_globals_is_ptr[MAX_EMITTED_GLOBALS];
+static char emitted_globals_pointee[MAX_EMITTED_GLOBALS][32];
 static char emitted_funcs_ret[MAX_EMITTED_FUNCS][32];
 static int emitted_funcs_count = 0;
 
@@ -50,12 +52,18 @@ static int already_emitted(const char* name) {
     return 0;
 }
 
-static void mark_emitted(const char* name, const char* type) {
+static void mark_emitted_full(const char* name, const char* type, int is_ptr, const char* pointee) {
     if (emitted_globals_count < MAX_EMITTED_GLOBALS) {
         strcpy(emitted_globals[emitted_globals_count], name);
-        strcpy(emitted_globals_types[emitted_globals_count], type); // Save the type
+        strcpy(emitted_globals_types[emitted_globals_count], type);
+        emitted_globals_is_ptr[emitted_globals_count] = is_ptr;
+        strcpy(emitted_globals_pointee[emitted_globals_count], pointee ? pointee : "i32");
         emitted_globals_count++;
     }
+}
+
+static void mark_emitted(const char* name, const char* type) {
+    mark_emitted_full(name, type, 0, "i32");
 }
 
 static const char* lookup_global_type(const char* name) {
@@ -67,6 +75,15 @@ static const char* lookup_global_type(const char* name) {
     return "i32"; // Fallback
 }
 
+static const char* lookup_global_pointee(const char* name) {
+    for (int i = 0; i < emitted_globals_count; i++) {
+        if (strcmp(emitted_globals[i], name) == 0) {
+            return emitted_globals_pointee[i][0] ? emitted_globals_pointee[i] : "i32";
+        }
+    }
+    return "i32";
+}
+
 static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
     if (!stmt)
         return;
@@ -74,8 +91,17 @@ static void emit_globals_for_statement(ASTNode* stmt, FILE* outf) {
     if (stmt->type == NODE_DECLARATION || stmt->type == NODE_CONSTANT) {
         if (!already_emitted(stmt->data.var_decl.name)) {
             const char* type_str = llvm_type_for(stmt->data.var_decl.type);
-            fprintf(outf, "@%s = global %s %s, align 4\n", stmt->data.var_decl.name, type_str, strcmp(type_str, "float") == 0 ? "0.0" : "0");
-            mark_emitted(stmt->data.var_decl.name, type_str);
+            const char* init_val = "0";
+            if (strcmp(type_str, "float") == 0)
+                init_val = "0.0";
+            if (stmt->is_pointer) {
+                // Pointer globals are null pointers initially
+                fprintf(outf, "@%s = global ptr null, align 4\n", stmt->data.var_decl.name);
+                mark_emitted_full(stmt->data.var_decl.name, "ptr", 1, type_str);
+            } else {
+                fprintf(outf, "@%s = global %s %s, align 4\n", stmt->data.var_decl.name, type_str, init_val);
+                mark_emitted_full(stmt->data.var_decl.name, type_str, 0, "i32");
+            }
         }
         return;
     }
@@ -142,7 +168,25 @@ static const char* llvm_type_for(const char* type_name) {
         return "float";
     if (strcmp(type_name, "void") == 0)
         return "void";
+    if (strcmp(type_name, "char") == 0)
+        return "i32";
     return "i32";
+}
+
+// Convert a type name to its LLVM pointer type string
+// e.g., "int" -> "i32*", "char" -> "i8*", "float" -> "float*"
+static const char* llvm_pointer_type_for(const char* type_name) {
+    if (!type_name || type_name[0] == '\0')
+        return "i32*";
+    if (strcmp(type_name, "int") == 0)
+        return "i32*";
+    if (strcmp(type_name, "float") == 0)
+        return "float*";
+    if (strcmp(type_name, "char") == 0)
+        return "i8*";
+    if (strcmp(type_name, "void") == 0)
+        return "void*";
+    return "i32*";
 }
 
 static void clear_current_function_param_ptrs(void) {
@@ -176,11 +220,16 @@ static void emit_function_definition(FILE* outf, ASTNode* node) {
             }
 
             const char* arg_type = llvm_type_for(arg->type);
+            const char* llvm_arg_type = arg_type;
+            // If this argument is a pointer type, pass the pointer type directly
+            if (node->is_pointer && node->pointer_level > 0) {
+                llvm_arg_type = llvm_pointer_type_for(arg->type);
+            }
 
             size_t current_len = strlen(arguments);
             if (current_len < sizeof(arguments)) {
                 snprintf(arguments + current_len, sizeof(arguments) - current_len, "%s%s %%%s",
-                         (arguments[0] != '\0') ? ", " : "", arg_type, arg->name);
+                         (arguments[0] != '\0') ? ", " : "", llvm_arg_type, arg->name);
             }
 
             strncpy(current_function_param_names[current_function_param_count], arg->name,
@@ -210,6 +259,11 @@ static void emit_function_definition(FILE* outf, ASTNode* node) {
 
     for (int i = 0; i < current_function_param_count; i++) {
         const char* arg_type = llvm_type_for(current_function_param_types[i]);
+        const char* llvm_arg_type = arg_type;
+        // If the parameter is a pointer type, use the pointer type
+        if (node->is_pointer && node->pointer_level > 0) {
+            llvm_arg_type = llvm_pointer_type_for(arg_type);
+        }
         fprintf(outf, "    %%%s = alloca %s, align 4\n", current_function_param_ptrs[i], arg_type);
         fprintf(outf, "    store %s %%%s, ptr %%%s, align 4\n", arg_type, current_function_param_names[i],
                 current_function_param_ptrs[i]);
@@ -307,6 +361,17 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
         }
 
         case NODE_REASSIGN: {
+            // Check if this is a pointer dereference assignment (*p = value)
+            if (node->is_pointer && node->pointer_level > 0) {
+                // *p = val: compile the value, load the pointer, then store value to the pointed address
+                char* val = compile_value_node(outf, node->data.reassign.value, register_count);
+                const char* pointee_type = lookup_global_pointee(node->data.reassign.name);
+                int ptr_reg = (*register_count)++;
+                fprintf(outf, "    %%%d = load ptr, ptr @%s, align 4\n", ptr_reg, node->data.reassign.name);
+                fprintf(outf, "    store %s %s, ptr %%%d, align 4\n", pointee_type, val, ptr_reg);
+                free(val);
+                return NULL;
+            }
             char* val = compile_value_node(outf, node->data.reassign.value, register_count);
             int arg_index = -1;
             for (int i = 0; i < current_function_param_count; i++) {
@@ -320,13 +385,39 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
                 fprintf(outf, "    store %s %s, ptr %%%s, align 4\n", arg_type, val,
                         current_function_param_ptrs[arg_index]);
             } else {
-                fprintf(outf, "    store i32 %s, ptr @%s, align 4\n", val, node->data.reassign.name);
+                const char* var_type = lookup_global_type(node->data.reassign.name);
+                fprintf(outf, "    store %s %s, ptr @%s, align 4\n", var_type, val, node->data.reassign.name);
             }
             free(val);
             return NULL;
         }
 
         case NODE_VARIABLE: {
+            // Check if this is a pointer variable
+            if (node->is_pointer && node->pointer_level > 0) {
+                // For pointer variables, we need to load the pointer value
+                // The variable stores an address, so we load the pointer itself
+                for (int i = 0; i < current_function_param_count; i++) {
+                    if (strcmp(node->data.literal.value, current_function_param_names[i]) == 0) {
+                        const char* arg_type = llvm_type_for(current_function_param_types[i]);
+                        int reg = (*register_count)++;
+                        // Load the pointer from the alloca
+                        fprintf(outf, "    %%%d = load %s, ptr %%%s, align 4\n", reg, arg_type,
+                                current_function_param_ptrs[i]);
+                        char buf[32];
+                        snprintf(buf, sizeof(buf), "%%%d", reg);
+                        return safe_strdup(buf);
+                    }
+                }
+                // Global pointer variable
+                int reg = (*register_count)++;
+                const char* var_type = lookup_global_type(node->data.literal.value);
+                fprintf(outf, "    %%%d = load %s, ptr @%s, align 4\n", reg, var_type, node->data.literal.value);
+                char buf[32];
+                snprintf(buf, sizeof(buf), "%%%d", reg);
+                return safe_strdup(buf);
+            }
+
             for (int i = 0; i < current_function_param_count; i++) {
                 if (strcmp(node->data.literal.value, current_function_param_names[i]) == 0) {
                     const char* arg_type = llvm_type_for(current_function_param_types[i]);
@@ -352,7 +443,8 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
         case NODE_DECLARATION: {
             if (node->data.var_decl.value) {
                 char* val = compile_value_node(outf, node->data.var_decl.value, register_count);
-                fprintf(outf, "    store %s %s, ptr @%s, align 4\n", llvm_type_for(node->data.var_decl.type), val, node->data.var_decl.name);
+                const char* type_str = node->is_pointer ? "ptr" : llvm_type_for(node->data.var_decl.type);
+                fprintf(outf, "    store %s %s, ptr @%s, align 4\n", type_str, val, node->data.var_decl.name);
                 free(val);
             }
             return NULL;
@@ -363,12 +455,20 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             char* right = compile_value_node(outf, node->data.binary_op.right, register_count);
 
             const char* op_str = "";
+            bool is_pointer_arith = false;
             switch (node->data.binary_op.op) {
                 case TOKEN_ADD:
                     op_str = "add";
+                    // Check if either operand is a pointer (for pointer arithmetic)
+                    if (node->data.binary_op.left->is_pointer || node->data.binary_op.right->is_pointer) {
+                        is_pointer_arith = true;
+                    }
                     break;
                 case TOKEN_SUB:
                     op_str = "sub";
+                    if (node->data.binary_op.left->is_pointer || node->data.binary_op.right->is_pointer) {
+                        is_pointer_arith = true;
+                    }
                     break;
                 case TOKEN_STAR:
                     op_str = "mul";
@@ -414,6 +514,7 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
                 node->data.binary_op.op == TOKEN_LT || node->data.binary_op.op == TOKEN_GT ||
                 node->data.binary_op.op == TOKEN_LE || node->data.binary_op.op == TOKEN_GE) {
                 int cmp_reg = (*register_count)++;
+                // Use i1 for comparison result
                 fprintf(outf, "    %%%d = icmp %s i32 %s, %s\n", cmp_reg, op_str, left, right);
                 int zext_reg = (*register_count)++;
                 fprintf(outf, "    %%%d = zext i1 %%%d to i32\n", zext_reg, cmp_reg);
@@ -423,6 +524,17 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
 
                 char buf[32];
                 snprintf(buf, sizeof(buf), "%%%d", zext_reg);
+                return safe_strdup(buf);
+            } else if (is_pointer_arith) {
+                // Pointer arithmetic: use i8* for byte-level pointer math
+                int reg = (*register_count)++;
+                fprintf(outf, "    %%%d = ptrtoint %s %s to i64\n", reg, "", left);
+                // For now, emit basic integer subtraction for pointer diff
+                fprintf(outf, "    %%%d = %s i64 %s, %s\n", reg, op_str, left, right);
+                free(left);
+                free(right);
+                char buf[32];
+                snprintf(buf, sizeof(buf), "%%%d", reg);
                 return safe_strdup(buf);
             } else {
                 int reg = (*register_count)++;
@@ -438,31 +550,77 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
         }
 
         case NODE_UNARY_OP: {
-            char* operand = compile_value_node(outf, node->data.unary_op.operand, register_count);
-
-            const char* op_str = "";
             switch (node->data.unary_op.op) {
-                case TOKEN_TILDE:
-                    op_str = "add";
+                case TOKEN_AMPERSAND: {
+                    /* Address-of: &x -> return a pointer to x.
+                     *
+                     * BUG FIX: The previous code called compile_value_node()
+                     * which emits a 'load' instruction and returns a register
+                     * string like "%1". That register was then passed to @%s
+                     * in getelementptr, which is wrong — @%s expects a global
+                     * symbol name, not a register.
+                     *
+                     * Fix: read the variable name from pointer_operand and
+                     * use it directly. No load is emitted for address-of.
+                     */
+                    if (!node->pointer_operand ||
+                        node->pointer_operand->type != NODE_VARIABLE) {
+                        raiseError("Address-of (&) operator requires a variable operand",
+                                   "E_ADDR_VAR");
+                        return NULL;
+                    }
+                    const char* var_name = node->pointer_operand->data.literal.value;
+                    const char* var_type = lookup_global_type(var_name);
                     int reg = (*register_count)++;
-                    fprintf(outf, "    %%%d = xor i32 %s, -1\n", reg, operand);
-                    free(operand);
-
+                    fprintf(outf, "    %%%d = getelementptr inbounds %s, ptr @%s, i32 0\n",
+                            reg, var_type, var_name);
                     char buf[32];
                     snprintf(buf, sizeof(buf), "%%%d", reg);
                     return safe_strdup(buf);
+                }
+                default:
                     break;
+            }
+
+            /* For all other unary ops, compile the operand to a value first */
+            char* operand = compile_value_node(outf, node->data.unary_op.operand, register_count);
+
+            switch (node->data.unary_op.op) {
+                case TOKEN_TILDE: {
+                    int reg = (*register_count)++;
+                    fprintf(outf, "    %%%d = xor i32 %s, -1\n", reg, operand);
+                    free(operand);
+                    char buf[32];
+                    snprintf(buf, sizeof(buf), "%%%d", reg);
+                    return safe_strdup(buf);
+                }
                 case TOKEN_SUB: {
                     int reg = (*register_count)++;
                     fprintf(outf, "    %%%d = sub i32 0, %s\n", reg, operand);
                     free(operand);
-
                     char buf[32];
                     snprintf(buf, sizeof(buf), "%%%d", reg);
                     return safe_strdup(buf);
                 }
                 case TOKEN_ADD:
                     return operand;
+                case TOKEN_STAR: {
+                    /* Dereference: *p -> load the value at the address held by p.
+                     * operand is the pointer address (a register like "%1").      */
+                    int reg = (*register_count)++;
+                    const char* pointee_type = "i32";
+                    if (node->pointer_operand &&
+                        node->pointer_operand->data.literal.value[0]) {
+                        pointee_type = lookup_global_pointee(
+                            node->pointer_operand->data.literal.value);
+                    }
+                    fprintf(outf, "    %%%d = load %s, ptr %s, align 4\n",
+                            reg, pointee_type, operand);
+                    free(operand);
+                    char buf[32];
+                    snprintf(buf, sizeof(buf), "%%%d", reg);
+                    return safe_strdup(buf);
+                }
                 default:
                     raiseError("Unsupported unary operator", "E0033");
                     free(operand);
@@ -531,6 +689,11 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
                     int float_reg = (*register_count)++;
                     fprintf(outf, "    %%%d = sitofp i32 %s to float\n", float_reg, val);
                     fprintf(outf, "    ret float %%%d\n", float_reg);
+                } else if (node->data.return_stmt.value->type == NODE_UNARY_OP &&
+                           node->data.return_stmt.value->data.unary_op.op == TOKEN_AMPERSAND) {
+                    fprintf(outf, "    ret %s %s\n", current_function_return_type, val);
+                } else if (node->data.return_stmt.value->is_pointer) {
+                    fprintf(outf, "    ret %s %s\n", current_function_return_type, val);
                 } else {
                     fprintf(outf, "    ret %s %s\n", current_function_return_type, val);
                 }

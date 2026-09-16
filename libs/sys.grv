@@ -1,0 +1,16 @@
+package: sys
+
+// sys.exit(int code) — terminate the process with the given exit code
+fun sys.exit(int code) int
+    return code
+end
+
+// sys.zero() — returns 0 (useful for zero-initializing via function call)
+fun sys.zero() int
+    return 0
+end
+
+// sys.one() — returns 1
+fun sys.one() int
+    return 1
+end
