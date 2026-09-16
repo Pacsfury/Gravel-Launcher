@@ -365,6 +365,7 @@ it also runs automatically, but you need to do `pip install llvmlite`.
 
 - **Constant Folding**: Numerical operations including numbers (and future constant varibles) are done during compilation.
 - **Namespace Flattening**: Namespace are flattened instead of saving complex tree structures.
+- **Binary Search**: For lookup uses bynary search.
 
 ## Update
 
