@@ -1,4 +1,4 @@
-import "math"
+import math
 
 // Test math.abs
 val abs_neg := math.abs(0 - 42)
