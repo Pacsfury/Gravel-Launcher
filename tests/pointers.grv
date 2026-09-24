@@ -1,0 +1,5 @@
+// Phase 2 pointer test: address-of and dereference
+val x := 42
+val addr := &x
+val y := *addr
+scho(y)

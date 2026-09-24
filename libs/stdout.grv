@@ -28,4 +28,8 @@ namespace std.out
         scho('\n')
         return t + '\n'
     end
+
+    fun newline()
+        scho('\n')
+    end
 end

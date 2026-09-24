@@ -1,0 +1,12 @@
+char HELLO = "H"
+char a = 'A'
+int b = 65
+
+scho(HELLO)
+scho(a)
+scho(b)
+
+if math.is_even(4) == 1
+    scho('O')
+    scho('K')
+end

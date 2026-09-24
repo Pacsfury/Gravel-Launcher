@@ -12,7 +12,8 @@
             "compiler": "gcc",
             "id": "gcc",
             "flags": [
-                "-Wall"
+                "-Wall",
+                "-lcurl"
             ],
             "input": "src/*.c",
             "output": "gravel",

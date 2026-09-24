@@ -133,16 +133,62 @@ static ASTNode* make_reassign(const char* name, ASTNode* value) {
     return node;
 }
 
-ASTNode* getPackage(char* name, ARGS_CONTEX* ctx) {
-    char* file_path = getPackagePath(name);
+/* ------------------------------------------------------------------
+ * Pointer AST helpers (declared in ast.h)
+ * ------------------------------------------------------------------ */
+
+ASTNode* create_ast_node(ASTNodeType type) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!node)
+        raiseError("Memory allocation failed", "E0004");
+    memset(node, 0, sizeof(ASTNode));
+    node->type = type;
+    return node;
+}
+
+/* create_dereference_node — builds a unary * node for *expr */
+ASTNode* create_dereference_node(ASTNode* operand) {
+    ASTNode* node = create_ast_node(NODE_UNARY_OP);
+    node->data.unary_op.op = TOKEN_STAR;
+    node->data.unary_op.operand = operand;
+    /* pointer_operand lets the LLVM generator find the variable name */
+    node->pointer_operand = operand;
+    return node;
+}
+
+/* create_address_of_node — builds a unary & node for &expr */
+ASTNode* create_address_of_node(ASTNode* operand) {
+    ASTNode* node = create_ast_node(NODE_UNARY_OP);
+    node->data.unary_op.op = TOKEN_AMPERSAND;
+    node->data.unary_op.operand = operand;
+    /* pointer_operand carries the variable node so LLVM gen uses its name */
+    node->pointer_operand = operand;
+    return node;
+}
+
+ASTNode* getPackageAs(char* name, const char* alias, ARGS_CONTEX* ctx) {
+    char path_buf[512];
+    char* file_path = resolve_module_path(name, path_buf, sizeof(path_buf));
+    if (!file_path) {
+        file_path = getPackagePath(name);
+    }
     if (!file_path) {
         raiseError("Package not found", "E0032");
         return NULL;
     }
 
-    FILE* file = fopen(file_path, "r");
-    if (!file)
+    if (has_circular_import(name)) {
+        raiseError("Circular import detected", "E0035");
         return NULL;
+    }
+
+    import_begin(name, alias, file_path);
+
+    FILE* file = fopen(file_path, "r");
+    if (!file) {
+        import_end(name);
+        return NULL;
+    }
 
     char code[65536] = {0};
     char line[256];
@@ -169,7 +215,43 @@ ASTNode* getPackage(char* name, ARGS_CONTEX* ctx) {
     token_capacity = previous_token_capacity;
     suppress_llvm_generation = previous_suppress_llvm_generation;
 
+    import_end(name);
+
+    /* If an alias was provided and differs from the package name,
+     * create alias function definitions for any package functions (e.g. math.abs -> m.abs) */
+    if (alias && alias[0] && strcmp(alias, name) != 0 && package && package->type == NODE_PROGRAM) {
+        int orig_count = package->data.program.count;
+        char prefix[64];
+        snprintf(prefix, sizeof(prefix), "%s.", name);
+        size_t prefix_len = strlen(prefix);
+
+        for (int i = 0; i < orig_count; i++) {
+            ASTNode* stmt = package->data.program.statements[i];
+            if (!stmt)
+                continue;
+            if (stmt->type == NODE_FUN_DEF) {
+                if (strncmp(stmt->data.fun_def.name, prefix, prefix_len) == 0) {
+                    const char* suffix = stmt->data.fun_def.name + prefix_len;
+                    ASTNode* alias_node = (ASTNode*)malloc(sizeof(ASTNode));
+                    if (alias_node) {
+                        *alias_node = *stmt;
+                        snprintf(alias_node->data.fun_def.name, sizeof(alias_node->data.fun_def.name),
+                                 "%s.%s", alias, suffix);
+                        package->data.program.statements = (ASTNode**)realloc(
+                            package->data.program.statements,
+                            sizeof(ASTNode*) * (package->data.program.count + 1));
+                        package->data.program.statements[package->data.program.count++] = alias_node;
+                    }
+                }
+            }
+        }
+    }
+
     return package;
+}
+
+ASTNode* getPackage(char* name, ARGS_CONTEX* ctx) {
+    return getPackageAs(name, NULL, ctx);
 }
 
 static void qualify_name(char* dest, size_t dest_size, const char* ns, const char* name);
@@ -246,6 +328,27 @@ static void qualify_name(char* dest, size_t dest_size, const char* ns, const cha
 }
 
 ASTNode* parse_unary(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
+    /* Pointer dereference: *expr
+     * Only treat * as dereference when used as a prefix unary op — i.e. when
+     * it is not followed by = (which would make it a TOKEN_STAR_ASSIGN).     */
+    if (peek(t, c)->type == TOKEN_STAR) {
+        (*c)++;
+        ASTNode* operand = parse_unary(t, c, ns, ctx);  /* recursive for **p */
+        if (!operand)
+            raiseError("Expected expression after dereference operator *", "E_PARSE_DEREF");
+        return create_dereference_node(operand);
+    }
+
+    /* Address-of: &expr */
+    if (peek(t, c)->type == TOKEN_AMPERSAND) {
+        (*c)++;
+        ASTNode* operand = parse_unary(t, c, ns, ctx);
+        if (!operand)
+            raiseError("Expected variable after address-of operator &", "E_PARSE_ADDR");
+        return create_address_of_node(operand);
+    }
+
+    /* Arithmetic/bitwise unary operators */
     if (peek(t, c)->type == TOKEN_TILDE || peek(t, c)->type == TOKEN_SUB || peek(t, c)->type == TOKEN_ADD) {
         Token* op_token = advance(t, c);
 
@@ -410,7 +513,16 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx)
         return parse_for(t, c, ns, ctx);
     } else if (current->type == TOKEN_IMPORT) {
         advance(t, c);
-        return getPackage(advance(t, c)->value, ctx);
+        Token* pkg_token = advance(t, c);
+        char* alias = NULL;
+        if (peek(t, c)->type == TOKEN_NAME && strcmp(peek(t, c)->value, "as") == 0) {
+            advance(t, c);
+            if (peek(t, c)->type == TOKEN_NAME) {
+                Token* alias_tok = advance(t, c);
+                alias = alias_tok->value;
+            }
+        }
+        return getPackageAs(pkg_token->value, alias, ctx);
     } else if (current->type == TOKEN_FUN) {
         raiseError("Unexpected token: function definitions must be parsed at the top level", "E0009");
         return NULL;
@@ -495,10 +607,57 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns, ARGS_CONTEX* ct
         return NULL;
     }
 
+    if (current->type == TOKEN_STAR) {
+        TokenType next_type = t[*c + 1].type;
+        if (next_type == TOKEN_INT || next_type == TOKEN_FLOAT || next_type == TOKEN_CHAR) {
+            advance(t, c);
+            Token* type_tok = advance(t, c);
+            ASTNode* result = create_ast_node(NODE_DECLARATION);
+            result->is_pointer = true;
+            result->pointer_level = 1;
+
+            if (type_tok->type == TOKEN_FLOAT) {
+                strcpy(result->data.var_decl.type, "float");
+            } else if (type_tok->type == TOKEN_CHAR) {
+                strcpy(result->data.var_decl.type, "char");
+            } else {
+                strcpy(result->data.var_decl.type, "int");
+            }
+
+            if (peek(t, c)->type == TOKEN_NAME) {
+                Token* name_token = advance(t, c);
+                qualify_name(result->data.var_decl.name, sizeof(result->data.var_decl.name), ns, name_token->value);
+            } else {
+                raiseError("Missing variable name after pointer type", "E0005");
+            }
+
+            if (peek(t, c)->type == TOKEN_ASSIGN) {
+                advance(t, c);
+            } else {
+                raiseError("Missing '=' in variable declaration", "E0006");
+            }
+
+            result->data.var_decl.value = parse_expression(t, c, ns, ctx);
+            return result;
+        } else if (next_type == TOKEN_NAME) {
+            advance(t, c);
+            Token* name_token = advance(t, c);
+            if (peek(t, c)->type == TOKEN_ASSIGN) {
+                advance(t, c);
+                ASTNode* result = create_ast_node(NODE_REASSIGN);
+                result->is_pointer = true;
+                result->pointer_level = 1;
+                qualify_name(result->data.reassign.name, sizeof(result->data.reassign.name), ns, name_token->value);
+                result->data.reassign.value = parse_expression(t, c, ns, ctx);
+                return result;
+            } else {
+                raiseError("Expected '=' after pointer dereference target", "E_DEREF_ASSIGN");
+            }
+        }
+    }
+
     if (current->type == TOKEN_VAR_DEF) {
-        ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!result)
-            raiseError("Memory allocation failed", "E0004");
+        ASTNode* result = create_ast_node(NODE_DECLARATION);
 
         result->type = NODE_DECLARATION;
         advance(t, c);
@@ -515,7 +674,12 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns, ARGS_CONTEX* ct
             advance(t, c);
             result->data.var_decl.value = parse_expression(t, c, ns, ctx);
 
-            if (result->data.var_decl.value && result->data.var_decl.value->type == NODE_LITERAL &&
+            if (result->data.var_decl.value && result->data.var_decl.value->type == NODE_UNARY_OP &&
+                result->data.var_decl.value->data.unary_op.op == TOKEN_AMPERSAND) {
+                result->is_pointer = true;
+                result->pointer_level = 1;
+                strcpy(result->data.var_decl.type, "int");
+            } else if (result->data.var_decl.value && result->data.var_decl.value->type == NODE_LITERAL &&
                 strchr(result->data.var_decl.value->data.literal.value, '.') != NULL) {
                 strcpy(result->data.var_decl.type, "float");
             } else {
@@ -530,11 +694,7 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns, ARGS_CONTEX* ct
 
         return NULL;
     } else if (current->type == TOKEN_INT || current->type == TOKEN_FLOAT || current->type == TOKEN_CHAR) {
-        ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!result)
-            raiseError("Memory allocation failed", "E0004");
-
-        result->type = NODE_DECLARATION;
+        ASTNode* result = create_ast_node(NODE_DECLARATION);
 
         if (current->type == TOKEN_INT || current->type == TOKEN_CHAR) {
             strcpy(result->data.var_decl.type, "int");
@@ -543,6 +703,12 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns, ARGS_CONTEX* ct
         }
 
         advance(t, c);
+
+        if (peek(t, c)->type == TOKEN_STAR) {
+            advance(t, c);
+            result->is_pointer = true;
+            result->pointer_level = 1;
+        }
 
         if (peek(t, c)->type == TOKEN_NAME) {
             Token* name_token = advance(t, c);
