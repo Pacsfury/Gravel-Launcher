@@ -8,7 +8,14 @@ typedef struct args_contex {
     char** argv;
 } ARGS_CONTEX;
 
-bool args_init(ARGS_CONTEX* ctx, int argc, char* argv[]);
+typedef struct
+{
+    void (*function)(ARGS_CONTEX*);
+    const char* name;
+    const char* desc;
+} ARGS_data;
+
+bool args_init(int argc, char* argv[]);
 
 bool hasArg(ARGS_CONTEX* ctx, char* arg);
 
