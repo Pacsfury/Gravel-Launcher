@@ -8,6 +8,8 @@
 #include "../include/tokens.h"
 #include "../include/tollvm.h"
 #include "../include/vector.h"
+#include "../include/lib.h"
+
 #define MAX_TOKEN_CAPACITY 1000000
 
 // TOKENIZER
@@ -361,41 +363,15 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
 }
 
 void tokenizeFile(char* file, ARGS_CONTEX* ctx) {
-    FILE* input = fopen(file, "r");
-    if (!input) {
+    char* buffer = get_file_contents(file);
+
+    if (!buffer) {
         raiseError("File does not exist or cannot be read", "E0031");
         return;
     }
 
-    char line[256];
-    size_t buffer_capacity = 2048;
-    char* buffer = malloc(buffer_capacity);
-    size_t buffer_len = 0;
-
-    if (!buffer) {
-        fclose(input);
-        return;
-    }
-
-    buffer[0] = '\0';
-    while (fgets(line, sizeof(line), input) != NULL) {
-        size_t line_len = strlen(line);
-        while (buffer_len + line_len >= buffer_capacity) {
-            buffer_capacity *= 2;
-            char* temp = realloc(buffer, buffer_capacity);
-            if (!temp) {
-                free(buffer);
-                fclose(input);
-                raiseError("Out of memory allocation for file buffer", "E0000");
-            }
-            buffer = temp;
-        }
-        memcpy(buffer + buffer_len, line, line_len + 1);
-        buffer_len += line_len;
-    }
 
     tokenize(buffer, ctx, file);
-    fclose(input);
     free(buffer);
     free(tokens);
 }

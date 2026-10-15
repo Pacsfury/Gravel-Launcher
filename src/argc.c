@@ -22,9 +22,10 @@ args_list[] =
 void
 help_handle_arg(ARGS_CONTEX* ctx)
 {
+    (void)ctx;
     printf("All commands:\n");
 
-    for (int i = 0; i < sizeof(args_list) / sizeof(args_list[0]); i++)
+    for (int i = 0; i < (int)(sizeof(args_list) / sizeof(args_list[0])); i++)
     {
         printf("    Command: %s, description: %s\n", args_list[i].name, args_list[i].desc ? args_list[i].desc : "None");
     }
