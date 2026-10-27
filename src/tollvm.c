@@ -440,10 +440,11 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
         case NODE_UNARY_OP: {
             char* operand = compile_value_node(outf, node->data.unary_op.operand, register_count);
 
-            const char* op_str = "";
+            // op_str isnt used at the moment so it's commented out to shut the compiler
+            //const char* op_str = "";
             switch (node->data.unary_op.op) {
                 case TOKEN_TILDE:
-                    op_str = "add";
+                    //op_str = "add";
                     int reg = (*register_count)++;
                     fprintf(outf, "    %%%d = xor i32 %s, -1\n", reg, operand);
                     free(operand);

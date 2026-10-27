@@ -11,5 +11,6 @@ Here you can find all basic libs I write in Gravel.
 4. Math
 5. Ternary
 6. Stdout
+7. Graph
 
 Only the **Math** lib is working currently

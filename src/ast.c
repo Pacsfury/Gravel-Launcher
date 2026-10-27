@@ -8,6 +8,7 @@
 #include "../include/launcher.h"
 #include "../include/tokens.h"
 #include "../include/vector.h"
+#include "../include/lib.h"
 
 static int add_overflow_long_long(long long a, long long b, long long* result) {
     if ((b > 0 && a > LLONG_MAX - b) || (b < 0 && a < LLONG_MIN - b)) {
@@ -140,17 +141,13 @@ ASTNode* getPackage(char* name, ARGS_CONTEX* ctx) {
         return NULL;
     }
 
-    FILE* file = fopen(file_path, "r");
-    if (!file)
+    char* code = get_file_contents(file_path);
+
+    if (!code) {
+        raiseError("File does not exist or cannot be read", "E0031");
         return NULL;
-
-    char code[65536] = {0};
-    char line[256];
-
-    while (fgets(line, sizeof(line), file)) {
-        strcat(code, line);
     }
-    fclose(file);
+
     Token* previous_tokens = tokens;
     int previous_token_count = token_count;
     int previous_token_capacity = token_capacity;
@@ -168,6 +165,8 @@ ASTNode* getPackage(char* name, ARGS_CONTEX* ctx) {
     token_count = previous_token_count;
     token_capacity = previous_token_capacity;
     suppress_llvm_generation = previous_suppress_llvm_generation;
+
+    free(code);
 
     return package;
 }

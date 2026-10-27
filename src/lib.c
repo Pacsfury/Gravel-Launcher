@@ -23,6 +23,59 @@
     #define CREATE_FOLDER(path) mkdir(path, 0777)
 #endif
 
+// This memory has to be manually free'd btw. If it won't be free'd it will create a error when compiled and ran with sanitizers!!!!!
+char*
+get_file_contents(const char* file_name)
+{
+    FILE* file = fopen(file_name, "r");
+
+    if (!file)
+        return NULL;
+
+    if (fseek(file, 0, SEEK_END) != 0)
+    {
+        fclose(file);
+        return NULL;
+    }
+
+    size_t file_size = ftell(file);
+
+    if (!file_size)
+    {
+        fclose(file);
+        return NULL;
+    }
+
+    if (fseek(file, 0, SEEK_SET) != 0)
+    {
+        fclose(file);
+        return NULL;
+    }
+
+    char* result = malloc((size_t)file_size + 1);
+
+    if (!result)
+    {
+        fclose(file);
+        raiseError("Out of memory allocation for file buffer", "E0000");
+        return NULL;
+    }
+
+    size_t bytes_read = fread(result, 1, (size_t)file_size, file);
+
+    if (bytes_read != (size_t)file_size || ferror(file))
+    {
+        free(result);
+        fclose(file);
+        return NULL;
+    }
+
+    result[bytes_read] = '\0';
+    fclose(file);
+
+    return result;
+}
+
 static intptr_t download_package(const char* url, const char* output_path) {
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
     const char* args[] = {"curl", "-s", "--output", output_path, "--", url, NULL};
@@ -45,86 +98,156 @@ static intptr_t download_package(const char* url, const char* output_path) {
 #endif
 }
 
-static void register_package_from_file(const char* file_path) {
-    FILE* file = fopen(file_path, "r");
-    if (!file)
+static void register_package_from_file(const char* file_path)
+{
+    char* contents = get_file_contents(file_path);
+
+    if (!contents)
+    {
+        raiseError("File does not exist or cannot be read", "E0031");
         return;
-
-    char line[256];
-    while (fgets(line, sizeof(line), file)) {
-        char* p = strstr(line, "package");
-        if (!p)
-            continue;
-
-        p += 7;
-        while (*p == ' ' || *p == '\t') p++;
-        if (*p != ':')
-            continue;
-        p++;
-        while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') p++;
-
-        char name[64] = {0};
-        int i = 0;
-        while (*p && (*p == '_' || *p == '.' || isalnum((unsigned char)*p)) && i < 63) {
-            name[i++] = *p++;
-        }
-        if (i > 0) {
-            addPackage(name, (char*)file_path);
-            break;
-        }
     }
 
-    fclose(file);
+    char* line = contents;
+
+    while (*line)
+    {
+        char* next = strpbrk(line, "\r\n");
+
+        if (next)
+            *next = '\0';
+
+        char* p = strstr(line, "package");
+
+        if (p)
+        {
+            p += 7;
+
+            while (*p == ' ' || *p == '\t')
+                p++;
+
+            if (*p == ':')
+            {
+                p++;
+
+                while (*p == ' ' || *p == '\t')
+                    p++;
+
+                char name[64] = {0};
+                int i = 0;
+
+                while (*p &&
+                       (*p == '_' || *p == '.' ||
+                        isalnum((unsigned char)*p)) &&
+                       i < 63)
+                {
+                    name[i++] = *p++;
+                }
+
+                if (i > 0)
+                {
+                    addPackage(name, (char*)file_path);
+                    free(contents);
+                    return;
+                }
+            }
+        }
+
+        if (!next)
+            break;
+
+        line = next + 1;
+
+        if (*line == '\n' && *next == '\r')
+            line++;
+    }
+
+    free(contents);
 }
 
 static void register_package_from_url(const char* url) {
     CREATE_FOLDER(".gravel_cache");
+
     char temp_cache[256] = ".gravel_cache/gravel_cache_temp.tmp";
     intptr_t ret = download_package(url, temp_cache);
-    if (ret != 0) {
+
+    if (ret != 0)
+    {
         remove(temp_cache);
         return;
     }
 
-    FILE* file = fopen(temp_cache, "r");
-    if (!file) {
+    char* contents = get_file_contents(temp_cache);
+
+    if (!contents)
+    {
         remove(temp_cache);
+        raiseError("File does not exist or cannot be read", "E0031");
         return;
     }
 
     char name[64] = {0};
-    char line[256];
-    while (fgets(line, sizeof(line), file)) {
+    char* line = contents;
+
+    while (*line)
+    {
+        char* next = strpbrk(line, "\r\n");
+
+        if (next)
+            *next = '\0';
+
         char* p = strstr(line, "package");
-        if (!p)
-            continue;
 
-        p += 7;
-        while (*p == ' ' || *p == '\t') p++;
-        if (*p != ':')
-            continue;
-        p++;
-        while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') p++;
+        if (p)
+        {
+            p += 7;
 
-        int i = 0;
-        while (*p && (*p == '_' || *p == '.' || isalnum((unsigned char)*p)) && i < 63) {
-            name[i++] = *p++;
+            while (*p == ' ' || *p == '\t')
+                p++;
+
+            if (*p == ':') {
+                p++;
+
+                while (*p == ' ' || *p == '\t')
+                    p++;
+
+                int i = 0;
+
+                while (*p && (*p == '_' || *p == '.' || isalnum((unsigned char)*p)) && i < (int)sizeof(name) - 1)
+                    name[i++] = *p++;
+
+                name[i] = '\0';
+
+                if (i > 0)
+                    break;
+            }
         }
-        if (i > 0) {
+
+        if (!next)
             break;
-        }
+
+        line = next + 1;
+
+        if (*line == '\n' && *next == '\r')
+            line++;
     }
-    fclose(file);
+
+    free(contents);
 
     if (name[0] != '\0') {
         char final_cache_path[256];
-        snprintf(final_cache_path, sizeof(final_cache_path), ".gravel_cache/gravel_cache_%s.grv", name);
+
+        snprintf(final_cache_path, sizeof(final_cache_path),
+                 ".gravel_cache/gravel_cache_%s.grv", name);
 
         remove(final_cache_path);
-        rename(temp_cache, final_cache_path);
+
+        if (rename(temp_cache, final_cache_path) != 0) {
+            remove(temp_cache);
+            return;
+        }
 
         register_package_from_file(final_cache_path);
-        
     } else {
         remove(temp_cache);
     }
@@ -182,6 +305,7 @@ pyll_handle_arg(ARGS_CONTEX* ctx)
 void
 new_handle_arg(ARGS_CONTEX* ctx)
 {
+    (void)ctx;
     new_project();
     exit(0);
 }
@@ -194,21 +318,33 @@ run_handle_arg(ARGS_CONTEX* ctx)
         printf("Run selected but no file!\n");
         exit(0);
     }
-    FILE* cargo = fopen("Libs.grvdep", "r");
-    if (cargo != NULL) {
-        char buffer[256];
-        while (fgets(buffer, sizeof(buffer), cargo) != NULL) {
-            buffer[strcspn(buffer, "\r\n")] = '\0';
-            if (buffer[0] == '\0')
-                continue;
-            if (!strncmp(buffer, "web:", 4)) {
-                register_package_from_url(buffer + 4);
-            } else {
-                register_package_from_file(buffer);
+
+    char* cargo_contents = get_file_contents("Libs.grvdep");
+
+    if (cargo_contents)
+    {
+        char* cargo_contents_line = strtok(cargo_contents, "\r\n");
+
+        while (cargo_contents_line != NULL)
+        {
+            if (cargo_contents_line[0] != '\0') {
+                if (!strncmp(cargo_contents_line, "web:", 4)) {
+                    register_package_from_url(cargo_contents_line + 4);
+                } else {
+                    register_package_from_file(cargo_contents_line);
+                }
             }
+
+            cargo_contents_line = strtok(NULL, "\r\n");
         }
-        fclose(cargo);
+
+        free(cargo_contents);
     }
+    else
+    {
+        printf("Libs.grvdep is missing, it would be highly recomended to create this file, so you can add your own libraries!\n");
+    }
+
     for (int i = 1; i < ctx->argc; i++) {
         if (strcmp(ctx->argv[i], "run") != 0)
             continue;
