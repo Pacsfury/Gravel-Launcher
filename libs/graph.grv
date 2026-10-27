@@ -1,0 +1,23 @@
+package: graph
+
+import string
+import array // This library doesn't exist yet
+
+namespace std
+	class graph: type
+        impl std.array(*std.graph) points_to
+        extl std.string name
+
+        fun __USE__()
+            name = extl
+        end
+
+        fun join(graph where)
+            points_to.push(&where)
+        end
+
+        fun get_connections()
+            return points_to
+        end
+    end
+end
