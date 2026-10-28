@@ -705,14 +705,19 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
     return NULL;
 }
 
-int to_llvm_ir(const Token* tokens, int token_count, ARGS_CONTEX* ctx) {
+int to_llvm_ir(ARGS_CONTEX* ctx) {
     FILE* outf = fopen("output.ll", "w");
     if (outf == NULL) {
         printf("Error: Could not open or create output.ll file.\n");
         return 1;
     }
 
-    ASTNode* ast_root = parse(tokens, token_count, ctx);
+    token_data_t* token_data = get_token_data();
+
+    if (!token_data)
+        raiseError("Missing variable. 'token_data'", "E0005");
+
+    ASTNode* ast_root = parse(token_data->tokens, token_data->token_count, ctx);
 
     if (!ast_root || ast_root->type != NODE_PROGRAM) {
         fprintf(stderr, "Error: Invalid AST Root.\n");

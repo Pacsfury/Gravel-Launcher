@@ -1,9 +1,12 @@
 #include "../include/checker.h"
 #include "../include/tokens.h"
 
-int end_indent = 0;
-int if_indent = 0;
-bool on_if = false;
+// It can be locally defined as is because none of the values aren't returned,
+// so that they would need to have an actual place inside the memory
+// static is also just so it's inside this file and that in can only be defined once and dependant on the source file.
+static
+grammar_checker_t
+checker_info = {0};
 
 bool checkGrammar(Token* tokens, int len) {
     int i = 0;
@@ -35,40 +38,40 @@ bool checkGrammar(Token* tokens, int len) {
                 break;
             case TOKEN_NAMESPACE:
                 if (i + 1 < len && tokens[i + 1].type == TOKEN_NAME) {
-                    end_indent++;
+                    checker_info.end_indent++;
                     i += 2; /* namespace and its name */
                 } else {
                     raiseError("Invalid namespace definition", "E9999");
                 }
                 break;
             case TOKEN_IF:
-                end_indent++;
-                if_indent++;
-                on_if = true;
+                checker_info.end_indent++;
+                checker_info.if_indent++;
+                checker_info.on_if = true;
                 i++;
                 break;
             case TOKEN_ELSEIF:
-                if (if_indent > 0) {
+                if (checker_info.if_indent > 0) {
                     i++;
                 } else {
                     raiseError("Invalid ELSEIF without previous IF", "E9999");
                 }
                 break;
             case TOKEN_ELSE:
-                if (if_indent > 0) {
-                    on_if = false;
-                    if_indent--;
+                if (checker_info.if_indent > 0) {
+                    checker_info.on_if = false;
+                    checker_info.if_indent--;
                     i++;
                 } else {
                     raiseError("Invalid ELSE without previous IF or ELSEIF", "E9999");
                 }
                 break;
             case TOKEN_WHILE:
-                end_indent++;
+                checker_info.end_indent++;
                 i++;
                 break;
             case TOKEN_FOR:
-                end_indent++;
+                checker_info.end_indent++;
                 i++;
                 break;
             case TOKEN_FUN:

@@ -10,7 +10,19 @@
 #include "../include/vector.h"
 #include "../include/lib.h"
 
-#define MAX_TOKEN_CAPACITY 1000000
+
+token_data_t* token_data = NULL;
+
+token_data_t* get_token_data(void) {
+    return token_data;
+}
+
+bool set_token_data(token_data_t* a) {
+    if (!a)
+        return false;
+    token_data = a;
+    return true;
+}
 
 // TOKENIZER
 void raiseError(char error[], char id[]) {
@@ -20,32 +32,32 @@ void raiseError(char error[], char id[]) {
     exit(1);
 }
 
-Token* tokens = NULL;
-int token_count = 0;
-int token_capacity = 0;
-int suppress_llvm_generation = 0;
-
 void reserveTokenSpace(void) {
-    if (token_count >= token_capacity) {
-        if (token_capacity >= MAX_TOKEN_CAPACITY) {
+    if (!token_data) {
+        raiseError("Missing variable. 'token_data'", "E0005");
+        return;
+    }
+
+    if (token_data->token_count >= token_data->token_capacity) {
+        if (token_data->token_capacity >= MAX_TOKEN_CAPACITY) {
             raiseError("Exceeded maximum token limit (potential infinite loop or massive file)", "E0000");
             return;
         }
-        size_t new_capacity = (token_capacity == 0) ? 512 : token_capacity * 2;
+        size_t new_capacity = (token_data->token_capacity == 0) ? 512 : token_data->token_capacity * 2;
         if (new_capacity > MAX_TOKEN_CAPACITY) {
             new_capacity = MAX_TOKEN_CAPACITY;
         }
-        Token* temp = realloc(tokens, new_capacity * sizeof(Token));
+        Token* temp = realloc(token_data->tokens, new_capacity * sizeof(Token));
         if (!temp) {
-            free(tokens);
-            tokens = NULL;
-            token_capacity = 0;
-            token_count = 0;
+            free(token_data->tokens);
+            token_data->tokens = NULL;
+            token_data->token_capacity = 0;
+            token_data->token_count = 0;
             raiseError("Out of memory allocation for tokens", "E0000");
             return;
         }
-        tokens = temp;
-        token_capacity = new_capacity;
+        token_data->tokens = temp;
+        token_data->token_capacity = new_capacity;
     }
 }
 
@@ -55,12 +67,19 @@ void skipBlank(const char** current) {
     }
 }
 
+/*
+
+    * Not used I assume so that's why it wont get a function variable to token_data_t*
+
+*/
 void showTokens() {
-    int i = 0;
-    while (tokens[i].type != TOKEN_EOF) {
-        printf("%s", tokens[i].value);
-        i++;
-    }
+    token_data_t* token_data = get_token_data();
+
+    if (!token_data)
+        raiseError("Missing variable. 'token_data'", "E0005");
+
+    for (int i = 0; token_data->tokens[i].type != TOKEN_EOF; i++)
+        printf("%s", token_data->tokens[i].value);
 }
 
 /*
@@ -97,12 +116,11 @@ static const struct {
     {"val",       TOKEN_VAR_DEF},
     {"while",     TOKEN_WHILE},
 };
-#define NUM_KEYWORDS (sizeof(KEYWORDS) / sizeof(KEYWORDS[0]))
 
 /*-- OPTIMIZED: Binary search for keyword lookup O(log n) instead of O(n) --*/
 static inline TokenType lookup_keyword(const char *buffer) {
     int left = 0;
-    int right = NUM_KEYWORDS - 1;
+    int right = (sizeof(KEYWORDS) / sizeof(KEYWORDS[0])) - 1;
 
     while (left <= right) {
         int mid = left + (right - left) / 2;
@@ -131,35 +149,35 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
         switch (*source) {
             case '+':
                 if (*(source + 1) == '+') {
-                    tokens[token_count].type = TOKEN_INC;
+                    token_data->tokens[token_data->token_count].type = TOKEN_INC;
                     source++;
                 } else if (*(source + 1) == '=') {
-                    tokens[token_count].type = TOKEN_ADD_ASSIGN;
+                    token_data->tokens[token_data->token_count].type = TOKEN_ADD_ASSIGN;
                     source++;
                 } else {
-                    tokens[token_count].type = TOKEN_ADD;
+                    token_data->tokens[token_data->token_count].type = TOKEN_ADD;
                 }
                 break;
             case '-':
                 if (*(source + 1) == '>') {
-                    tokens[token_count].type = TOKEN_ARROW;
+                    token_data->tokens[token_data->token_count].type = TOKEN_ARROW;
                     source++;
                 } else if (*(source + 1) == '-') {
-                    tokens[token_count].type = TOKEN_DEC;
+                    token_data->tokens[token_data->token_count].type = TOKEN_DEC;
                     source++;
                 } else if (*(source + 1) == '=') {
-                    tokens[token_count].type = TOKEN_SUB_ASSIGN;
+                    token_data->tokens[token_data->token_count].type = TOKEN_SUB_ASSIGN;
                     source++;
                 } else {
-                    tokens[token_count].type = TOKEN_SUB;
+                    token_data->tokens[token_data->token_count].type = TOKEN_SUB;
                 }
                 break;
             case '*':
                 if (*(source + 1) == '=') {
-                    tokens[token_count].type = TOKEN_STAR_ASSIGN;
+                    token_data->tokens[token_data->token_count].type = TOKEN_STAR_ASSIGN;
                     source++;
                 } else {
-                    tokens[token_count].type = TOKEN_STAR;
+                    token_data->tokens[token_data->token_count].type = TOKEN_STAR;
                 }
                 break;
             case '/':
@@ -179,73 +197,73 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
                     source += 2;  // skip "*/"
                     continue;
                 } else if (*(source + 1) == '=') {
-                    tokens[token_count].type = TOKEN_DIV_ASSIGN;
+                    token_data->tokens[token_data->token_count].type = TOKEN_DIV_ASSIGN;
                     source++;
                 } else {
-                    tokens[token_count].type = TOKEN_DIV;
+                    token_data->tokens[token_data->token_count].type = TOKEN_DIV;
                 }
                 break;
             case '%':
                 if (*(source + 1) == '=') {
-                    tokens[token_count].type = TOKEN_MOD_ASSIGN;
+                    token_data->tokens[token_data->token_count].type = TOKEN_MOD_ASSIGN;
                     source++;
                 } else {
-                    tokens[token_count].type = TOKEN_MODULO;
+                    token_data->tokens[token_data->token_count].type = TOKEN_MODULO;
                 }
                 break;
             case '<':
                 if (*(source + 1) == '=') {
-                    tokens[token_count].type = TOKEN_LE;
+                    token_data->tokens[token_data->token_count].type = TOKEN_LE;
                     source++;
                 } else {
-                    tokens[token_count].type = TOKEN_LT;
+                    token_data->tokens[token_data->token_count].type = TOKEN_LT;
                 }
                 break;
             case '>':
                 if (*(source + 1) == '=') {
-                    tokens[token_count].type = TOKEN_GE;
+                    token_data->tokens[token_data->token_count].type = TOKEN_GE;
                     source++;
                 } else {
-                    tokens[token_count].type = TOKEN_GT;
+                    token_data->tokens[token_data->token_count].type = TOKEN_GT;
                 }
                 break;
             case '!':
                 if (*(source + 1) == '=') {
-                    tokens[token_count].type = TOKEN_NE;
+                    token_data->tokens[token_data->token_count].type = TOKEN_NE;
                     source++;
                 } else {
                     // Not doing anything yet
-                    tokens[token_count].type = TOKEN_EXC;
+                    token_data->tokens[token_data->token_count].type = TOKEN_EXC;
                 }
                 break;
             case '~':
-                tokens[token_count].type = TOKEN_TILDE;
+                token_data->tokens[token_data->token_count].type = TOKEN_TILDE;
                 break;
             case '|':
-                tokens[token_count].type = TOKEN_PIPE;
+                token_data->tokens[token_data->token_count].type = TOKEN_PIPE;
                 break;
             case '^':
-                tokens[token_count].type = TOKEN_CARET;
+                token_data->tokens[token_data->token_count].type = TOKEN_CARET;
                 break;
             case ';':
-                tokens[token_count].type = TOKEN_SEMICOLON;
+                token_data->tokens[token_data->token_count].type = TOKEN_SEMICOLON;
                 break;
             case ',':
-                tokens[token_count].type = TOKEN_COMMA;
+                token_data->tokens[token_data->token_count].type = TOKEN_COMMA;
                 break;
             case '=':
                 if (*(source + 1) == '=') {
-                    tokens[token_count].type = TOKEN_EQUAL;
+                    token_data->tokens[token_data->token_count].type = TOKEN_EQUAL;
                     source++;
                 } else {
-                    tokens[token_count].type = TOKEN_ASSIGN;
+                    token_data->tokens[token_data->token_count].type = TOKEN_ASSIGN;
                 }
                 break;
             case ':':
                 if (*(source + 1) == '=') {
-                    tokens[token_count].type = TOKEN_VAR_INFER;
+                    token_data->tokens[token_data->token_count].type = TOKEN_VAR_INFER;
                     source++;
-                } else if (token_count > 0 && tokens[token_count - 1].type == TOKEN_PACKAGE) {
+                } else if (token_data->token_count > 0 && token_data->tokens[token_data->token_count - 1].type == TOKEN_PACKAGE) {
                     source++;
                     continue;
                 } else {
@@ -253,43 +271,43 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
                 }
                 break;
             case '\n':
-                tokens[token_count].type = TOKEN_NEWLINE;
-                tokens[token_count].value[0] = '\0';
+                token_data->tokens[token_data->token_count].type = TOKEN_NEWLINE;
+                token_data->tokens[token_data->token_count].value[0] = '\0';
                 break;
             case '(':
-                tokens[token_count].type = TOKEN_LPAREN;
+                token_data->tokens[token_data->token_count].type = TOKEN_LPAREN;
                 break;
             case ')':
-                tokens[token_count].type = TOKEN_RPAREN;
+                token_data->tokens[token_data->token_count].type = TOKEN_RPAREN;
                 break;
             case '"':
-                tokens[token_count].type = TOKEN_QUOTE;
+                token_data->tokens[token_data->token_count].type = TOKEN_QUOTE;
                 source++;
                 int s_len = 0;
                 while (*source != '"' && *source != '\0') {
-                    tokens[token_count].value[s_len++] = *source;
+                    token_data->tokens[token_data->token_count].value[s_len++] = *source;
                     source++;
                 }
-                tokens[token_count].value[s_len] = '\0';
+                token_data->tokens[token_data->token_count].value[s_len] = '\0';
                 if (*source == '\0') {
                     raiseError("Unterminated string", "E0002");
                 }
                 break;
             case '\'':
-                tokens[token_count].type = TOKEN_QUOTE;
+                token_data->tokens[token_data->token_count].type = TOKEN_QUOTE;
                 source++;
                 int t_len = 0;
                 while (*source != '\'' && *source != '\0') {
-                    tokens[token_count].value[t_len++] = *source;
+                    token_data->tokens[token_data->token_count].value[t_len++] = *source;
                     source++;
                 }
-                tokens[token_count].value[t_len] = '\0';
+                token_data->tokens[token_data->token_count].value[t_len] = '\0';
                 if (*source == '\0') {
                     raiseError("Unterminated string", "E0002");
                 }
                 break;
             case '&':
-                tokens[token_count].type = TOKEN_AMPERSAND;
+                token_data->tokens[token_data->token_count].type = TOKEN_AMPERSAND;
                 break;
             default:
                 if (isalpha(*source)) {
@@ -304,12 +322,12 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
                         }
                     }
                     buffer[len] = '\0';
-                    strcpy(tokens[token_count].value, buffer);
+                    strcpy(token_data->tokens[token_data->token_count].value, buffer);
 
                     /*-- USE OPTIMIZED BINARY SEARCH for keyword lookup --*/
-                    tokens[token_count].type = lookup_keyword(buffer);
+                    token_data->tokens[token_data->token_count].type = lookup_keyword(buffer);
 
-                    token_count++;
+                    token_data->token_count++;
                     continue;
                 } else if (isdigit(*source)) {
                     /*-- Number parsing section --*/
@@ -326,12 +344,12 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
                     }
                     n_buffer[n_len] = '\0';
                     if (is_float) {
-                        tokens[token_count].type = TOKEN_L_FLOAT;
+                        token_data->tokens[token_data->token_count].type = TOKEN_L_FLOAT;
                     } else {
-                        tokens[token_count].type = TOKEN_L_INT;
+                        token_data->tokens[token_data->token_count].type = TOKEN_L_INT;
                     }
-                    strcpy(tokens[token_count].value, n_buffer);
-                    token_count++;
+                    strcpy(token_data->tokens[token_data->token_count].value, n_buffer);
+                    token_data->token_count++;
                     continue;
                 } else {
                     raiseError("Unknown character", "E0003");
@@ -340,25 +358,25 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
                 }
         }
         source++;
-        token_count++;
+        token_data->token_count++;
     }
 
     reserveTokenSpace();
-    tokens[token_count].type = TOKEN_EOF;
+    token_data->tokens[token_data->token_count].type = TOKEN_EOF;
 
-    for (int i = 0; i < token_count; i++) {
-        if (tokens[i].type == TOKEN_PACKAGE && i + 1 < token_count && tokens[i + 1].type == TOKEN_NAME) {
-            addPackage(tokens[i + 1].value, from ? from : "");
+    for (int i = 0; i < token_data->token_count; i++) {
+        if (token_data->tokens[i].type == TOKEN_PACKAGE && i + 1 < token_data->token_count && token_data->tokens[i + 1].type == TOKEN_NAME) {
+            addPackage(token_data->tokens[i + 1].value, from ? from : "");
         }
     }
 
-    if (!suppress_llvm_generation && checkGrammar(tokens, token_count)) {
-        to_llvm_ir(tokens, token_count, ctx);
+    if (!token_data->suppress_llvm_generation && checkGrammar(token_data->tokens, token_data->token_count)) {
+        to_llvm_ir(ctx);
     }
 
     TokenS tokenRes;
-    tokenRes.content = tokens;
-    tokenRes.count = token_count;
+    tokenRes.content = token_data->tokens;
+    tokenRes.count = token_data->token_count;
     return tokenRes;
 }
 
@@ -373,5 +391,29 @@ void tokenizeFile(char* file, ARGS_CONTEX* ctx) {
 
     tokenize(buffer, ctx, file);
     free(buffer);
-    free(tokens);
+}
+
+bool cleanup_tokenizer(void) {
+    if (!token_data)
+        return false;
+
+    free(token_data->tokens);
+    free(token_data);
+
+    return true;
+}
+
+bool init_tokenizer(void) {
+    token_data = (token_data_t*)malloc(sizeof(token_data_t));
+
+    if (!token_data)
+        return false;
+
+    token_data->token_count = 0;
+    token_data->token_capacity = 0;
+    token_data->suppress_llvm_generation = 0;
+
+    token_data->tokens = (Token*)malloc(sizeof(Token) * DEFAULT_START_TOKEN_CAPACITY);
+
+    return true;
 }

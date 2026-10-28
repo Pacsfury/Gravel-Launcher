@@ -10,6 +10,15 @@
 #include "../include/vector.h"
 #include "../include/lib.h"
 
+// Just read
+Token* peek(const Token* t, const int* c) { return (Token*)&t[*c]; }
+
+// Also just read except advancement pointer (int* c)
+Token* advance(const Token* t, int* c) {
+    (*c)++;
+    return (Token*)&t[(*c) - 1];
+}
+
 static int add_overflow_long_long(long long a, long long b, long long* result) {
     if ((b > 0 && a > LLONG_MAX - b) || (b < 0 && a < LLONG_MIN - b)) {
         return 1;
@@ -88,13 +97,6 @@ static int fold_literals(TokenType op, const char* left, const char* right) {
     return (int)res;
 }
 
-Token* peek(const Token* t, const int* c) { return (Token*)&t[*c]; }
-
-Token* advance(const Token* t, int* c) {
-    (*c)++;
-    return (Token*)&t[(*c) - 1];
-}
-
 static ASTNode* make_literal(const char* value) {
     ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
     if (!node)
@@ -148,25 +150,30 @@ ASTNode* getPackage(char* name, ARGS_CONTEX* ctx) {
         return NULL;
     }
 
-    Token* previous_tokens = tokens;
-    int previous_token_count = token_count;
-    int previous_token_capacity = token_capacity;
-    int previous_suppress_llvm_generation = suppress_llvm_generation;
+    token_data_t* backup_token_data = get_token_data();
 
-    tokens = NULL;
-    token_count = 0;
-    token_capacity = 0;
-    suppress_llvm_generation = 1;
+    if (!backup_token_data) {
+        raiseError("Missing variable. 'token_data'", "E0005");
+    }
+
+    token_data_t* temp_token_data = (token_data_t*)malloc(sizeof(token_data_t));
+
+    if (!temp_token_data)
+        raiseError("Memory allocation failed!", "E0004");
+
+    temp_token_data->tokens = NULL;
+    temp_token_data->token_count = 0;
+    temp_token_data->token_capacity = 0;
+    temp_token_data->suppress_llvm_generation = 1;
+
+    set_token_data(temp_token_data);
+
     TokenS content = tokenize(code, ctx, file_path);
     ASTNode* package = parse(content.content, content.count, ctx);
 
-    free(tokens);
-    tokens = previous_tokens;
-    token_count = previous_token_count;
-    token_capacity = previous_token_capacity;
-    suppress_llvm_generation = previous_suppress_llvm_generation;
-
-    free(code);
+    cleanup_tokenizer();
+    set_token_data(backup_token_data);
+    free((void*)code);
 
     return package;
 }

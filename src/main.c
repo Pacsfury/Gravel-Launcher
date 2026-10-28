@@ -23,6 +23,12 @@ int main(int argc, char* argv[]) {
 
     _launcherInit();
 
+    if (!init_tokenizer())
+    {
+        printf("Failed to initialize the tokenizer!\n");
+        exit(1);
+    }
+
     ARGS_CONTEX ctx;
 
     if (!args_init(&ctx, argc, argv))
@@ -35,6 +41,7 @@ int main(int argc, char* argv[]) {
 
     clock_t end_time = clock();
     double time_taken = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+    int token_count = get_token_data()->token_count;
 
     printf("| %f s | %d tokens | COMPILE\n", time_taken, token_count);
 
