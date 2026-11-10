@@ -21,7 +21,9 @@ typedef enum {
     NODE_FOR,
     NODE_RETURN,
     NODE_REASSIGN,
-    NODE_INLINE
+    NODE_INLINE,
+    NODE_CLASS,
+    NODE_FUN_CLASS
 } ASTNodeType;
 
 // identifier buffers hold a full Token value (64 bytes)
@@ -124,6 +126,11 @@ typedef struct ASTNode {
             char target[8];
             char code[1024];
         } inline_code;
+
+        struct {
+            char target[8];
+            char code[1024];
+        } class_code;
 
     } data;
 } ASTNode;

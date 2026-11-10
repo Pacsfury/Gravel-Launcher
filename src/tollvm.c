@@ -700,6 +700,13 @@ static char* compile_node(FILE* outf, ASTNode* node, int* register_count) {
             }
             return NULL;
         }
+
+        case NODE_CLASS:
+        {
+            fputs(node->data.class_code.code, outf);
+            fputc('\n', outf);
+            return NULL;
+        }
     }
 
     return NULL;

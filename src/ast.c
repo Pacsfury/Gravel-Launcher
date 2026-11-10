@@ -10,6 +10,18 @@
 #include "../include/vector.h"
 #include "../include/lib.h"
 
+// Classes are templates: defining one emits nothing. Instantiating one
+// (`val test := Counter`) re-parses its body with the instance name as
+// namespace, so every instance gets its own globals and functions.
+typedef struct {
+    char name[10 * 64];
+    const Token* tokens;  // token array the body lives in
+    int body_start;       // index of the first token after the class name
+} ClassDef;
+
+static ClassDef class_defs[64];
+static int class_def_count = 0;
+
 // Just read
 Token* peek(const Token* t, const int* c) { return (Token*)&t[*c]; }
 
@@ -180,6 +192,13 @@ ASTNode* getPackage(char* name, ARGS_CONTEX* ctx) {
 
 static void qualify_name(char* dest, size_t dest_size, const char* ns, const char* name);
 
+// Parameters of the function currently being parsed. A parameter name must
+// never be namespace/class qualified, otherwise `a` inside Counter.add turns
+// into the (non-existent) global `Counter.a`.
+static char cur_params[100][64];
+static int cur_param_count = 0;
+static void qualify_var(char* dest, size_t dest_size, const char* ns, const char* name);
+
 // Parse an assignment-style statement: `name = expr`, `name += expr`,
 // `name++`, etc. All forms are desugared into a plain NODE_REASSIGN.
 static ASTNode* parse_update(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
@@ -191,7 +210,7 @@ static ASTNode* parse_update(const Token* t, int* c, const char* ns, ARGS_CONTEX
 
     Token* name_token = advance(t, c);
     char qualified[64];
-    qualify_name(qualified, sizeof(qualified), ns, name_token->value);
+    qualify_var(qualified, sizeof(qualified), ns, name_token->value);
 
     Token* op = peek(t, c);
     ASTNode* value = NULL;
@@ -249,6 +268,52 @@ static void qualify_name(char* dest, size_t dest_size, const char* ns, const cha
     if (n < 0 || (size_t)n >= dest_size) {
         raiseError("Qualified name is too long", "E0011");
     }
+}
+
+// Like qualify_name, but leaves function parameters untouched.
+static void qualify_var(char* dest, size_t dest_size, const char* ns, const char* name) {
+    for (int i = 0; i < cur_param_count; i++) {
+        if (strcmp(cur_params[i], name) == 0) {
+            int n = snprintf(dest, dest_size, "%s", name);
+            if (n < 0 || (size_t)n >= dest_size)
+                raiseError("Qualified name is too long", "E0011");
+            return;
+        }
+    }
+
+    qualify_name(dest, dest_size, ns, name);
+}
+
+static ClassDef* find_class(const char* ns, const char* name) {
+    char qualified[10 * 64];
+    qualify_name(qualified, sizeof(qualified), ns, name);
+
+    for (int i = 0; i < class_def_count; i++) {
+        if (strcmp(class_defs[i].name, qualified) == 0)
+            return &class_defs[i];
+    }
+
+    return NULL;
+}
+
+// `Counter.count` used directly (no instance) is an error
+static void reject_direct_class_access(const char* ns, const char* value) {
+    const char* dot = strchr(value, '.');
+
+    if (!dot)
+        return;
+
+    char prefix[64];
+    size_t len = (size_t)(dot - value);
+
+    if (len >= sizeof(prefix))
+        return;
+
+    memcpy(prefix, value, len);
+    prefix[len] = '\0';
+
+    if (find_class(ns, prefix))
+        raiseError("A class must be instantiated before use (e.g. `val x := ClassName`)", "E1112");
 }
 
 ASTNode* parse_unary(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
@@ -358,6 +423,7 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx)
             raiseError("Memory allocation failed", "E0004");
 
         Token* var_token = advance(t, c);
+        reject_direct_class_access(ns, var_token->value);
 
         if (peek(t, c)->type == TOKEN_LPAREN) {
             advance(t, c);
@@ -403,7 +469,7 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx)
         }
 
         node->type = NODE_VARIABLE;
-        qualify_name(node->data.literal.value, sizeof(node->data.literal.value), ns, var_token->value);
+        qualify_var(node->data.literal.value, sizeof(node->data.literal.value), ns, var_token->value);
         return node;
 
     } else if (current->type == TOKEN_REPEAT) {
@@ -420,7 +486,12 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx)
     } else if (current->type == TOKEN_FUN) {
         raiseError("Unexpected token: function definitions must be parsed at the top level", "E0009");
         return NULL;
+    } else if (current->type == TOKEN_CLASS) {
+        raiseError("Unexpected token: class defenitions must be parsed at the top level", "E1111");
+        return NULL;
     }
+
+    printf("Val: %s\n", current->value);
 
     raiseError("Unexpected token: expected a variable or literal expression", "E0001:1");
     return NULL;
@@ -872,6 +943,242 @@ ASTNode* parse_for(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
     return node;
 }
 
+static ASTNode* parse_function(const Token* tokens, int* c, const char* ns, ARGS_CONTEX* ctx) {
+    advance(tokens, c);  // consume 'fun'
+
+    ASTNode* funNode = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!funNode)
+        raiseError("Memory allocation failed", "E0004");
+    funNode->type = NODE_FUN_DEF;
+
+    Token* name_token = peek(tokens, c);
+    if (name_token->type != TOKEN_NAME)
+        raiseError("Expected identifier after 'fun'", "E0009");
+
+    qualify_name(funNode->data.fun_def.name, sizeof(funNode->data.fun_def.name), ns, name_token->value);
+    advance(tokens, c);  // consume name
+
+    funNode->data.fun_def.arguments = NULL;
+    if (peek(tokens, c)->type == TOKEN_LPAREN) {
+        advance(tokens, c);  // consume '('
+        fun_args* arguments = NULL;
+        int arg_count = 0;
+
+        if (peek(tokens, c)->type != TOKEN_RPAREN) {
+            arguments = (fun_args*)malloc(sizeof(fun_args) * 100);
+            if (!arguments)
+                raiseError("Memory allocation failed", "E0004");
+            for (int i = 0; i < 100; i++) {
+                arguments[i].name[0] = '\0';
+                arguments[i].type[0] = '\0';
+            }
+
+            char next = 't';  // t -> type, n -> name, c -> comma
+            fun_args newarg;
+            while (peek(tokens, c)->type != TOKEN_RPAREN && peek(tokens, c)->type != TOKEN_EOF) {
+                if (next == 't') {
+                    TokenType type_token = peek(tokens, c)->type;
+                    if (type_token != TOKEN_NAME && type_token != TOKEN_INT && type_token != TOKEN_FLOAT &&
+                        type_token != TOKEN_CHAR) {
+                        raiseError("Expected parameter type", "E0009");
+                    }
+                    strcpy(newarg.type, peek(tokens, c)->value);
+                    next = 'n';
+                    advance(tokens, c);
+                } else if (next == 'n') {
+                    if (peek(tokens, c)->type != TOKEN_NAME)
+                        raiseError("Expected parameter name", "E0009");
+                    strcpy(newarg.name, peek(tokens, c)->value);
+                    advance(tokens, c);
+                    arguments[arg_count++] = newarg;
+                    next = 'c';
+                } else if (peek(tokens, c)->type == TOKEN_COMMA) {
+                    advance(tokens, c);
+                    if (arg_count >= 100)
+                        raiseError("Too many function parameters", "E0008");
+                    next = 't';
+                } else {
+                    raiseError("Invalid function parameter list", "E0009");
+                }
+            }
+        }
+
+        if (peek(tokens, c)->type == TOKEN_RPAREN) {
+            advance(tokens, c);
+            funNode->data.fun_def.arguments = arguments;
+
+            cur_param_count = 0;
+            for (int i = 0; i < arg_count && i < 100; i++) {
+                snprintf(cur_params[i], sizeof(cur_params[i]), "%s", arguments[i].name);
+                cur_param_count++;
+            }
+        } else {
+            if (arguments)
+                free(arguments);
+            raiseError("Unterminated parameter list", "E0009");
+        }
+    } else {
+        raiseError("Expected parenthesis", "E0009");
+    }
+
+    // optional return type
+    if (peek(tokens, c)->type == TOKEN_NAME || peek(tokens, c)->type == TOKEN_L_INT ||
+        peek(tokens, c)->type == TOKEN_L_FLOAT) {
+        Token* rt = advance(tokens, c);
+        strcpy(funNode->data.fun_def.returnType, rt->value);
+    } else if (peek(tokens, c)->type == TOKEN_INT || peek(tokens, c)->type == TOKEN_CHAR) {
+        advance(tokens, c);
+        strcpy(funNode->data.fun_def.returnType, "int");
+    } else if (peek(tokens, c)->type == TOKEN_FLOAT) {
+        advance(tokens, c);
+        strcpy(funNode->data.fun_def.returnType, "float");
+    } else {
+        funNode->data.fun_def.returnType[0] = '\0';
+    }
+
+    // parse function body into a program node until END
+    ASTNode* body = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!body)
+        raiseError("Memory allocation failed", "E0004");
+    body->type = NODE_PROGRAM;
+    body->data.program.count = 0;
+    int body_capacity = 8;
+    body->data.program.statements = (ASTNode**)malloc(sizeof(ASTNode*) * body_capacity);
+    if (!body->data.program.statements)
+        raiseError("Memory allocation failed", "E0004");
+
+    while (peek(tokens, c)->type != TOKEN_END && peek(tokens, c)->type != TOKEN_EOF) {
+        ASTNode* inner = parse_statement(tokens, c, ns, ctx);
+        if (inner != NULL) {
+            if (body->data.program.count >= body_capacity) {
+                body_capacity *= 2;
+                ASTNode** tmp = (ASTNode**)realloc(body->data.program.statements, sizeof(ASTNode*) * body_capacity);
+                if (!tmp) {
+                    free(body->data.program.statements);
+                    free(body);
+                    raiseError("Memory allocation failed while expanding function body", "E0004");
+                }
+                body->data.program.statements = tmp;
+            }
+            body->data.program.statements[body->data.program.count++] = inner;
+        }
+    }
+
+    if (peek(tokens, c)->type == TOKEN_END) {
+        advance(tokens, c);  // consume END
+    } else {
+        raiseError("Unexpected end of file: missing 'end' for function", "E0010");
+    }
+
+    cur_param_count = 0;  // parameters go out of scope with the function
+
+    funNode->data.fun_def.body = body;
+    return funNode;
+}
+
+// Parses class members up to and including the class's `end`.
+// Everything is qualified with `class_ns`.
+static ASTNode* parse_class_members(const Token* t, int* c, const char* class_ns, ARGS_CONTEX* ctx) {
+    ASTNode* program = (ASTNode*)malloc(sizeof(ASTNode));
+
+    if (!program)
+        raiseError("Memory allocation failed", "E0004");
+
+    program->type = NODE_PROGRAM;
+    program->data.program.count = 0;
+
+    int cap = 8;
+    program->data.program.statements = (ASTNode**)malloc(sizeof(ASTNode*) * cap);
+
+    if (!program->data.program.statements)
+        raiseError("Memory allocation failed", "E0004");
+
+    while (peek(t, c)->type != TOKEN_END && peek(t, c)->type != TOKEN_EOF) {
+        ASTNode* member = NULL;
+
+        switch (peek(t, c)->type) {
+            case TOKEN_NEWLINE:
+                advance(t, c);
+                continue;
+            case TOKEN_FUN:
+                member = parse_function(t, c, class_ns, ctx);
+                break;
+            case TOKEN_VAR_DEF:
+            case TOKEN_CONST:
+            case TOKEN_INT:
+            case TOKEN_FLOAT:
+            case TOKEN_CHAR:
+                member = parse_statement(t, c, class_ns, ctx);
+                break;
+            default:
+                raiseError("Only variables and functions are allowed inside a class", "E1111");
+                advance(t, c);
+                continue;
+        }
+
+        if (member == NULL)
+            continue;
+
+        if (program->data.program.count >= cap) {
+            cap *= 2;
+            ASTNode** tmp = (ASTNode**)realloc(program->data.program.statements, sizeof(ASTNode*) * cap);
+            if (!tmp) {
+                free(program->data.program.statements);
+                free(program);
+                raiseError("Memory allocation failed while expanding class members", "E0004");
+            }
+            program->data.program.statements = tmp;
+        }
+        program->data.program.statements[program->data.program.count++] = member;
+    }
+
+    if (peek(t, c)->type == TOKEN_END) {
+        advance(t, c);
+    } else {
+        raiseError("Unexpected end of file: missing 'end' for class block", "E1111");
+    }
+
+    return program;
+}
+
+static ASTNode* parse_class(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
+    advance(t, c);  // consume 'class'
+
+    Token* name_token = peek(t, c);
+    if (name_token->type != TOKEN_NAME)
+        raiseError("Expected class name after 'class'", "E1111");
+    advance(t, c);
+
+    if (class_def_count >= 64)
+        raiseError("Too many classes", "E1113");
+
+    ClassDef* def = &class_defs[class_def_count];
+    qualify_name(def->name, sizeof(def->name), ns, name_token->value);
+    def->tokens = t;
+    def->body_start = *c;
+
+    ASTNode* validated = parse_class_members(t, c, def->name, ctx);
+    free(validated->data.program.statements);
+    free(validated);
+
+    class_def_count++;
+
+    ASTNode* empty = (ASTNode*)malloc(sizeof(ASTNode));
+
+    if (!empty)
+        raiseError("Memory allocation failed", "E0004");
+
+    empty->type = NODE_PROGRAM;
+    empty->data.program.count = 0;
+    empty->data.program.statements = (ASTNode**)malloc(sizeof(ASTNode*));
+    return empty;
+}
+
+static ASTNode* instantiate_class(const ClassDef* def, const char* instance_ns, ARGS_CONTEX* ctx) {
+    int idx = def->body_start;
+    return parse_class_members(def->tokens, &idx, instance_ns, ctx);
+}
+
 ASTNode* parse(const Token* tokens, int count, ARGS_CONTEX* ctx) {
     (void)count;
     int current_token = 0;
@@ -986,133 +1293,8 @@ ASTNode* parse(const Token* tokens, int count, ARGS_CONTEX* ctx) {
         }
 
         if (current->type == TOKEN_FUN) {
-            advance(tokens, &current_token);
-            ASTNode* funNode = (ASTNode*)malloc(sizeof(ASTNode));
-            if (!funNode)
-                raiseError("Memory allocation failed", "E0004");
-            funNode->type = NODE_FUN_DEF;
+            ASTNode* funNode = parse_function(tokens, &current_token, current_namespace, ctx);
 
-            Token* name_token = peek(tokens, &current_token);
-            if (name_token->type != TOKEN_NAME)
-                raiseError("Expected identifier after 'fun'", "E0009");
-
-            qualify_name(funNode->data.fun_def.name, sizeof(funNode->data.fun_def.name), current_namespace,
-                         name_token->value);
-
-            advance(tokens, &current_token);  // consume name
-
-            funNode->data.fun_def.arguments = NULL;
-            if (peek(tokens, &current_token)->type == TOKEN_LPAREN) {
-                advance(tokens, &current_token);  // consume '('
-                fun_args* arguments = NULL;
-                int arg_count = 0;
-
-                if (peek(tokens, &current_token)->type != TOKEN_RPAREN) {
-                    arguments = (fun_args*)malloc(sizeof(fun_args) * 100);
-                    if (!arguments)
-                        raiseError("Memory allocation failed", "E0004");
-                    for (int i = 0; i < 100; i++) {
-                        arguments[i].name[0] = '\0';
-                        arguments[i].type[0] = '\0';
-                    }
-
-                    char next = 't';  // t -> type, n -> name
-                    fun_args newarg;
-                    while (peek(tokens, &current_token)->type != TOKEN_RPAREN &&
-                           peek(tokens, &current_token)->type != TOKEN_EOF) {
-                        if (next == 't') {
-                            TokenType type_token = peek(tokens, &current_token)->type;
-                            if (type_token != TOKEN_NAME && type_token != TOKEN_INT && type_token != TOKEN_FLOAT &&
-                                type_token != TOKEN_CHAR) {
-                                raiseError("Expected parameter type", "E0009");
-                            }
-                            strcpy(newarg.type, peek(tokens, &current_token)->value);
-                            next = 'n';
-                            advance(tokens, &current_token);
-                        } else if (next == 'n') {
-                            if (peek(tokens, &current_token)->type != TOKEN_NAME)
-                                raiseError("Expected parameter name", "E0009");
-                            strcpy(newarg.name, peek(tokens, &current_token)->value);
-                            advance(tokens, &current_token);
-                            arguments[arg_count++] = newarg;
-                            next = 'c';
-                        } else if (peek(tokens, &current_token)->type == TOKEN_COMMA) {
-                            advance(tokens, &current_token);
-                            if (arg_count >= 100)
-                                raiseError("Too many function parameters", "E0008");
-                            next = 't';
-                        } else {
-                            raiseError("Invalid function parameter list", "E0009");
-                        }
-                    }
-                }
-
-                if (peek(tokens, &current_token)->type == TOKEN_RPAREN) {
-                    advance(tokens, &current_token);
-                    funNode->data.fun_def.arguments = arguments;
-                } else {
-                    if (arguments)
-                        free(arguments);
-                    raiseError("Unterminated parameter list", "E0009");
-                }
-            } else {
-                raiseError("Expected parenthesis", "E0009");
-            }
-
-            // optional return type
-            if (peek(tokens, &current_token)->type == TOKEN_NAME || peek(tokens, &current_token)->type == TOKEN_L_INT ||
-                peek(tokens, &current_token)->type == TOKEN_L_FLOAT) {
-                Token* rt = advance(tokens, &current_token);
-                strcpy(funNode->data.fun_def.returnType, rt->value);
-            } else if (peek(tokens, &current_token)->type == TOKEN_INT ||
-                       peek(tokens, &current_token)->type == TOKEN_CHAR) {
-                advance(tokens, &current_token);
-                strcpy(funNode->data.fun_def.returnType, "int");
-            } else if (peek(tokens, &current_token)->type == TOKEN_FLOAT) {
-                advance(tokens, &current_token);
-                strcpy(funNode->data.fun_def.returnType, "float");
-            } else {
-                funNode->data.fun_def.returnType[0] = '\0';
-            }
-
-            // parse function body into a program node until END
-            ASTNode* body = (ASTNode*)malloc(sizeof(ASTNode));
-            if (!body)
-                raiseError("Memory allocation failed", "E0004");
-            body->type = NODE_PROGRAM;
-            body->data.program.count = 0;
-            int body_capacity = 8;
-            body->data.program.statements = (ASTNode**)malloc(sizeof(ASTNode*) * body_capacity);
-            if (!body->data.program.statements)
-                raiseError("Memory allocation failed", "E0004");
-
-            while (peek(tokens, &current_token)->type != TOKEN_END && peek(tokens, &current_token)->type != TOKEN_EOF) {
-                ASTNode* inner = parse_statement(tokens, &current_token, current_namespace, ctx);
-                if (inner != NULL) {
-                    if (body->data.program.count >= body_capacity) {
-                        body_capacity *= 2;
-                        ASTNode** tmp =
-                            (ASTNode**)realloc(body->data.program.statements, sizeof(ASTNode*) * body_capacity);
-                        if (!tmp) {
-                            free(body->data.program.statements);
-                            free(body);
-                            raiseError("Memory allocation failed while expanding function body", "E0004");
-                        }
-                        body->data.program.statements = tmp;
-                    }
-                    body->data.program.statements[body->data.program.count++] = inner;
-                }
-            }
-
-            if (peek(tokens, &current_token)->type == TOKEN_END) {
-                advance(tokens, &current_token);  // consume END
-            } else {
-                raiseError("Unexpected end of file: missing 'end' for function", "E0010");
-            }
-
-            funNode->data.fun_def.body = body;
-
-            // append function node to program_node
             if (program_node->data.program.count >= statement_capacity) {
                 statement_capacity *= 2;
                 ASTNode** temp =
@@ -1144,8 +1326,38 @@ ASTNode* parse(const Token* tokens, int count, ARGS_CONTEX* ctx) {
             continue;
         }
 
-        ASTNode* stmt = parse_statement(tokens, &current_token, current_namespace, ctx);
+        ASTNode* stmt = NULL;
+        ClassDef* inst_class = NULL;
 
+        // pattern: val <name> := <ClassName> [()]
+        if (current->type == TOKEN_VAR_DEF && ((Token*)&tokens[current_token + 1])->type == TOKEN_NAME &&
+            ((Token*)&tokens[current_token + 2])->type == TOKEN_VAR_INFER &&
+            ((Token*)&tokens[current_token + 3])->type == TOKEN_NAME) {
+            inst_class = find_class(current_namespace, ((Token*)&tokens[current_token + 3])->value);
+        }
+
+        if (inst_class) {
+            advance(tokens, &current_token);  // val
+            Token* inst_name = advance(tokens, &current_token);
+            advance(tokens, &current_token);  // :=
+            advance(tokens, &current_token);  // class name
+
+            // optional empty parentheses: `Counter()`
+            if (peek(tokens, &current_token)->type == TOKEN_LPAREN) {
+                advance(tokens, &current_token);
+                if (peek(tokens, &current_token)->type != TOKEN_RPAREN)
+                    raiseError("Class instantiation takes no arguments", "E1114");
+                advance(tokens, &current_token);
+            }
+
+            char instance_ns[10 * 64];
+            qualify_name(instance_ns, sizeof(instance_ns), current_namespace, inst_name->value);
+            stmt = instantiate_class(inst_class, instance_ns, ctx);
+        } else if (current->type == TOKEN_CLASS) {
+            stmt = parse_class(tokens, &current_token, current_namespace, ctx);
+        } else {
+            stmt = parse_statement(tokens, &current_token, current_namespace, ctx);
+        }
         if (stmt != NULL) {
             if (stmt->type == NODE_PROGRAM) {
                 for (int imported_index = 0; imported_index < stmt->data.program.count; imported_index++) {

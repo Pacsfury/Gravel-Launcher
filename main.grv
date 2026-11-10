@@ -1,3 +1,18 @@
-import "math"
+class Counter
+    int count = 0
+    int step = 2
 
-scho(math.min(65, 66))
+    fun inc() int
+        count += step
+        return count
+    end
+
+    fun reset() int
+        count = 0
+        return 0
+    end
+
+    fun add(int a, int b) int
+        return a + b
+    end
+end
