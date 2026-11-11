@@ -16,3 +16,9 @@ class Counter
         return a + b
     end
 end
+
+val a := Counter
+
+a.inc()
+
+scho(a.add(31, 34))

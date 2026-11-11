@@ -10,15 +10,6 @@
 #include "../include/vector.h"
 #include "../include/lib.h"
 
-// Classes are templates: defining one emits nothing. Instantiating one
-// (`val test := Counter`) re-parses its body with the instance name as
-// namespace, so every instance gets its own globals and functions.
-typedef struct {
-    char name[10 * 64];
-    const Token* tokens;  // token array the body lives in
-    int body_start;       // index of the first token after the class name
-} ClassDef;
-
 static ClassDef class_defs[64];
 static int class_def_count = 0;
 
@@ -1358,6 +1349,7 @@ ASTNode* parse(const Token* tokens, int count, ARGS_CONTEX* ctx) {
         } else {
             stmt = parse_statement(tokens, &current_token, current_namespace, ctx);
         }
+        
         if (stmt != NULL) {
             if (stmt->type == NODE_PROGRAM) {
                 for (int imported_index = 0; imported_index < stmt->data.program.count; imported_index++) {

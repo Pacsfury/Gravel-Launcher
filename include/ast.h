@@ -32,6 +32,12 @@ typedef struct {
     char type[64];
 } fun_args;
 
+typedef struct {
+    char name[10 * 64];
+    const Token* tokens;
+    int body_start;
+} ClassDef;
+
 typedef struct ASTNode {
     ASTNodeType type;
 
