@@ -1,6 +1,9 @@
 #pragma once
 #include "argc.h"
 
+#define MAX_TOKEN_CAPACITY 1000000
+#define DEFAULT_START_TOKEN_CAPACITY 32
+
 typedef enum {
     TOKEN_EOF,
     TOKEN_INT,
@@ -76,6 +79,17 @@ typedef struct {
     int count;
 } TokenS;
 
+typedef struct {
+    Token* tokens;
+    int token_count;
+    int token_capacity;
+    int suppress_llvm_generation;
+} token_data_t;
+
+token_data_t* get_token_data(void);
+
+bool set_token_data(token_data_t* a);
+
 void raiseError(char error[], char id[]);
 
 void skipBlank(const char** current);
@@ -86,7 +100,6 @@ void showTokens();
 
 void tokenizeFile(char* file, ARGS_CONTEX* ctx);
 
-extern int token_count;
-extern int token_capacity;
-extern Token* tokens;
-extern int suppress_llvm_generation;
+bool cleanup_tokenizer(void);
+
+bool init_tokenizer(void);
