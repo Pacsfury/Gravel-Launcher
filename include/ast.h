@@ -4,6 +4,11 @@
 
 #include "tokens.h"
 
+#define PARSER_MAX_CLASSES 64
+#define PARSER_MAX_PARAMS  100
+#define PARSER_IDENT_LEN   64
+#define PARSER_MAX_SYMS    256
+
 typedef enum {
     NODE_LITERAL,
     NODE_BINARY_OP,
@@ -26,17 +31,45 @@ typedef enum {
     NODE_FUN_CLASS
 } ASTNodeType;
 
-// identifier buffers hold a full Token value (64 bytes)
+typedef struct {
+    char name[10 * 64];
+    const Token* tokens;
+    int body_start;
+    int is_type;  // 1 for `class name: type`
+} ClassDef;
+
 typedef struct {
     char name[64];
     char type[64];
 } fun_args;
 
+// Members of type-class instances that the parser has to track:
+//  SYM_STRING   - a char[] member; lives at compile time only, `value` is its text
+//  SYM_READONLY - an int/float member (impl, scalar extl); can only change inside __USE__
+typedef enum { SYM_STRING = 1, SYM_READONLY = 2 } TypeSymKind;
+
 typedef struct {
     char name[10 * 64];
-    const Token* tokens;
-    int body_start;
-} ClassDef;
+    int kind;
+    char value[64];
+} TypeSym;
+
+// All mutable parser state lives here instead of in file-level globals.
+typedef struct {
+    ClassDef class_defs[PARSER_MAX_CLASSES];
+    int      class_def_count;
+
+    char     params[PARSER_MAX_PARAMS][PARSER_IDENT_LEN];
+    int      param_count;
+
+    TypeSym  syms[PARSER_MAX_SYMS];
+    int      sym_count;
+
+    int       in_use_fn;      // 1 while parsing the body of a __USE__ function
+    int       extl_active;    // 1 while parsing a type class body (definition or instance)
+    TokenType extl_type;      // token type of the extl literal (0 = unknown, while validating a definition)
+    char      extl_value[64]; // text of the extl literal
+} ParserState;
 
 typedef struct ASTNode {
     ASTNodeType type;
@@ -140,6 +173,10 @@ typedef struct ASTNode {
 
     } data;
 } ASTNode;
+
+
+ParserState* parser_state(void);
+void parser_state_reset(void);
 
 Token* peek(const Token* t, const int* c);
 Token* advance(const Token* t, int* c);

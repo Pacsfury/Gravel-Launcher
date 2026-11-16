@@ -1,24 +1,42 @@
-class Counter
-    int count = 0
-    int step = 2
-
-    fun inc() int
-        count += step
-        return count
-    end
-
-    fun reset() int
-        count = 0
-        return 0
-    end
-
-    fun add(int a, int b) int
-        return a + b
+class string: type
+    extl char[] text
+    impl int len
+    fun __USE__()
+        text = extl
+        len = sizeof(text)
     end
 end
 
-val a := Counter
+class dbl: type
+    extl int v
+    impl int twice
+    fun __USE__()
+        v = extl
+        twice = extl * 2
+    end
+end
 
-a.inc()
+class Counter
+    val n := 5
+end
 
-scho(a.add(31, 34))
+string a = "hi"
+string b = "hello"
+string c = ""
+scho(a.len + 48)
+scho(b.len + 48)
+scho(c.len + 48)
+scho("\n")
+
+val ctr := Counter
+scho(ctr.n + 48)
+scho("\n")
+
+dbl x = 3
+scho(x.v + 48)
+scho(x.twice + 48)
+scho("\n")
+
+string s = "abc"
+scho(s.len * 2 + 48)
+scho("\n")

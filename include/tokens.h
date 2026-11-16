@@ -66,7 +66,10 @@ typedef enum {
     TOKEN_IN,
     TOKEN_VAR_DEF,  // val
     TOKEN_CONST,
-    TOKEN_INLINE
+    TOKEN_INLINE,
+
+    // appended at the end so existing enum values keep their numbers
+    TOKEN_COLON  // `:` in `class name: type`
 } TokenType;
 
 typedef struct {

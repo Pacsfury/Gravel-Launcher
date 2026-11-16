@@ -251,6 +251,16 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
             case ',':
                 token_data->tokens[token_data->token_count].type = TOKEN_COMMA;
                 break;
+            case '[':
+                // `[]` is one token (TOKEN_TYPEIS_LIST); `char[][]` is two of them
+                if (*(source + 1) == ']') {
+                    token_data->tokens[token_data->token_count].type = TOKEN_TYPEIS_LIST;
+                    strcpy(token_data->tokens[token_data->token_count].value, "[]");
+                    source++;  // consume '[', the common source++ below consumes ']'
+                } else {
+                    raiseError("Only '[]' is supported for now", "E0003");
+                }
+                break;
             case '=':
                 if (*(source + 1) == '=') {
                     token_data->tokens[token_data->token_count].type = TOKEN_EQUAL;
@@ -266,6 +276,12 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
                 } else if (token_data->token_count > 0 && token_data->tokens[token_data->token_count - 1].type == TOKEN_PACKAGE) {
                     source++;
                     continue;
+                } else if (token_data->token_count > 1 &&
+                           token_data->tokens[token_data->token_count - 1].type == TOKEN_NAME &&
+                           token_data->tokens[token_data->token_count - 2].type == TOKEN_CLASS) {
+                    // `class name: type`
+                    token_data->tokens[token_data->token_count].type = TOKEN_COLON;
+                    strcpy(token_data->tokens[token_data->token_count].value, ":");
                 } else {
                     raiseError("Unexpected token", "E0001");
                 }
@@ -310,10 +326,11 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
                 token_data->tokens[token_data->token_count].type = TOKEN_AMPERSAND;
                 break;
             default:
-                if (isalpha(*source)) {
+                // identifiers may start with a letter or '_' (e.g. __USE__)
+                if (isalpha((unsigned char)*source) || *source == '_') {
                     int len = 0;
                     char buffer[64];
-                    while ((isalnum(*source) || *source == '.' || *source == '_') && len < 63) {
+                    while ((isalnum((unsigned char)*source) || *source == '.' || *source == '_') && len < 63) {
                         if (*source == '\\' && *(++source) == 'n') {
                             buffer[len++] = '\n';
                         } else {
@@ -329,13 +346,13 @@ TokenS tokenize(const char* file, ARGS_CONTEX* ctx, char* from) {
 
                     token_data->token_count++;
                     continue;
-                } else if (isdigit(*source)) {
+                } else if (isdigit((unsigned char)*source)) {
                     /*-- Number parsing section --*/
                     int n_len = 0;
                     char n_buffer[64];
                     int is_float = 0;
 
-                    while ((isdigit(*source) || *source == '.') && n_len < 63) {
+                    while ((isdigit((unsigned char)*source) || *source == '.') && n_len < 63) {
                         if (*source == '.') {
                             is_float = 1;
                         }

@@ -10,13 +10,39 @@
 #include "../include/vector.h"
 #include "../include/lib.h"
 
-static ClassDef class_defs[64];
-static int class_def_count = 0;
+static void qualify_name(char* dest, size_t dest_size, const char* ns, const char* name);
+static void qualify_var(char* dest, size_t dest_size, const char* ns, const char* name);
 
-// Just read
+static ParserState g_parser_state;
+
+ParserState* parser_state(void) { return &g_parser_state; }
+void parser_state_reset(void) { memset(&g_parser_state, 0, sizeof(g_parser_state)); }
+
+static TypeSym* find_sym(const char* qualified) {
+    ParserState* ps = parser_state();
+    for (int i = 0; i < ps->sym_count; i++) {
+        if (strcmp(ps->syms[i].name, qualified) == 0)
+            return &ps->syms[i];
+    }
+    return NULL;
+}
+
+static TypeSym* add_sym(const char* qualified, int kind) {
+    ParserState* ps = parser_state();
+    TypeSym* s = find_sym(qualified);
+    if (!s) {
+        if (ps->sym_count >= PARSER_MAX_SYMS)
+            raiseError("Too many type class members", "E1117");
+        s = &ps->syms[ps->sym_count++];
+        snprintf(s->name, sizeof(s->name), "%s", qualified);
+    }
+    s->kind = kind;
+    s->value[0] = '\0';
+    return s;
+}
+
 Token* peek(const Token* t, const int* c) { return (Token*)&t[*c]; }
 
-// Also just read except advancement pointer (int* c)
 Token* advance(const Token* t, int* c) {
     (*c)++;
     return (Token*)&t[(*c) - 1];
@@ -181,17 +207,27 @@ ASTNode* getPackage(char* name, ARGS_CONTEX* ctx) {
     return package;
 }
 
-static void qualify_name(char* dest, size_t dest_size, const char* ns, const char* name);
+static ASTNode* parse_string_assign(const Token* t, int* c, TypeSym* sym) {
+    ParserState* ps = parser_state();
 
-// Parameters of the function currently being parsed. A parameter name must
-// never be namespace/class qualified, otherwise `a` inside Counter.add turns
-// into the (non-existent) global `Counter.a`.
-static char cur_params[100][64];
-static int cur_param_count = 0;
-static void qualify_var(char* dest, size_t dest_size, const char* ns, const char* name);
+    if (peek(t, c)->type != TOKEN_ASSIGN)
+        raiseError("Only '=' can be used on a char[] value", "E1125");
+    advance(t, c);
 
-// Parse an assignment-style statement: `name = expr`, `name += expr`,
-// `name++`, etc. All forms are desugared into a plain NODE_REASSIGN.
+    Token* v = peek(t, c);
+    if (v->type == TOKEN_EXTL) {
+        if (!ps->extl_active)
+            raiseError("'extl' can only be used inside a type class", "E1121");
+        snprintf(sym->value, sizeof(sym->value), "%s", ps->extl_value);
+    } else if (v->type == TOKEN_QUOTE) {
+        snprintf(sym->value, sizeof(sym->value), "%s", v->value);
+    } else {
+        raiseError("A char[] value can only be set from 'extl' or a string literal", "E1125");
+    }
+    advance(t, c);
+    return NULL;
+}
+
 static ASTNode* parse_update(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
     Token* current = peek(t, c);
     if (current->type != TOKEN_NAME) {
@@ -202,6 +238,14 @@ static ASTNode* parse_update(const Token* t, int* c, const char* ns, ARGS_CONTEX
     Token* name_token = advance(t, c);
     char qualified[64];
     qualify_var(qualified, sizeof(qualified), ns, name_token->value);
+
+    TypeSym* sym = find_sym(qualified);
+    if (sym) {
+        if (!parser_state()->in_use_fn)
+            raiseError("Type class members can only be changed inside the class", "E1124");
+        if (sym->kind == SYM_STRING)
+            return parse_string_assign(t, c, sym);
+    }
 
     Token* op = peek(t, c);
     ASTNode* value = NULL;
@@ -247,8 +291,6 @@ static ASTNode* parse_update(const Token* t, int* c, const char* ns, ARGS_CONTEX
     return make_reassign(qualified, value);
 }
 
-// Copy `name` into dest, prefixed with the current namespace unless the name
-// is already qualified. Errors out rather than overflowing or truncating.
 static void qualify_name(char* dest, size_t dest_size, const char* ns, const char* name) {
     int n;
     if (ns != NULL && ns[0] != '\0' && strchr(name, '.') == NULL) {
@@ -261,10 +303,10 @@ static void qualify_name(char* dest, size_t dest_size, const char* ns, const cha
     }
 }
 
-// Like qualify_name, but leaves function parameters untouched.
 static void qualify_var(char* dest, size_t dest_size, const char* ns, const char* name) {
-    for (int i = 0; i < cur_param_count; i++) {
-        if (strcmp(cur_params[i], name) == 0) {
+    ParserState* ps = parser_state();
+    for (int i = 0; i < ps->param_count; i++) {
+        if (strcmp(ps->params[i], name) == 0) {
             int n = snprintf(dest, dest_size, "%s", name);
             if (n < 0 || (size_t)n >= dest_size)
                 raiseError("Qualified name is too long", "E0011");
@@ -276,18 +318,18 @@ static void qualify_var(char* dest, size_t dest_size, const char* ns, const char
 }
 
 static ClassDef* find_class(const char* ns, const char* name) {
+    ParserState* ps = parser_state();
     char qualified[10 * 64];
     qualify_name(qualified, sizeof(qualified), ns, name);
 
-    for (int i = 0; i < class_def_count; i++) {
-        if (strcmp(class_defs[i].name, qualified) == 0)
-            return &class_defs[i];
+    for (int i = 0; i < ps->class_def_count; i++) {
+        if (strcmp(ps->class_defs[i].name, qualified) == 0)
+            return &ps->class_defs[i];
     }
 
     return NULL;
 }
 
-// `Counter.count` used directly (no instance) is an error
 static void reject_direct_class_access(const char* ns, const char* value) {
     const char* dot = strchr(value, '.');
 
@@ -408,6 +450,41 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx)
         return node;
     }
 
+    if (current->type == TOKEN_EXTL) {
+        ParserState* ps = parser_state();
+        if (!ps->extl_active)
+            raiseError("'extl' can only be used inside a type class", "E1121");
+        if (ps->extl_type == TOKEN_QUOTE)
+            raiseError("A char[] 'extl' can only be assigned to a char[] member", "E1125");
+        advance(t, c);
+        return make_literal(ps->extl_value);
+    }
+
+    if (current->type == TOKEN_NAME && strcmp(current->value, "sizeof") == 0 &&
+        ((Token*)&t[*c + 1])->type == TOKEN_LPAREN) {
+        advance(t, c);
+        advance(t, c);
+
+        Token* arg = peek(t, c);
+        if (arg->type != TOKEN_NAME)
+            raiseError("Expected a name inside sizeof()", "E1126");
+        advance(t, c);
+
+        char qualified[64];
+        qualify_var(qualified, sizeof(qualified), ns, arg->value);
+        TypeSym* sym = find_sym(qualified);
+        if (!sym || sym->kind != SYM_STRING)
+            raiseError("sizeof() only works on char[] type class members for now", "E1126");
+
+        if (peek(t, c)->type != TOKEN_RPAREN)
+            raiseError("Expected ')' after sizeof argument", "E0009");
+        advance(t, c);
+
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%zu", strlen(sym->value));
+        return make_literal(buf);
+    }
+
     if (current->type == TOKEN_NAME) {
         ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
         if (!node)
@@ -461,6 +538,11 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx)
 
         node->type = NODE_VARIABLE;
         qualify_var(node->data.literal.value, sizeof(node->data.literal.value), ns, var_token->value);
+
+        TypeSym* sym = find_sym(node->data.literal.value);
+        if (sym && sym->kind == SYM_STRING)
+            raiseError("char[] values can't be read at runtime yet (no array support in the backend); use sizeof()",
+                       "E1130");
         return node;
 
     } else if (current->type == TOKEN_REPEAT) {
@@ -660,15 +742,22 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns, ARGS_CONTEX* ct
             raiseError("Memory allocation failed", "E0004");
 
         result->type = NODE_RETURN;
-        advance(t, c);  // consume 'return'
+        advance(t, c);
 
-        // return may be followed by an expression
         result->data.return_stmt.value = parse_expression(t, c, ns, ctx);
         return result;
     }
 
     else if (current->type == TOKEN_NAME) {
         Token* next = (Token*)&t[*c + 1];
+
+        if (next->type == TOKEN_NAME) {
+            ClassDef* tc = find_class(ns, current->value);
+            if (tc && tc->is_type)
+                raiseError("Type class values can only be declared at the top level or inside a namespace",
+                           "E1128");
+        }
+
         if (next->type == TOKEN_ASSIGN || next->type == TOKEN_VAR_INFER || next->type == TOKEN_ADD_ASSIGN ||
             next->type == TOKEN_SUB_ASSIGN || next->type == TOKEN_STAR_ASSIGN || next->type == TOKEN_DIV_ASSIGN ||
             next->type == TOKEN_MOD_ASSIGN || next->type == TOKEN_INC || next->type == TOKEN_DEC) {
@@ -718,19 +807,18 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns, ARGS_CONTEX* ct
 }
 
 ASTNode* parse_repeat(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
-    advance(t, c);  // consume 'repeat'
+    advance(t, c);
 
     Token* value_token = peek(t, c);
     if (value_token->type != TOKEN_L_INT)
         raiseError("Expected integer after 'repeat'", "E0009");
-    advance(t, c);  // consume repeat count
+    advance(t, c);
 
     ASTNode* newNode = (ASTNode*)malloc(sizeof(ASTNode));
     if (!newNode)
         raiseError("Memory allocation failed", "E0004");
     newNode->type = NODE_REPEAT;
-    // the body is unrolled repeat_count times at compile time, so an
-    // unchecked count would let a two-line program emit gigabytes of IR
+
     errno = 0;
     long long repeat_count = strtoll(value_token->value, NULL, 10);
     if (errno == ERANGE || repeat_count > 1000000) {
@@ -998,10 +1086,11 @@ static ASTNode* parse_function(const Token* tokens, int* c, const char* ns, ARGS
             advance(tokens, c);
             funNode->data.fun_def.arguments = arguments;
 
-            cur_param_count = 0;
-            for (int i = 0; i < arg_count && i < 100; i++) {
-                snprintf(cur_params[i], sizeof(cur_params[i]), "%s", arguments[i].name);
-                cur_param_count++;
+            ParserState* ps = parser_state();
+            ps->param_count = 0;
+            for (int i = 0; i < arg_count && i < PARSER_MAX_PARAMS; i++) {
+                snprintf(ps->params[i], sizeof(ps->params[i]), "%s", arguments[i].name);
+                ps->param_count++;
             }
         } else {
             if (arguments)
@@ -1056,20 +1145,113 @@ static ASTNode* parse_function(const Token* tokens, int* c, const char* ns, ARGS
     }
 
     if (peek(tokens, c)->type == TOKEN_END) {
-        advance(tokens, c);  // consume END
+        advance(tokens, c);
     } else {
         raiseError("Unexpected end of file: missing 'end' for function", "E0010");
     }
 
-    cur_param_count = 0;  // parameters go out of scope with the function
+    parser_state()->param_count = 0;
 
     funNode->data.fun_def.body = body;
     return funNode;
 }
 
-// Parses class members up to and including the class's `end`.
-// Everything is qualified with `class_ns`.
-static ASTNode* parse_class_members(const Token* t, int* c, const char* class_ns, ARGS_CONTEX* ctx) {
+// Appends `member` to a class member list, growing it when needed.
+static void class_push(ASTNode* program, int* cap, ASTNode* member) {
+    if (program->data.program.count >= *cap) {
+        *cap *= 2;
+        ASTNode** tmp = (ASTNode**)realloc(program->data.program.statements, sizeof(ASTNode*) * (*cap));
+        if (!tmp) {
+            free(program->data.program.statements);
+            free(program);
+            raiseError("Memory allocation failed while expanding class members", "E0004");
+        }
+        program->data.program.statements = tmp;
+    }
+    program->data.program.statements[program->data.program.count++] = member;
+}
+
+static ASTNode* parse_type_member(const Token* t, int* c, const char* class_ns, int is_extl) {
+    ParserState* ps = parser_state();
+    advance(t, c);  // consume 'extl' / 'impl'
+
+    Token* type_tok = peek(t, c);
+    const char* base = "int";
+    if (type_tok->type == TOKEN_INT || type_tok->type == TOKEN_CHAR) {
+        base = "int";
+    } else if (type_tok->type == TOKEN_FLOAT) {
+        base = "float";
+    } else {
+        raiseError("Expected a type (int, float or char[]) after 'extl'/'impl'", "E1118");
+    }
+    advance(t, c);
+
+    int list_count = 0;
+    while (peek(t, c)->type == TOKEN_TYPEIS_LIST) {
+        list_count++;
+        advance(t, c);
+    }
+    if (list_count > 1 || (list_count == 1 && type_tok->type != TOKEN_CHAR))
+        raiseError("Only char[] is supported as an array type for now", "E1118");
+
+    Token* name_tok = peek(t, c);
+    if (name_tok->type != TOKEN_NAME)
+        raiseError("Expected a member name", "E0005");
+    advance(t, c);
+
+    char qualified[10 * 64];
+    qualify_name(qualified, sizeof(qualified), class_ns, name_tok->value);
+
+    if (list_count == 1) {
+        if (!is_extl)
+            raiseError("'impl' members can't be char[] yet, only 'extl' can", "E1118");
+        if (ps->extl_active && ps->extl_type != 0 && ps->extl_type != TOKEN_QUOTE)
+            raiseError("This type class expects a string literal", "E1129");
+        add_sym(qualified, SYM_STRING);
+        return NULL;
+    }
+
+    if (is_extl && ps->extl_active && ps->extl_type == TOKEN_QUOTE)
+        raiseError("This type class expects a number, not a string literal", "E1129");
+
+    ASTNode* decl = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!decl)
+        raiseError("Memory allocation failed", "E0004");
+    decl->type = NODE_DECLARATION;
+    qualify_name(decl->data.var_decl.name, sizeof(decl->data.var_decl.name), class_ns, name_tok->value);
+    strcpy(decl->data.var_decl.type, base);
+    decl->data.var_decl.value = make_literal(strcmp(base, "float") == 0 ? "0.0" : "0");
+    add_sym(qualified, SYM_READONLY);
+    return decl;
+}
+
+
+static ASTNode* parse_use_body(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
+    advance(t, c);  // fun
+    advance(t, c);  // __USE__
+
+    if (peek(t, c)->type != TOKEN_LPAREN)
+        raiseError("Expected '(' after __USE__", "E0009");
+    advance(t, c);
+    if (peek(t, c)->type != TOKEN_RPAREN)
+        raiseError("__USE__ takes no parameters", "E0009");
+    advance(t, c);
+
+    ParserState* ps = parser_state();
+
+    ASTNode* body = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!body)
+        raiseError("Memory allocation failed", "E0004");
+    body->type = NODE_PROGRAM;
+
+    ps->in_use_fn = 1;
+    body->data.program.statements = parse_block_statements(t, c, ns, &body->data.program.count, "E0010", ctx);
+    ps->in_use_fn = 0;
+
+    return body;
+}
+
+static ASTNode* parse_class_members(const Token* t, int* c, const char* class_ns, int is_type, ARGS_CONTEX* ctx) {
     ASTNode* program = (ASTNode*)malloc(sizeof(ASTNode));
 
     if (!program)
@@ -1084,6 +1266,9 @@ static ASTNode* parse_class_members(const Token* t, int* c, const char* class_ns
     if (!program->data.program.statements)
         raiseError("Memory allocation failed", "E0004");
 
+    int seen_extl = 0;
+    int seen_use = 0;
+
     while (peek(t, c)->type != TOKEN_END && peek(t, c)->type != TOKEN_EOF) {
         ASTNode* member = NULL;
 
@@ -1091,9 +1276,34 @@ static ASTNode* parse_class_members(const Token* t, int* c, const char* class_ns
             case TOKEN_NEWLINE:
                 advance(t, c);
                 continue;
-            case TOKEN_FUN:
-                member = parse_function(t, c, class_ns, ctx);
+            case TOKEN_EXTL:
+            case TOKEN_IMPL: {
+                int is_extl = (peek(t, c)->type == TOKEN_EXTL);
+                if (!is_type)
+                    raiseError("'extl' and 'impl' members are only allowed in type classes", "E1121");
+                if (is_extl && seen_extl)
+                    raiseError("A type class can only have one 'extl' member", "E1123");
+                if (is_extl)
+                    seen_extl = 1;
+                member = parse_type_member(t, c, class_ns, is_extl);
                 break;
+            }
+            case TOKEN_FUN: {
+                Token* fname = (Token*)&t[*c + 1];
+                if (fname->type == TOKEN_NAME && strcmp(fname->value, "__USE__") == 0) {
+                    if (!is_type)
+                        raiseError("__USE__ is only allowed in type classes", "E1122");
+                    if (!seen_extl)
+                        raiseError("Declare the 'extl' member (and any 'impl' members) before __USE__", "E1123");
+                    if (seen_use)
+                        raiseError("A type class can only have one __USE__ function", "E1122");
+                    seen_use = 1;
+                    member = parse_use_body(t, c, class_ns, ctx);
+                } else {
+                    member = parse_function(t, c, class_ns, ctx);
+                }
+                break;
+            }
             case TOKEN_VAR_DEF:
             case TOKEN_CONST:
             case TOKEN_INT:
@@ -1110,17 +1320,15 @@ static ASTNode* parse_class_members(const Token* t, int* c, const char* class_ns
         if (member == NULL)
             continue;
 
-        if (program->data.program.count >= cap) {
-            cap *= 2;
-            ASTNode** tmp = (ASTNode**)realloc(program->data.program.statements, sizeof(ASTNode*) * cap);
-            if (!tmp) {
-                free(program->data.program.statements);
-                free(program);
-                raiseError("Memory allocation failed while expanding class members", "E0004");
-            }
-            program->data.program.statements = tmp;
+        if (member->type == NODE_PROGRAM) {
+            for (int i = 0; i < member->data.program.count; i++)
+                class_push(program, &cap, member->data.program.statements[i]);
+            free(member->data.program.statements);
+            free(member);
+            continue;
         }
-        program->data.program.statements[program->data.program.count++] = member;
+
+        class_push(program, &cap, member);
     }
 
     if (peek(t, c)->type == TOKEN_END) {
@@ -1129,30 +1337,54 @@ static ASTNode* parse_class_members(const Token* t, int* c, const char* class_ns
         raiseError("Unexpected end of file: missing 'end' for class block", "E1111");
     }
 
+    if (is_type && !seen_extl)
+        raiseError("A type class needs an 'extl' member", "E1123");
+
     return program;
 }
 
 static ASTNode* parse_class(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
-    advance(t, c);  // consume 'class'
+    advance(t, c);
 
     Token* name_token = peek(t, c);
     if (name_token->type != TOKEN_NAME)
         raiseError("Expected class name after 'class'", "E1111");
     advance(t, c);
 
-    if (class_def_count >= 64)
+    int is_type = 0;
+    if (peek(t, c)->type == TOKEN_COLON) {
+        advance(t, c);
+        Token* kind = peek(t, c);
+        if (kind->type != TOKEN_NAME || strcmp(kind->value, "type") != 0)
+            raiseError("Expected 'type' after ':' in class declaration", "E1116");
+        advance(t, c);
+        is_type = 1;
+    }
+
+    ParserState* ps = parser_state();
+    if (ps->class_def_count >= PARSER_MAX_CLASSES)
         raiseError("Too many classes", "E1113");
 
-    ClassDef* def = &class_defs[class_def_count];
+    ClassDef* def = &ps->class_defs[ps->class_def_count];
     qualify_name(def->name, sizeof(def->name), ns, name_token->value);
     def->tokens = t;
     def->body_start = *c;
+    def->is_type = is_type;
 
-    ASTNode* validated = parse_class_members(t, c, def->name, ctx);
+    int saved_syms = ps->sym_count;
+    ps->extl_active = is_type;
+    ps->extl_type = (TokenType)0;
+    ps->extl_value[0] = '\0';
+
+    ASTNode* validated = parse_class_members(t, c, def->name, is_type, ctx);
+
+    ps->extl_active = 0;
+    ps->sym_count = saved_syms;
+
     free(validated->data.program.statements);
     free(validated);
 
-    class_def_count++;
+    ps->class_def_count++;
 
     ASTNode* empty = (ASTNode*)malloc(sizeof(ASTNode));
 
@@ -1167,7 +1399,22 @@ static ASTNode* parse_class(const Token* t, int* c, const char* ns, ARGS_CONTEX*
 
 static ASTNode* instantiate_class(const ClassDef* def, const char* instance_ns, ARGS_CONTEX* ctx) {
     int idx = def->body_start;
-    return parse_class_members(def->tokens, &idx, instance_ns, ctx);
+    return parse_class_members(def->tokens, &idx, instance_ns, 0, ctx);
+}
+
+static ASTNode* instantiate_type_class(const ClassDef* def, const char* instance_ns, const Token* extl_tok,
+                                       ARGS_CONTEX* ctx) {
+    ParserState* ps = parser_state();
+    int idx = def->body_start;
+
+    ps->extl_active = 1;
+    ps->extl_type = extl_tok->type;
+    snprintf(ps->extl_value, sizeof(ps->extl_value), "%s", extl_tok->value);
+
+    ASTNode* program = parse_class_members(def->tokens, &idx, instance_ns, 1, ctx);
+
+    ps->extl_active = 0;
+    return program;
 }
 
 ASTNode* parse(const Token* tokens, int count, ARGS_CONTEX* ctx) {
@@ -1319,21 +1566,45 @@ ASTNode* parse(const Token* tokens, int count, ARGS_CONTEX* ctx) {
 
         ASTNode* stmt = NULL;
         ClassDef* inst_class = NULL;
+        ClassDef* type_class = NULL;
 
-        // pattern: val <name> := <ClassName> [()]
-        if (current->type == TOKEN_VAR_DEF && ((Token*)&tokens[current_token + 1])->type == TOKEN_NAME &&
+        if (current->type == TOKEN_NAME && ((Token*)&tokens[current_token + 1])->type == TOKEN_NAME &&
+            ((Token*)&tokens[current_token + 2])->type == TOKEN_ASSIGN) {
+            type_class = find_class(current_namespace, current->value);
+            if (type_class && !type_class->is_type)
+                type_class = NULL;
+        }
+
+        if (!type_class && current->type == TOKEN_VAR_DEF &&
+            ((Token*)&tokens[current_token + 1])->type == TOKEN_NAME &&
             ((Token*)&tokens[current_token + 2])->type == TOKEN_VAR_INFER &&
             ((Token*)&tokens[current_token + 3])->type == TOKEN_NAME) {
             inst_class = find_class(current_namespace, ((Token*)&tokens[current_token + 3])->value);
         }
 
-        if (inst_class) {
-            advance(tokens, &current_token);  // val
+        if (type_class) {
+            advance(tokens, &current_token);
             Token* inst_name = advance(tokens, &current_token);
-            advance(tokens, &current_token);  // :=
-            advance(tokens, &current_token);  // class name
+            advance(tokens, &current_token);
 
-            // optional empty parentheses: `Counter()`
+            Token* lit = peek(tokens, &current_token);
+            if (lit->type != TOKEN_QUOTE && lit->type != TOKEN_L_INT && lit->type != TOKEN_L_FLOAT)
+                raiseError("A type class value must be initialised with a literal", "E1129");
+            advance(tokens, &current_token);
+
+            char instance_ns[10 * 64];
+            qualify_name(instance_ns, sizeof(instance_ns), current_namespace, inst_name->value);
+            stmt = instantiate_type_class(type_class, instance_ns, lit, ctx);
+        } else if (inst_class) {
+            if (inst_class->is_type)
+                raiseError("A type class is not a constructor; declare a value instead (e.g. `string s = \"hi\"`)",
+                           "E1115");
+
+            advance(tokens, &current_token);
+            Token* inst_name = advance(tokens, &current_token);
+            advance(tokens, &current_token);
+            advance(tokens, &current_token);
+
             if (peek(tokens, &current_token)->type == TOKEN_LPAREN) {
                 advance(tokens, &current_token);
                 if (peek(tokens, &current_token)->type != TOKEN_RPAREN)

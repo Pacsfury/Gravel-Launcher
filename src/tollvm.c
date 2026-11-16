@@ -778,7 +778,6 @@ int to_llvm_ir(ARGS_CONTEX* ctx) {
     fprintf(outf, "}\n");
 
     fclose(outf);
-    printf("Compiled Successfully\n");
 
     if (!hasArg(ctx, "-wE")) {
         system("python ./llvm/llvm.py");
