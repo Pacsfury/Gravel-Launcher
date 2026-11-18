@@ -774,6 +774,8 @@ int to_llvm_ir(ARGS_CONTEX* ctx) {
         }
     }
 
+    free_ast(ast_root);
+
     fprintf(outf, "    ret i32 0\n");
     fprintf(outf, "}\n");
 
@@ -783,5 +785,6 @@ int to_llvm_ir(ARGS_CONTEX* ctx) {
         system("python ./llvm/llvm.py");
         exit(0);
     }
+
     return 0;
 }

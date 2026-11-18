@@ -408,6 +408,7 @@ void tokenizeFile(char* file, ARGS_CONTEX* ctx) {
 
     tokenize(buffer, ctx, file);
     free(buffer);
+    free(file);
 }
 
 bool cleanup_tokenizer(void) {

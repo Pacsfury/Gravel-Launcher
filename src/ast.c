@@ -18,6 +18,85 @@ static ParserState g_parser_state;
 ParserState* parser_state(void) { return &g_parser_state; }
 void parser_state_reset(void) { memset(&g_parser_state, 0, sizeof(g_parser_state)); }
 
+static ASTNode* alloc_node(void) {
+    ASTNode* node = (ASTNode*)calloc(1, sizeof(ASTNode));
+    if (!node)
+        raiseError("Memory allocation failed", "E0004");
+    return node;
+}
+
+void free_ast(ASTNode* node) {
+    if (!node)
+        return;
+
+    switch (node->type) {
+        case NODE_BINARY_OP:
+            free_ast(node->data.binary_op.left);
+            free_ast(node->data.binary_op.right);
+            break;
+        case NODE_UNARY_OP:
+            free_ast(node->data.unary_op.operand);
+            break;
+        case NODE_REASSIGN:
+            free_ast(node->data.reassign.value);
+            break;
+        case NODE_DECLARATION:
+        case NODE_CONSTANT:
+            free_ast(node->data.var_decl.value);
+            break;
+        case NODE_RETURN:
+            free_ast(node->data.return_stmt.value);
+            break;
+        case NODE_SCHO:
+            free_ast(node->data.scho_stmt.value);
+            break;
+        case NODE_CALL:
+            for (int i = 0; i < node->data.fun_call.arg_count; i++)
+                free_ast(node->data.fun_call.arguments[i]);
+            free(node->data.fun_call.arguments);
+            break;
+        case NODE_REPEAT:
+            for (int i = 0; i < node->data.repeat_stmt.count; i++)
+                free_ast(node->data.repeat_stmt.statements[i]);
+            free(node->data.repeat_stmt.statements);
+            break;
+        case NODE_WHILE:
+            free_ast(node->data.while_stmt.condition);
+            for (int i = 0; i < node->data.while_stmt.count; i++)
+                free_ast(node->data.while_stmt.statements[i]);
+            free(node->data.while_stmt.statements);
+            break;
+        case NODE_FOR:
+            free_ast(node->data.for_stmt.init);
+            free_ast(node->data.for_stmt.condition);
+            free_ast(node->data.for_stmt.increment);
+            for (int i = 0; i < node->data.for_stmt.count; i++)
+                free_ast(node->data.for_stmt.statements[i]);
+            free(node->data.for_stmt.statements);
+            break;
+        case NODE_IF:
+            free_ast(node->data.if_stmt.condition);
+            for (int i = 0; i < node->data.if_stmt.then_count; i++)
+                free_ast(node->data.if_stmt.then_statements[i]);
+            free(node->data.if_stmt.then_statements);
+            free_ast(node->data.if_stmt.else_node);
+            break;
+        case NODE_FUN_DEF:
+            free(node->data.fun_def.arguments);
+            free_ast(node->data.fun_def.body);
+            break;
+        case NODE_PROGRAM:
+            for (int i = 0; i < node->data.program.count; i++)
+                free_ast(node->data.program.statements[i]);
+            free(node->data.program.statements);
+            break;
+        default:
+            break;
+    }
+
+    free(node);
+}
+
 static TypeSym* find_sym(const char* qualified) {
     ParserState* ps = parser_state();
     for (int i = 0; i < ps->sym_count; i++) {
@@ -127,27 +206,21 @@ static int fold_literals(TokenType op, const char* left, const char* right) {
 }
 
 static ASTNode* make_literal(const char* value) {
-    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
-    if (!node)
-        raiseError("Memory allocation failed", "E0004");
+    ASTNode* node = alloc_node();
     node->type = NODE_LITERAL;
     snprintf(node->data.literal.value, sizeof(node->data.literal.value), "%s", value);
     return node;
 }
 
 static ASTNode* make_variable(const char* name) {
-    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
-    if (!node)
-        raiseError("Memory allocation failed", "E0004");
+    ASTNode* node = alloc_node();
     node->type = NODE_VARIABLE;
     snprintf(node->data.literal.value, sizeof(node->data.literal.value), "%s", name);
     return node;
 }
 
 static ASTNode* make_binary(TokenType op, ASTNode* left, ASTNode* right) {
-    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
-    if (!node)
-        raiseError("Memory allocation failed", "E0004");
+    ASTNode* node = alloc_node();
     node->type = NODE_BINARY_OP;
     node->data.binary_op.op = op;
     node->data.binary_op.left = left;
@@ -156,9 +229,7 @@ static ASTNode* make_binary(TokenType op, ASTNode* left, ASTNode* right) {
 }
 
 static ASTNode* make_reassign(const char* name, ASTNode* value) {
-    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
-    if (!node)
-        raiseError("Memory allocation failed", "E0004");
+    ASTNode* node = alloc_node();
     node->type = NODE_REASSIGN;
     snprintf(node->data.reassign.name, sizeof(node->data.reassign.name), "%s", name);
     node->data.reassign.value = value;
@@ -355,10 +426,7 @@ ASTNode* parse_unary(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
 
         ASTNode* operand = parse_unary(t, c, ns, ctx);
 
-        ASTNode* unary_node = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!unary_node)
-            raiseError("Memory allocation failed", "E0004");
-
+        ASTNode* unary_node = alloc_node();
         unary_node->type = NODE_UNARY_OP;
         unary_node->data.unary_op.op = op_token->type;
         unary_node->data.unary_op.operand = operand;
@@ -385,16 +453,7 @@ ASTNode* parse_multiplicative(const Token* t, int* c, const char* ns, ARGS_CONTE
             continue;
         }
 
-        ASTNode* bin_node = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!bin_node)
-            raiseError("Memory allocation failed", "E0004");
-
-        bin_node->type = NODE_BINARY_OP;
-        bin_node->data.binary_op.op = op_token->type;
-        bin_node->data.binary_op.left = left;
-        bin_node->data.binary_op.right = right;
-
-        left = bin_node;
+        left = make_binary(op_token->type, left, right);
     }
     return left;
 }
@@ -415,16 +474,7 @@ ASTNode* parse_additive(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx
             continue;
         }
 
-        ASTNode* bin_node = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!bin_node)
-            raiseError("Memory allocation failed", "E0004");
-
-        bin_node->type = NODE_BINARY_OP;
-        bin_node->data.binary_op.op = op_token->type;
-        bin_node->data.binary_op.left = left;
-        bin_node->data.binary_op.right = right;
-
-        left = bin_node;
+        left = make_binary(op_token->type, left, right);
     }
     return left;
 }
@@ -433,13 +483,11 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx)
     Token* current = peek(t, c);
 
     if (current->type == TOKEN_L_INT || current->type == TOKEN_L_FLOAT || current->type == TOKEN_QUOTE) {
-        ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!node)
-            raiseError("Memory allocation failed", "E0004");
+        ASTNode* node = alloc_node();
 
         node->type = NODE_LITERAL;
         Token* lit_token = advance(t, c);
-        strcpy(node->data.literal.value, lit_token->value);
+        snprintf(node->data.literal.value, sizeof(node->data.literal.value), "%s", lit_token->value);
         if (current->type == TOKEN_L_INT) {
             errno = 0;
             long long v = strtoll(lit_token->value, NULL, 10);
@@ -486,9 +534,7 @@ ASTNode* parse_primary(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx)
     }
 
     if (current->type == TOKEN_NAME) {
-        ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!node)
-            raiseError("Memory allocation failed", "E0004");
+        ASTNode* node = alloc_node();
 
         Token* var_token = advance(t, c);
         reject_direct_class_access(ns, var_token->value);
@@ -577,15 +623,7 @@ ASTNode* parse_expression(const Token* t, int* c, const char* ns, ARGS_CONTEX* c
         Token* op_token = advance(t, c);
         ASTNode* right = parse_equality(t, c, ns, ctx);
 
-        ASTNode* bin_node = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!bin_node)
-            raiseError("Memory allocation failed", "E0004");
-        bin_node->type = NODE_BINARY_OP;
-        bin_node->data.binary_op.op = op_token->type;
-        bin_node->data.binary_op.left = left;
-        bin_node->data.binary_op.right = right;
-
-        left = bin_node;
+        left = make_binary(op_token->type, left, right);
     }
     return left;
 }
@@ -598,15 +636,7 @@ ASTNode* parse_relational(const Token* t, int* c, const char* ns, ARGS_CONTEX* c
         Token* op_token = advance(t, c);
         ASTNode* right = parse_additive(t, c, ns, ctx);
 
-        ASTNode* bin_node = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!bin_node)
-            raiseError("Memory allocation failed", "E0004");
-        bin_node->type = NODE_BINARY_OP;
-        bin_node->data.binary_op.op = op_token->type;
-        bin_node->data.binary_op.left = left;
-        bin_node->data.binary_op.right = right;
-
-        left = bin_node;
+        left = make_binary(op_token->type, left, right);
     }
     return left;
 }
@@ -617,15 +647,7 @@ ASTNode* parse_equality(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx
         Token* op_token = advance(t, c);
         ASTNode* right = parse_relational(t, c, ns, ctx);
 
-        ASTNode* bin_node = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!bin_node)
-            raiseError("Memory allocation failed", "E0004");
-        bin_node->type = NODE_BINARY_OP;
-        bin_node->data.binary_op.op = op_token->type;
-        bin_node->data.binary_op.left = left;
-        bin_node->data.binary_op.right = right;
-
-        left = bin_node;
+        left = make_binary(op_token->type, left, right);
     }
     return left;
 }
@@ -646,9 +668,7 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns, ARGS_CONTEX* ct
     }
 
     if (current->type == TOKEN_VAR_DEF) {
-        ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!result)
-            raiseError("Memory allocation failed", "E0004");
+        ASTNode* result = alloc_node();
 
         result->type = NODE_DECLARATION;
         advance(t, c);
@@ -678,11 +698,10 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns, ARGS_CONTEX* ct
         if (result->data.var_decl.value)
             return result;
 
+        free_ast(result);
         return NULL;
     } else if (current->type == TOKEN_INT || current->type == TOKEN_FLOAT || current->type == TOKEN_CHAR) {
-        ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!result)
-            raiseError("Memory allocation failed", "E0004");
+        ASTNode* result = alloc_node();
 
         result->type = NODE_DECLARATION;
 
@@ -711,9 +730,7 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns, ARGS_CONTEX* ct
         result->data.var_decl.value = parse_expression(t, c, ns, ctx);
         return result;
     } else if (current->type == TOKEN_CONST) {
-        ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!result)
-            raiseError("Memory allocation failed", "E0004");
+        ASTNode* result = alloc_node();
 
         result->type = NODE_CONSTANT;
         advance(t, c);
@@ -737,9 +754,7 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns, ARGS_CONTEX* ct
     }
 
     else if (current->type == TOKEN_RETURN) {
-        ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!result)
-            raiseError("Memory allocation failed", "E0004");
+        ASTNode* result = alloc_node();
 
         result->type = NODE_RETURN;
         advance(t, c);
@@ -768,9 +783,7 @@ ASTNode* parse_statement(const Token* t, int* c, const char* ns, ARGS_CONTEX* ct
     }
 
     else if (current->type == TOKEN_SCHO) {
-        ASTNode* result = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!result)
-            raiseError("Memory allocation failed", "E0004");
+        ASTNode* result = alloc_node();
 
         result->type = NODE_SCHO;
         advance(t, c);
@@ -814,9 +827,7 @@ ASTNode* parse_repeat(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) 
         raiseError("Expected integer after 'repeat'", "E0009");
     advance(t, c);
 
-    ASTNode* newNode = (ASTNode*)malloc(sizeof(ASTNode));
-    if (!newNode)
-        raiseError("Memory allocation failed", "E0004");
+    ASTNode* newNode = alloc_node();
     newNode->type = NODE_REPEAT;
 
     errno = 0;
@@ -899,9 +910,7 @@ static ASTNode** parse_block_statements(const Token* t, int* c, const char* ns, 
 ASTNode* parse_while(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
     advance(t, c);  // consume 'while'
 
-    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
-    if (!node)
-        raiseError("Memory allocation failed", "E0004");
+    ASTNode* node = alloc_node();
     node->type = NODE_WHILE;
     node->data.while_stmt.condition = NULL;
 
@@ -927,9 +936,7 @@ ASTNode* parse_while(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
 ASTNode* parse_for(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
     advance(t, c);  // consume 'for'
 
-    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
-    if (!node)
-        raiseError("Memory allocation failed", "E0004");
+    ASTNode* node = alloc_node();
     node->type = NODE_FOR;
     node->data.for_stmt.init = NULL;
     node->data.for_stmt.condition = NULL;
@@ -948,9 +955,7 @@ ASTNode* parse_for(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
 
         ASTNode* list_value = parse_expression(t, c, ns, ctx);
 
-        ASTNode* init = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!init)
-            raiseError("Memory allocation failed", "E0004");
+        ASTNode* init = alloc_node();
         init->type = NODE_DECLARATION;
         strcpy(init->data.var_decl.name, qualified);
         init->data.var_decl.value = make_literal("0");
@@ -975,9 +980,7 @@ ASTNode* parse_for(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
                 raiseError("Missing '=' in for-loop init", "E0006");
             advance(t, c);
 
-            init = (ASTNode*)malloc(sizeof(ASTNode));
-            if (!init)
-                raiseError("Memory allocation failed", "E0004");
+            init = alloc_node();
             init->type = NODE_DECLARATION;
             qualify_name(init->data.var_decl.name, sizeof(init->data.var_decl.name), ns, name_token->value);
             init->data.var_decl.value = parse_expression(t, c, ns, ctx);
@@ -991,9 +994,7 @@ ASTNode* parse_for(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
                 raiseError("Missing ':=' in for-loop init", "E0006");
             advance(t, c);
 
-            init = (ASTNode*)malloc(sizeof(ASTNode));
-            if (!init)
-                raiseError("Memory allocation failed", "E0004");
+            init = alloc_node();
             init->type = NODE_DECLARATION;
             qualify_name(init->data.var_decl.name, sizeof(init->data.var_decl.name), ns, name_token->value);
             init->data.var_decl.value = parse_expression(t, c, ns, ctx);
@@ -1025,9 +1026,7 @@ ASTNode* parse_for(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
 static ASTNode* parse_function(const Token* tokens, int* c, const char* ns, ARGS_CONTEX* ctx) {
     advance(tokens, c);  // consume 'fun'
 
-    ASTNode* funNode = (ASTNode*)malloc(sizeof(ASTNode));
-    if (!funNode)
-        raiseError("Memory allocation failed", "E0004");
+    ASTNode* funNode = alloc_node();
     funNode->type = NODE_FUN_DEF;
 
     Token* name_token = peek(tokens, c);
@@ -1117,9 +1116,7 @@ static ASTNode* parse_function(const Token* tokens, int* c, const char* ns, ARGS
     }
 
     // parse function body into a program node until END
-    ASTNode* body = (ASTNode*)malloc(sizeof(ASTNode));
-    if (!body)
-        raiseError("Memory allocation failed", "E0004");
+    ASTNode* body = alloc_node();
     body->type = NODE_PROGRAM;
     body->data.program.count = 0;
     int body_capacity = 8;
@@ -1214,9 +1211,7 @@ static ASTNode* parse_type_member(const Token* t, int* c, const char* class_ns, 
     if (is_extl && ps->extl_active && ps->extl_type == TOKEN_QUOTE)
         raiseError("This type class expects a number, not a string literal", "E1129");
 
-    ASTNode* decl = (ASTNode*)malloc(sizeof(ASTNode));
-    if (!decl)
-        raiseError("Memory allocation failed", "E0004");
+    ASTNode* decl = alloc_node();
     decl->type = NODE_DECLARATION;
     qualify_name(decl->data.var_decl.name, sizeof(decl->data.var_decl.name), class_ns, name_tok->value);
     strcpy(decl->data.var_decl.type, base);
@@ -1227,8 +1222,8 @@ static ASTNode* parse_type_member(const Token* t, int* c, const char* class_ns, 
 
 
 static ASTNode* parse_use_body(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
-    advance(t, c);  // fun
-    advance(t, c);  // __USE__
+    advance(t, c);
+    advance(t, c);
 
     if (peek(t, c)->type != TOKEN_LPAREN)
         raiseError("Expected '(' after __USE__", "E0009");
@@ -1239,9 +1234,7 @@ static ASTNode* parse_use_body(const Token* t, int* c, const char* ns, ARGS_CONT
 
     ParserState* ps = parser_state();
 
-    ASTNode* body = (ASTNode*)malloc(sizeof(ASTNode));
-    if (!body)
-        raiseError("Memory allocation failed", "E0004");
+    ASTNode* body = alloc_node();
     body->type = NODE_PROGRAM;
 
     ps->in_use_fn = 1;
@@ -1252,10 +1245,7 @@ static ASTNode* parse_use_body(const Token* t, int* c, const char* ns, ARGS_CONT
 }
 
 static ASTNode* parse_class_members(const Token* t, int* c, const char* class_ns, int is_type, ARGS_CONTEX* ctx) {
-    ASTNode* program = (ASTNode*)malloc(sizeof(ASTNode));
-
-    if (!program)
-        raiseError("Memory allocation failed", "E0004");
+    ASTNode* program = alloc_node();
 
     program->type = NODE_PROGRAM;
     program->data.program.count = 0;
@@ -1329,6 +1319,7 @@ static ASTNode* parse_class_members(const Token* t, int* c, const char* class_ns
         }
 
         class_push(program, &cap, member);
+
     }
 
     if (peek(t, c)->type == TOKEN_END) {
@@ -1376,24 +1367,23 @@ static ASTNode* parse_class(const Token* t, int* c, const char* ns, ARGS_CONTEX*
     ps->extl_type = (TokenType)0;
     ps->extl_value[0] = '\0';
 
+    // This pass only validates the class body; the result is thrown away, so
+    // the whole tree (not just the container) has to be freed.
     ASTNode* validated = parse_class_members(t, c, def->name, is_type, ctx);
 
     ps->extl_active = 0;
     ps->sym_count = saved_syms;
 
-    free(validated->data.program.statements);
-    free(validated);
+    free_ast(validated);
 
     ps->class_def_count++;
 
-    ASTNode* empty = (ASTNode*)malloc(sizeof(ASTNode));
-
-    if (!empty)
-        raiseError("Memory allocation failed", "E0004");
-
+    ASTNode* empty = alloc_node();
     empty->type = NODE_PROGRAM;
     empty->data.program.count = 0;
     empty->data.program.statements = (ASTNode**)malloc(sizeof(ASTNode*));
+    if (!empty->data.program.statements)
+        raiseError("Memory allocation failed", "E0004");
     return empty;
 }
 
@@ -1426,9 +1416,7 @@ ASTNode* parse(const Token* tokens, int count, ARGS_CONTEX* ctx) {
     // worst case: 10 names of 63 chars, 9 dots, NUL
     char current_namespace[10 * 64] = "";
 
-    ASTNode* program_node = (ASTNode*)malloc(sizeof(ASTNode));
-    if (!program_node)
-        raiseError("Memory allocation failed", "E0004");
+    ASTNode* program_node = alloc_node();
 
     program_node->type = NODE_PROGRAM;
     program_node->data.program.count = 0;
@@ -1466,9 +1454,7 @@ ASTNode* parse(const Token* tokens, int count, ARGS_CONTEX* ctx) {
         if (current->type == TOKEN_INLINE) {
             advance(tokens, &current_token); // Consume TOKEN_INLINE
 
-            ASTNode* inlineNode = (ASTNode*)malloc(sizeof(ASTNode));
-            if (!inlineNode)
-                raiseError("Memory allocation failed", "E0004");
+            ASTNode* inlineNode = alloc_node();
 
             inlineNode->type = NODE_INLINE;
             inlineNode->data.inline_code.code[0] = '\0';
@@ -1479,26 +1465,26 @@ ASTNode* parse(const Token* tokens, int count, ARGS_CONTEX* ctx) {
                 free(inlineNode);
                 raiseError("Expected target specifier after 'inline'", "E0009");
             }
-            
-            snprintf(inlineNode->data.inline_code.target, 
-                    sizeof(inlineNode->data.inline_code.target), 
+
+            snprintf(inlineNode->data.inline_code.target,
+                    sizeof(inlineNode->data.inline_code.target),
                     "%s", target_token->value);
             advance(tokens, &current_token); // Consume target specifier token
 
             // 2. Accumulate tokens into inline code buffer until TOKEN_END or TOKEN_EOF
             size_t buffer_size = sizeof(inlineNode->data.inline_code.code);
 
-            while (peek(tokens, &current_token)->type != TOKEN_END && 
+            while (peek(tokens, &current_token)->type != TOKEN_END &&
                 peek(tokens, &current_token)->type != TOKEN_EOF) {
-                
+
                 Token* tok = peek(tokens, &current_token);
                 size_t current_len = strlen(inlineNode->data.inline_code.code);
 
                 if (current_len < buffer_size - 1) {
                     // Append token value
-                    snprintf(inlineNode->data.inline_code.code + current_len, 
-                            buffer_size - current_len, 
-                            "%s ", tok->value); 
+                    snprintf(inlineNode->data.inline_code.code + current_len,
+                            buffer_size - current_len,
+                            "%s ", tok->value);
                 }
 
                 advance(tokens, &current_token); // Move to next token
@@ -1515,7 +1501,7 @@ ASTNode* parse(const Token* tokens, int count, ARGS_CONTEX* ctx) {
             // 4. Append node to program_node statements array
             if (program_node->data.program.count >= statement_capacity) {
                 statement_capacity *= 2;
-                ASTNode** temp = (ASTNode**)realloc(program_node->data.program.statements, 
+                ASTNode** temp = (ASTNode**)realloc(program_node->data.program.statements,
                                                     sizeof(ASTNode*) * statement_capacity);
                 if (!temp) {
                     free(inlineNode);
@@ -1620,7 +1606,7 @@ ASTNode* parse(const Token* tokens, int count, ARGS_CONTEX* ctx) {
         } else {
             stmt = parse_statement(tokens, &current_token, current_namespace, ctx);
         }
-        
+
         if (stmt != NULL) {
             if (stmt->type == NODE_PROGRAM) {
                 for (int imported_index = 0; imported_index < stmt->data.program.count; imported_index++) {
@@ -1667,9 +1653,7 @@ ASTNode* parse(const Token* tokens, int count, ARGS_CONTEX* ctx) {
 
 ASTNode* parse_if(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
     advance(t, c);
-    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
-    if (!node)
-        raiseError("Memory allocation failed", "E0004");
+    ASTNode* node = alloc_node();
     node->type = NODE_IF;
     node->data.if_stmt.condition = NULL;
 
@@ -1730,9 +1714,7 @@ ASTNode* parse_if(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
             elseif_cond = parse_expression(t, c, ns, ctx);
         }
 
-        ASTNode* elseif_node = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!elseif_node)
-            raiseError("Memory allocation failed", "E0004");
+        ASTNode* elseif_node = alloc_node();
         elseif_node->type = NODE_IF;
         elseif_node->data.if_stmt.condition = elseif_cond;
         int cap2 = 8;
@@ -1769,13 +1751,13 @@ ASTNode* parse_if(const Token* t, int* c, const char* ns, ARGS_CONTEX* ctx) {
         advance(t, c);
 
         // create a program-like node to hold else statements
-        ASTNode* else_block = (ASTNode*)malloc(sizeof(ASTNode));
-        if (!else_block)
-            raiseError("Memory allocation failed", "E0004");
+        ASTNode* else_block = alloc_node();
         else_block->type = NODE_PROGRAM;
         int cap3 = 8;
         else_block->data.program.count = 0;
         else_block->data.program.statements = (ASTNode**)malloc(sizeof(ASTNode*) * cap3);
+        if (!else_block->data.program.statements)
+            raiseError("Memory allocation failed", "E0004");
 
         while (peek(t, c)->type != TOKEN_END && peek(t, c)->type != TOKEN_EOF) {
             ASTNode* inner = parse_statement(t, c, ns, ctx);

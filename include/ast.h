@@ -35,7 +35,7 @@ typedef struct {
     char name[10 * 64];
     const Token* tokens;
     int body_start;
-    int is_type;  // 1 for `class name: type`
+    int is_type;
 } ClassDef;
 
 typedef struct {
@@ -54,7 +54,6 @@ typedef struct {
     char value[64];
 } TypeSym;
 
-// All mutable parser state lives here instead of in file-level globals.
 typedef struct {
     ClassDef class_defs[PARSER_MAX_CLASSES];
     int      class_def_count;
@@ -65,10 +64,10 @@ typedef struct {
     TypeSym  syms[PARSER_MAX_SYMS];
     int      sym_count;
 
-    int       in_use_fn;      // 1 while parsing the body of a __USE__ function
-    int       extl_active;    // 1 while parsing a type class body (definition or instance)
-    TokenType extl_type;      // token type of the extl literal (0 = unknown, while validating a definition)
-    char      extl_value[64]; // text of the extl literal
+    int       in_use_fn;
+    int       extl_active;
+    TokenType extl_type;
+    char      extl_value[64];
 } ParserState;
 
 typedef struct ASTNode {
@@ -177,6 +176,7 @@ typedef struct ASTNode {
 
 ParserState* parser_state(void);
 void parser_state_reset(void);
+void free_ast(ASTNode* node);
 
 Token* peek(const Token* t, const int* c);
 Token* advance(const Token* t, int* c);
