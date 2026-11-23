@@ -1,3 +1,42 @@
-import "math"
+class string: type
+    extl char[] text
+    impl int len
+    fun __USE__()
+        text = extl
+        len = sizeof(text)
+    end
+end
 
-scho(math.min(65, 66))
+class dbl: type
+    extl int v
+    impl int twice
+    fun __USE__()
+        v = extl
+        twice = extl * 2
+    end
+end
+
+class Counter
+    val n := 5
+end
+
+string a = "hi"
+string b = "hello"
+string c = ""
+scho(a.len + 48)
+scho(b.len + 48)
+scho(c.len + 48)
+scho("\n")
+
+val ctr := Counter
+scho(ctr.n + 48)
+scho("\n")
+
+dbl x = 3
+scho(x.v + 48)
+scho(x.twice + 48)
+scho("\n")
+
+string s = "abc"
+scho(s.len * 2 + 48)
+scho("\n")
