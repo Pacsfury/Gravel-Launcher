@@ -8,6 +8,7 @@
 #define PARSER_MAX_PARAMS  100
 #define PARSER_IDENT_LEN   64
 #define PARSER_MAX_SYMS    256
+#define MAX_PACKAGE_BUFFERS 64
 
 typedef enum {
     NODE_LITERAL,
@@ -68,6 +69,11 @@ typedef struct {
     int       extl_active;
     TokenType extl_type;
     char      extl_value[64];
+
+    Token* package_tokens[MAX_PACKAGE_BUFFERS];
+    int package_token_count;
+    char imported[MAX_PACKAGE_BUFFERS][64];
+    int imported_count;
 } ParserState;
 
 typedef struct ASTNode {
