@@ -16,7 +16,18 @@ static void qualify_var(char* dest, size_t dest_size, const char* ns, const char
 static ParserState g_parser_state;
 
 ParserState* parser_state(void) { return &g_parser_state; }
-void parser_state_reset(void) { memset(&g_parser_state, 0, sizeof(g_parser_state)); }
+
+static void release_package_tokens(void) {
+    for (int i = 0; i < g_parser_state.package_token_count; i++)
+        free(g_parser_state.package_tokens[i]);
+    g_parser_state.package_token_count = 0;
+    g_parser_state.imported_count = 0;
+}
+
+void parser_state_reset(void) {
+    release_package_tokens();
+    memset(&g_parser_state, 0, sizeof(g_parser_state));
+}
 
 static ASTNode* alloc_node(void) {
     ASTNode* node = (ASTNode*)calloc(1, sizeof(ASTNode));
@@ -237,6 +248,19 @@ static ASTNode* make_reassign(const char* name, ASTNode* value) {
 }
 
 ASTNode* getPackage(char* name, ARGS_CONTEX* ctx) {
+    for (int i = 0; i < g_parser_state.imported_count; i++) {
+        if (strcmp(g_parser_state.imported[i], name) == 0) {
+            ASTNode* empty = alloc_node();
+            empty->type = NODE_PROGRAM;
+            return empty;
+        }
+    }
+
+    if (g_parser_state.imported_count >= MAX_PACKAGE_BUFFERS || g_parser_state.package_token_count >= MAX_PACKAGE_BUFFERS)
+        raiseError("Too many imported packages", "E0034");
+    
+    snprintf(g_parser_state.imported[g_parser_state.imported_count++], sizeof(g_parser_state.imported[0]), "%s", name);
+
     char* file_path = getPackagePath(name);
     if (!file_path) {
         raiseError("Package not found", "E0032");
@@ -244,20 +268,16 @@ ASTNode* getPackage(char* name, ARGS_CONTEX* ctx) {
     }
 
     char* code = get_file_contents(file_path);
-
     if (!code) {
         raiseError("File does not exist or cannot be read", "E0031");
         return NULL;
     }
 
     token_data_t* backup_token_data = get_token_data();
-
-    if (!backup_token_data) {
+    if (!backup_token_data)
         raiseError("Missing variable. 'token_data'", "E0005");
-    }
 
     token_data_t* temp_token_data = (token_data_t*)malloc(sizeof(token_data_t));
-
     if (!temp_token_data)
         raiseError("Memory allocation failed!", "E0004");
 
@@ -269,11 +289,14 @@ ASTNode* getPackage(char* name, ARGS_CONTEX* ctx) {
     set_token_data(temp_token_data);
 
     TokenS content = tokenize(code, ctx, file_path);
+
+    g_parser_state.package_tokens[g_parser_state.package_token_count++] = content.content;
+
     ASTNode* package = parse(content.content, content.count, ctx);
 
-    cleanup_tokenizer();
+    free(temp_token_data);
     set_token_data(backup_token_data);
-    free((void*)code);
+    free(code);
 
     return package;
 }
